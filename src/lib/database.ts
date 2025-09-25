@@ -5,12 +5,10 @@ import {
   getDocs,
   setDoc,
   updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
   limit,
-  startAfter,
   Timestamp,
   writeBatch,
   increment,
@@ -23,7 +21,6 @@ import {
   Tournament,
   TournamentRegistration,
   UserStats,
-  GameStats,
   Announcement,
   AdminUser,
   GameType,
@@ -53,7 +50,7 @@ export const getUser = async (uid: string): Promise<User | null> => {
 
 export const updateUser = async (uid: string, updates: Partial<User>): Promise<void> => {
   const docRef = doc(db, 'users', uid);
-  const updateData = { ...updates };
+  const updateData: Record<string, unknown> = { ...updates };
   
   if (updates.joinDate) {
     updateData.joinDate = Timestamp.fromDate(updates.joinDate);
@@ -134,7 +131,7 @@ export const getTournaments = async (gameType?: GameType, status?: string): Prom
 
 export const updateTournament = async (id: string, updates: Partial<Tournament>): Promise<void> => {
   const docRef = doc(db, 'tournaments', id);
-  const updateData = { ...updates };
+  const updateData: Record<string, unknown> = { ...updates };
   
   if (updates.date) {
     updateData.date = Timestamp.fromDate(updates.date);
@@ -147,6 +144,27 @@ export const updateTournament = async (id: string, updates: Partial<Tournament>)
   }
   
   await updateDoc(docRef, updateData);
+};
+
+export const deleteTournament = async (id: string): Promise<void> => {
+  const batch = writeBatch(db);
+  
+  // Delete tournament document
+  const tournamentRef = doc(db, 'tournaments', id);
+  batch.delete(tournamentRef);
+  
+  // Delete all tournament registrations
+  const registrationsQuery = query(
+    collection(db, 'tournament_registrations'),
+    where('tournamentId', '==', id)
+  );
+  const registrationsSnapshot = await getDocs(registrationsQuery);
+  
+  registrationsSnapshot.docs.forEach(doc => {
+    batch.delete(doc.ref);
+  });
+  
+  await batch.commit();
 };
 
 // Tournament Registration Management
@@ -242,7 +260,7 @@ export const getUserStats = async (uid: string): Promise<UserStats | null> => {
 
 export const updateUserStats = async (uid: string, updates: Partial<UserStats>): Promise<void> => {
   const docRef = doc(db, 'user_stats', uid);
-  const updateData = { ...updates };
+  const updateData: Record<string, unknown> = { ...updates };
   
   if (updates.lastUpdated) {
     updateData.lastUpdated = Timestamp.fromDate(updates.lastUpdated);
@@ -308,7 +326,7 @@ export const getAnnouncements = async (activeOnly: boolean = true): Promise<Anno
 
 export const updateAnnouncement = async (id: string, updates: Partial<Announcement>): Promise<void> => {
   const docRef = doc(db, 'announcements', id);
-  const updateData = { ...updates };
+  const updateData: Record<string, unknown> = { ...updates };
 
   if (updates.createdAt) {
     updateData.createdAt = Timestamp.fromDate(updates.createdAt);
@@ -321,6 +339,11 @@ export const updateAnnouncement = async (id: string, updates: Partial<Announceme
   }
 
   await updateDoc(docRef, updateData);
+};
+
+export const deleteAnnouncement = async (id: string): Promise<void> => {
+  const docRef = doc(db, 'announcements', id);
+  await updateDoc(docRef, { isActive: false });
 };
 
 export const markAnnouncementAsRead = async (announcementId: string, userId: string): Promise<void> => {
@@ -353,7 +376,7 @@ export const getAdminUser = async (uid: string): Promise<AdminUser | null> => {
 
 export const updateAdminUser = async (uid: string, updates: Partial<AdminUser>): Promise<void> => {
   const docRef = doc(db, 'admin_users', uid);
-  const updateData = { ...updates };
+  const updateData: Record<string, unknown> = { ...updates };
 
   if (updates.createdAt) {
     updateData.createdAt = Timestamp.fromDate(updates.createdAt);
@@ -388,7 +411,7 @@ export const promoteUserToAdmin = async (userId: string, promotedBy: string): Pr
   batch.set(adminUserRef, {
     ...adminUser,
     createdAt: Timestamp.fromDate(adminUser.createdAt),
-    lastActivity: Timestamp.fromDate(adminUser.lastActivity),
+    lastActivity: adminUser.lastActivity ? Timestamp.fromDate(adminUser.lastActivity) : null,
   });
 
   await batch.commit();
@@ -492,7 +515,15 @@ export const awardPoints = async (userId: string, points: number, reason: string
 };
 
 // User Dashboard Functions
-export const getUserTournaments = async (userId: string): Promise<any[]> => {
+export const getUserTournaments = async (userId: string): Promise<{
+  id: string;
+  name: string;
+  date: Date;
+  status: 'upcoming' | 'ongoing' | 'completed';
+  position: number | null;
+  points: number;
+  game: GameType;
+}[]> => {
   const registrationsQuery = query(
     collection(db, 'tournament_registrations'),
     where('userId', '==', userId),
@@ -525,7 +556,14 @@ export const getUserTournaments = async (userId: string): Promise<any[]> => {
   return tournaments;
 };
 
-export const getUserRecentActivity = async (userId: string): Promise<any[]> => {
+export const getUserRecentActivity = async (userId: string): Promise<{
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  timestamp: Date;
+  points: number;
+}[]> => {
   const transactionsQuery = query(
     collection(db, 'points_transactions'),
     where('userId', '==', userId),
@@ -548,7 +586,11 @@ export const getUserRecentActivity = async (userId: string): Promise<any[]> => {
   });
 };
 
-export const getUserAchievements = async (userId: string): Promise<any[]> => {
+export const getUserAchievements = async (userId: string): Promise<{
+  name: string;
+  description: string;
+  earned: boolean;
+}[]> => {
   const user = await getUser(userId);
   if (!user) return [];
   
@@ -564,7 +606,14 @@ export const getUserAchievements = async (userId: string): Promise<any[]> => {
   return availableAchievements;
 };
 
-export const getAdminOverviewStats = async (): Promise<any> => {
+export const getAdminOverviewStats = async (): Promise<{
+  totalUsers: number;
+  activeUsers: number;
+  totalTournaments: number;
+  upcomingTournaments: number;
+  totalAnnouncements: number;
+  unreadAnnouncements: number;
+}> => {
   const usersQuery = query(collection(db, 'users'));
   const tournamentsQuery = query(collection(db, 'tournaments'));
   const announcementsQuery = query(collection(db, 'announcements'), where('isActive', '==', true));

@@ -4,20 +4,30 @@ import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users, Search, Trophy, Crown, Medal, Award, Gamepad2, Target, TrendingUp } from 'lucide-react';
-import Link from 'next/link';
 import { getAllUsers, getUserStats } from '@/lib/database';
+import { User, GameStats } from '@/types/types';
+
+type PlayerWithStats = User & {
+  rank: number;
+  wins: number;
+  tournaments: number;
+  gameStats: {
+    mario_kart?: GameStats;
+    super_smash_bros?: GameStats;
+    general?: GameStats;
+  };
+};
 
 export default function PlayersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [gameFilter, setGameFilter] = useState('all');
   const [sortBy, setSortBy] = useState('points');
-  const [players, setPlayers] = useState<any[]>([]);
+  const [players, setPlayers] = useState<PlayerWithStats[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,7 +52,7 @@ export default function PlayersPage() {
           })
         );
         
-        setPlayers(playersWithStats);
+        setPlayers(playersWithStats as unknown as PlayerWithStats[]);
       } catch (error) {
         console.error('Error loading players:', error);
       } finally {
@@ -65,7 +75,7 @@ export default function PlayersPage() {
     
     if (gameFilter !== 'all') {
       filtered = filtered.filter(player => 
-        player.gameStats && player.gameStats[gameFilter]
+        player.gameStats && player.gameStats[gameFilter as keyof typeof player.gameStats]
       );
     }
     

@@ -27,8 +27,8 @@ export default function LoginPage() {
       await signIn(email, password);
       toast.success('Welcome back!');
       router.push('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+    } catch (error: unknown) {
+      toast.error((error as Error).message || 'Failed to sign in');
     } finally {
       setLoading(false);
     }
@@ -40,8 +40,8 @@ export default function LoginPage() {
       await signInWithGoogle();
       toast.success('Welcome back!');
       router.push('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in with Google');
+    } catch (error: unknown) {
+      toast.error((error as Error).message || 'Failed to sign in with Google');
     } finally {
       setLoading(false);
     }
@@ -159,7 +159,7 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link 
                 href="/register" 
                 className="text-primary hover:text-primary/80 transition-colors font-medium"

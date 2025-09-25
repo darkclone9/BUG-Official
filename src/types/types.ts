@@ -196,7 +196,7 @@ export interface SearchResult {
   subtitle?: string;
   description?: string;
   avatar?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface NotificationBadge {

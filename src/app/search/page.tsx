@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,36 +21,81 @@ import {
 import Link from 'next/link';
 import { searchUsers, searchTournaments } from '@/lib/database';
 
+type SearchResult = {
+  id: string;
+  name: string;
+  avatar?: string;
+  points: number;
+  rank: number;
+  wins: number;
+  tournaments: number;
+  gameStats: {
+    mario_kart?: {
+      wins: number;
+      tournaments: number;
+      winRate: string;
+    };
+    super_smash_bros?: {
+      wins: number;
+      tournaments: number;
+      winRate: string;
+    };
+  };
+};
+
+type TournamentResult = {
+  id: string;
+  name: string;
+  game: string;
+  date: string;
+  participants: number;
+  maxParticipants: number;
+  status: string;
+  format: string;
+};
+
+type GameResult = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  activeTournaments: number;
+  totalPlayers: number;
+};
+
 export default function SearchPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState({
+  const [searchResults, setSearchResults] = useState<{
+    players: SearchResult[];
+    tournaments: TournamentResult[];
+    games: GameResult[];
+  }>({
     players: [],
     tournaments: [],
     games: []
   });
   const [isSearching, setIsSearching] = useState(false);
 
-  // Static games data (no need to search)
-  const games = [
-    {
-      id: 'mario_kart',
-      name: 'Mario Kart 8 Deluxe',
-      description: 'Racing tournament game with all tracks and characters',
-      icon: '🏎️',
-      activeTournaments: 0, // Will be calculated from real data
-      totalPlayers: 0, // Will be calculated from real data
-    },
-    {
-      id: 'super_smash_bros',
-      name: 'Super Smash Bros Ultimate',
-      description: 'Fighting tournament game with all characters and stages',
-      icon: '🥊',
-      activeTournaments: 0, // Will be calculated from real data
-      totalPlayers: 0, // Will be calculated from real data
-    },
-  ];
-
-  const performSearch = async (term: string) => {
+  const performSearch = useCallback(async (term: string) => {
+    // Static games data (no need to search)
+    const games = [
+      {
+        id: 'mario_kart',
+        name: 'Mario Kart 8 Deluxe',
+        description: 'Racing tournament game with all tracks and characters',
+        icon: '🏎️',
+        activeTournaments: 0, // Will be calculated from real data
+        totalPlayers: 0, // Will be calculated from real data
+      },
+      {
+        id: 'super_smash_bros',
+        name: 'Super Smash Bros Ultimate',
+        description: 'Fighting tournament game with all characters and stages',
+        icon: '🥊',
+        activeTournaments: 0, // Will be calculated from real data
+        totalPlayers: 0, // Will be calculated from real data
+      },
+    ];
     if (!term.trim()) {
       setSearchResults({ players: [], tournaments: [], games: [] });
       return;
@@ -68,20 +113,26 @@ export default function SearchPage() {
           id: player.id,
           name: player.title,
           avatar: player.avatar,
-          points: player.metadata?.points || 0,
+          points: (player.metadata?.points as number) || 0,
           rank: 0, // Will be calculated based on leaderboard
           wins: 0, // Will be fetched from user stats
           tournaments: 0, // Will be fetched from user stats
-          gameStats: {} // Will be fetched from user stats
+          gameStats: {
+            mario_kart: undefined,
+            super_smash_bros: undefined
+          } // Will be fetched from user stats
         })),
         tournaments: tournaments.map(tournament => ({
           id: tournament.id,
           name: tournament.title,
-          game: tournament.subtitle,
-          date: tournament.metadata?.date?.toISOString().split('T')[0] || '',
-          participants: tournament.metadata?.participants || 0,
-          maxParticipants: tournament.metadata?.maxParticipants || 0,
-          status: tournament.metadata?.status || 'upcoming',
+          game: tournament.subtitle || 'unknown',
+          date: tournament.metadata?.date ? 
+            (tournament.metadata.date instanceof Date ? 
+              tournament.metadata.date.toISOString().split('T')[0] : 
+              String(tournament.metadata.date)) : '',
+          participants: (tournament.metadata?.participants as number) || 0,
+          maxParticipants: (tournament.metadata?.maxParticipants as number) || 0,
+          status: (tournament.metadata?.status as string) || 'upcoming',
           format: 'single_elimination' // Default format
         })),
         games: games.filter(game =>
@@ -94,7 +145,7 @@ export default function SearchPage() {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -102,7 +153,7 @@ export default function SearchPage() {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  }, [searchTerm, performSearch]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -364,7 +415,7 @@ export default function SearchPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {mockPlayers.slice(0, 3).map((player, index) => (
+                    {searchResults.players.slice(0, 3).map((player) => (
                       <div key={player.id} className="flex items-center space-x-3">
                         <div className="flex-shrink-0">
                           {getRankIcon(player.rank)}
@@ -388,7 +439,7 @@ export default function SearchPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {mockTournaments.slice(0, 3).map((tournament) => (
+                    {searchResults.tournaments.slice(0, 3).map((tournament) => (
                       <div key={tournament.id} className="flex items-center space-x-3">
                         <div className="flex-shrink-0">
                           <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-medium text-primary-foreground">
@@ -416,7 +467,7 @@ export default function SearchPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {mockGames.map((game) => (
+                    {searchResults.games.map((game) => (
                       <div key={game.id} className="flex items-center space-x-3">
                         <div className="text-2xl">{game.icon}</div>
                         <div className="flex-1">

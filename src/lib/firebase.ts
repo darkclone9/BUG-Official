@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, limit, where } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, query, orderBy, limit, where } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -52,12 +52,12 @@ export const getUpcomingTournaments = async (limitCount = 3) => {
     const tournaments = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    })) as Record<string, unknown>[];
     
     // Filter upcoming tournaments on the client side
     const upcoming = tournaments
       .filter(tournament => {
-        const tournamentDate = new Date(tournament.date);
+        const tournamentDate = new Date(tournament.date as string | number | Date);
         const now = new Date();
         return tournamentDate > now;
       })
@@ -70,7 +70,7 @@ export const getUpcomingTournaments = async (limitCount = 3) => {
   }
 };
 
-export const createTournament = async (tournamentData: any) => {
+export const createTournament = async (tournamentData: Record<string, unknown>) => {
   try {
     const tournamentsRef = collection(db, 'tournaments');
     const docRef = await addDoc(tournamentsRef, {
@@ -93,10 +93,10 @@ export const getUsers = async () => {
     const users = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    })) as Record<string, unknown>[];
     
     // Sort by points on the client side
-    return users.sort((a, b) => (b.points || 0) - (a.points || 0));
+    return users.sort((a, b) => ((b.points as number) || 0) - ((a.points as number) || 0));
   } catch (error) {
     console.error('Error fetching users:', error);
     return [];
@@ -111,11 +111,11 @@ export const getTopUsers = async (limitCount = 10) => {
     const users = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    })) as Record<string, unknown>[];
     
     // Sort by points on the client side
     const sortedUsers = users
-      .sort((a, b) => (b.points || 0) - (a.points || 0))
+      .sort((a, b) => ((b.points as number) || 0) - ((a.points as number) || 0))
       .slice(0, limitCount)
       .map((user, index) => ({
         ...user,
@@ -145,7 +145,7 @@ export const getAnnouncements = async () => {
   }
 };
 
-export const createAnnouncement = async (announcementData: any) => {
+export const createAnnouncement = async (announcementData: Record<string, unknown>) => {
   try {
     const announcementsRef = collection(db, 'announcements');
     const docRef = await addDoc(announcementsRef, {

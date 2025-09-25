@@ -7,47 +7,29 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trophy, Calendar, Users, Clock, Gamepad2, Crown, Award, Target } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Trophy, Calendar, Users, Clock, Crown, Target } from 'lucide-react';
 import Link from 'next/link';
-import { getTournament, getTournamentRegistrations, getUser } from '@/lib/database';
+import { getTournament } from '@/lib/database';
+import { Tournament } from '@/types/types';
 
 export default function TournamentDetailPage() {
   const params = useParams();
   const tournamentId = params.id as string;
   const [isRegistered, setIsRegistered] = useState(false);
-  const [tournament, setTournament] = useState<any>(null);
-  const [registeredPlayers, setRegisteredPlayers] = useState<any[]>([]);
+  const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadTournamentData = async () => {
       try {
         setLoading(true);
-        const [tournamentData, registrations] = await Promise.all([
-          getTournament(tournamentId),
-          getTournamentRegistrations(tournamentId)
-        ]);
+        const tournamentData = await getTournament(tournamentId);
         
         if (tournamentData) {
           setTournament(tournamentData);
           
-          // Get user details for registered players
-          const playersWithDetails = await Promise.all(
-            registrations.map(async (reg) => {
-              const user = await getUser(reg.userId);
-              return {
-                id: reg.userId,
-                name: user?.displayName || reg.userName,
-                avatar: user?.avatar,
-                points: user?.points || 0,
-                rank: 0 // Will be calculated from leaderboard
-              };
-            })
-          );
           
-          setRegisteredPlayers(playersWithDetails);
         }
       } catch (error) {
         console.error('Error loading tournament data:', error);
@@ -117,7 +99,7 @@ export default function TournamentDetailPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center">
               <h1 className="text-2xl font-bold text-foreground mb-4">Tournament Not Found</h1>
-              <p className="text-muted-foreground mb-4">The tournament you're looking for doesn't exist.</p>
+              <p className="text-muted-foreground mb-4">The tournament you&apos;re looking for doesn&apos;t exist.</p>
               <Link href="/tournaments">
                 <Button>Back to Tournaments</Button>
               </Link>
@@ -153,7 +135,7 @@ export default function TournamentDetailPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                {tournament.status === 'upcoming' && tournament.participants < tournament.maxParticipants && (
+                {tournament.status === 'upcoming' && tournament.participants.length < tournament.maxParticipants && (
                   <>
                     {!isRegistered ? (
                       <Button 
@@ -198,12 +180,12 @@ export default function TournamentDetailPage() {
                       <div className="flex items-center text-sm">
                         <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                         <span className="font-medium text-muted-foreground">Tournament Date:</span>
-                        <span className="ml-2">{formatDate(tournament.date)}</span>
+                        <span className="ml-2">{formatDate(tournament.date.toISOString())}</span>
                       </div>
                       <div className="flex items-center text-sm">
                         <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
                         <span className="font-medium text-muted-foreground">Registration Deadline:</span>
-                        <span className="ml-2">{formatDate(tournament.registrationDeadline)}</span>
+                        <span className="ml-2">{formatDate(tournament.registrationDeadline.toISOString())}</span>
                       </div>
                       <div className="flex items-center text-sm">
                         <Users className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -266,7 +248,7 @@ export default function TournamentDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {tournament.brackets.map((match) => (
+                    {tournament.brackets?.map((match) => (
                       <div key={match.id} className="p-4 bg-muted/50 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
@@ -308,30 +290,26 @@ export default function TournamentDetailPage() {
                     Registered Players
                   </CardTitle>
                   <CardDescription>
-                    {tournament.registeredPlayers.length} players registered
+                    {tournament.participants.length} players registered
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {tournament.registeredPlayers.map((player, index) => (
-                      <div key={player.id} className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+                    {tournament.participants.map((playerId, index) => (
+                      <div key={playerId} className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
                         <div className="flex-shrink-0">
                           <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-medium text-primary-foreground">
                             {index + 1}
                           </div>
                         </div>
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={player.avatar} alt={player.name} />
                           <AvatarFallback className="text-xs">
-                            {player.name.charAt(0).toUpperCase()}
+                            {playerId.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <p className="text-sm font-medium">{player.name}</p>
-                          <p className="text-xs text-muted-foreground">{player.points} points</p>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          #{player.rank}
+                          <p className="text-sm font-medium">{playerId}</p>
+                          <p className="text-xs text-muted-foreground">Player</p>
                         </div>
                       </div>
                     ))}

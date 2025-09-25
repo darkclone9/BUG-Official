@@ -21,10 +21,10 @@ import {
   Upload,
   Eye,
   EyeOff,
-  CheckCircle,
   AlertCircle
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { GameType } from '@/types/types';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -42,11 +42,11 @@ export default function SettingsPage() {
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
-    emailUpdates: user?.preferences?.emailUpdates || true,
-    notifications: user?.preferences?.notifications || true,
-    tournamentReminders: true,
-    announcementAlerts: true,
-    weeklyDigest: false,
+    emailUpdates: user?.preferences?.emailUpdates ?? true,
+    notifications: user?.preferences?.notifications ?? true,
+    tournamentReminders: true as boolean,
+    announcementAlerts: true as boolean,
+    weeklyDigest: false as boolean,
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -465,7 +465,7 @@ export default function SettingsPage() {
                               checked={profileData.favoriteGames.includes('mario_kart')}
                               onChange={(e) => {
                                 const games = e.target.checked 
-                                  ? [...profileData.favoriteGames, 'mario_kart']
+                                  ? [...profileData.favoriteGames, 'mario_kart' as GameType]
                                   : profileData.favoriteGames.filter(g => g !== 'mario_kart');
                                 setProfileData({...profileData, favoriteGames: games});
                               }}
@@ -487,7 +487,7 @@ export default function SettingsPage() {
                               checked={profileData.favoriteGames.includes('super_smash_bros')}
                               onChange={(e) => {
                                 const games = e.target.checked 
-                                  ? [...profileData.favoriteGames, 'super_smash_bros']
+                                  ? [...profileData.favoriteGames, 'super_smash_bros' as GameType]
                                   : profileData.favoriteGames.filter(g => g !== 'super_smash_bros');
                                 setProfileData({...profileData, favoriteGames: games});
                               }}

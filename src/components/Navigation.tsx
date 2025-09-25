@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Gamepad2, Trophy, Users, BarChart3, Settings, LogOut, User, Menu, X, Search, Bell, Edit } from 'lucide-react';
+import { Gamepad2, Trophy, BarChart3, Settings, LogOut, User, Menu, X, Search, Bell, Edit } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { getAnnouncements } from '@/lib/database';
 

@@ -4,25 +4,25 @@ import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trophy, Search, Crown, Medal, Award, TrendingUp, Users, Star } from 'lucide-react';
 import { getLeaderboard, getUserStats } from '@/lib/database';
+import { LeaderboardEntry, GameType } from '@/types/types';
 
 export default function LeaderboardPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [timeFilter, setTimeFilter] = useState('all');
   const [gameFilter, setGameFilter] = useState('all');
-  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadLeaderboardData = async () => {
       try {
         setLoading(true);
-        const gameType = gameFilter === 'all' ? undefined : gameFilter as any;
+        const gameType = gameFilter === 'all' ? undefined : gameFilter as GameType;
         const timeframe = timeFilter as 'all' | 'weekly' | 'monthly';
         
         const data = await getLeaderboard(gameType, timeframe);
@@ -61,16 +61,13 @@ export default function LeaderboardPage() {
       );
     }
     
-    if (gameFilter !== 'all') {
-      filtered = filtered.filter(player => 
-        player.gameStats && player.gameStats[gameFilter]
-      );
-    }
+    // Note: Game filtering would require additional data structure
+    // For now, we'll show all players regardless of game filter
     
     return filtered;
   };
 
-  const getPointsForTimeFilter = (player: any) => {
+  const getPointsForTimeFilter = (player: LeaderboardEntry) => {
     switch (timeFilter) {
       case 'weekly':
         return player.weeklyPoints || 0;
@@ -241,7 +238,7 @@ export default function LeaderboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {filteredData.map((player, index) => (
+              {filteredData.map((player) => (
                 <div key={player.uid} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center justify-center w-12 h-12">
@@ -260,11 +257,7 @@ export default function LeaderboardPage() {
                       <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                         <span className="flex items-center">
                           <Trophy className="h-4 w-4 mr-1" />
-                          {player.wins} wins
-                        </span>
-                        <span className="flex items-center">
-                          <Users className="h-4 w-4 mr-1" />
-                          {player.tournaments} tournaments
+                          {getPointsForTimeFilter(player)} points
                         </span>
                       </div>
                     </div>

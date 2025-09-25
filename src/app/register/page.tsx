@@ -50,8 +50,8 @@ export default function RegisterPage() {
       await signUp(formData.email, formData.password, formData.displayName);
       toast.success('Account created successfully! Welcome to Gaming Club!');
       router.push('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create account');
+    } catch (error: unknown) {
+      toast.error((error as Error).message || 'Failed to create account');
     } finally {
       setLoading(false);
     }
@@ -63,8 +63,8 @@ export default function RegisterPage() {
       await signInWithGoogle();
       toast.success('Welcome to Gaming Club!');
       router.push('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign up with Google');
+    } catch (error: unknown) {
+      toast.error((error as Error).message || 'Failed to sign up with Google');
     } finally {
       setLoading(false);
     }

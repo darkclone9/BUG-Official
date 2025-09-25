@@ -7,22 +7,29 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trophy, Calendar, Users, Clock, Search, Filter } from 'lucide-react';
+import { Trophy, Calendar, Users, Clock, Search } from 'lucide-react';
 import Link from 'next/link';
 import { getTournaments } from '@/lib/database';
+import { Tournament, GameType } from '@/types/types';
+
+type TournamentWithParticipantCount = Omit<Tournament, 'participants' | 'date' | 'registrationDeadline'> & {
+  participants: number;
+  date: string;
+  registrationDeadline: string;
+};
 
 export default function TournamentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [gameFilter, setGameFilter] = useState('all');
-  const [tournaments, setTournaments] = useState<any[]>([]);
+  const [tournaments, setTournaments] = useState<TournamentWithParticipantCount[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadTournaments = async () => {
       try {
         setLoading(true);
-        const gameType = gameFilter === 'all' ? undefined : gameFilter as any;
+        const gameType = gameFilter === 'all' ? undefined : gameFilter as GameType;
         const status = statusFilter === 'all' ? undefined : statusFilter;
         
         const data = await getTournaments(gameType, status);

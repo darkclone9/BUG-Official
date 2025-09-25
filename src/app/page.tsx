@@ -9,9 +9,28 @@ import { Trophy, Users, Calendar, Star, Gamepad2, Target, Zap } from 'lucide-rea
 import Link from 'next/link';
 import { getUpcomingTournaments, getTopUsers } from '@/lib/firebase';
 
+type TournamentData = {
+  id: string;
+  name: string;
+  date: string;
+  game: string;
+  participants: number;
+  maxParticipants: number;
+  pointsAwarded?: number;
+};
+
+type UserData = {
+  id: string;
+  displayName: string;
+  points: number;
+  avatar?: string;
+  tournament?: string;
+  game?: string;
+};
+
 export default function Home() {
-  const [upcomingEvents, setUpcomingEvents] = useState([]);
-  const [recentWinners, setRecentWinners] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<TournamentData[]>([]);
+  const [recentWinners, setRecentWinners] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,8 +41,8 @@ export default function Home() {
           getTopUsers(3)
         ]);
         
-        setUpcomingEvents(tournaments);
-        setRecentWinners(topUsers);
+        setUpcomingEvents(tournaments as unknown as TournamentData[]);
+        setRecentWinners(topUsers as unknown as UserData[]);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -132,7 +151,7 @@ export default function Home() {
                 <Card key={event.id} className="glass hover:shadow-lg transition-all duration-300">
                   <CardHeader className="p-4 md:p-6">
                     <div className="flex justify-between items-start">
-                      <CardTitle className="text-base md:text-lg">{event.title}</CardTitle>
+                      <CardTitle className="text-base md:text-lg">{event.name}</CardTitle>
                       <div className="flex flex-col gap-1">
                         <Badge variant="secondary" className="bg-primary text-primary-foreground text-xs">
                           {event.pointsAwarded || 100} pts
@@ -210,7 +229,7 @@ export default function Home() {
                         {index === 2 && <Trophy className="h-6 w-6 md:h-8 md:w-8 text-accent" />}
                       </div>
                       <div>
-                        <CardTitle className="text-base md:text-lg">{winner.displayName || winner.name}</CardTitle>
+                        <CardTitle className="text-base md:text-lg">{winner.displayName}</CardTitle>
                         <CardDescription className="text-sm">
                           {winner.tournament || 'Top Player'}
                         </CardDescription>

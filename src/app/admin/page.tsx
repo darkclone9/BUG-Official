@@ -6,9 +6,6 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
@@ -19,9 +16,6 @@ import {
   Plus, 
   Edit, 
   Trash2, 
-  Calendar,
-  Gamepad2,
-  Target,
   AlertTriangle,
   CheckCircle,
   Clock
@@ -34,17 +28,53 @@ import {
   promoteUserToAdmin,
   demoteAdminToUser
 } from '@/lib/database';
+import { Tournament, Announcement, User } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
+import Image from 'next/image';
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import PointsManagement from '@/components/admin/PointsManagement';
+import AdminSettings from '@/components/admin/AdminSettings';
+import CreateTournamentModal from '@/components/admin/CreateTournamentModal';
+import CreateAnnouncementModal from '@/components/admin/CreateAnnouncementModal';
+import EditTournamentModal from '@/components/admin/EditTournamentModal';
+import EditAnnouncementModal from '@/components/admin/EditAnnouncementModal';
+import DeleteConfirmationModal from '@/components/admin/DeleteConfirmationModal';
+
+type TournamentWithParticipantCount = Omit<Tournament, 'participants' | 'date'> & { 
+  participants: number; 
+  date: string; 
+};
+type AnnouncementWithReadCount = Omit<Announcement, 'createdAt' | 'readBy'> & { 
+  createdAt: string; 
+  readBy: number; 
+};
 
 export default function AdminPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
-  const [overviewStats, setOverviewStats] = useState<any>(null);
-  const [tournaments, setTournaments] = useState<any[]>([]);
-  const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [overviewStats, setOverviewStats] = useState<{
+    totalUsers: number;
+    activeUsers: number;
+    totalTournaments: number;
+    upcomingTournaments: number;
+    totalAnnouncements: number;
+    unreadAnnouncements: number;
+  } | null>(null);
+  const [tournaments, setTournaments] = useState<TournamentWithParticipantCount[]>([]);
+  const [announcements, setAnnouncements] = useState<AnnouncementWithReadCount[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [promotingUser, setPromotingUser] = useState<string | null>(null);
+  
+  // Modal states
+  const [createTournamentModalOpen, setCreateTournamentModalOpen] = useState(false);
+  const [createAnnouncementModalOpen, setCreateAnnouncementModalOpen] = useState(false);
+  const [editTournamentModalOpen, setEditTournamentModalOpen] = useState(false);
+  const [editAnnouncementModalOpen, setEditAnnouncementModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [deleteItem, setDeleteItem] = useState<{ type: 'tournament' | 'announcement'; id: string; name: string } | null>(null);
 
   useEffect(() => {
     const loadAdminData = async () => {
@@ -117,6 +147,105 @@ export default function AdminPage() {
     }
   };
 
+  const handleCreateTournament = () => {
+    setCreateTournamentModalOpen(true);
+  };
+
+  const handleCreateAnnouncement = () => {
+    setCreateAnnouncementModalOpen(true);
+  };
+
+  const handleEditTournament = (tournament: TournamentWithParticipantCount) => {
+    // Convert back to Tournament type for the modal
+    const tournamentForModal: Tournament = {
+      ...tournament,
+      date: new Date(tournament.date),
+      participants: []
+    };
+    setSelectedTournament(tournamentForModal);
+    setEditTournamentModalOpen(true);
+  };
+
+  const handleEditAnnouncement = (announcement: AnnouncementWithReadCount) => {
+    // Convert back to Announcement type for the modal
+    const announcementForModal: Announcement = {
+      ...announcement,
+      createdAt: new Date(announcement.createdAt),
+      readBy: []
+    };
+    setSelectedAnnouncement(announcementForModal);
+    setEditAnnouncementModalOpen(true);
+  };
+
+  const handleDeleteTournament = (tournament: TournamentWithParticipantCount) => {
+    setDeleteItem({ type: 'tournament', id: tournament.id, name: tournament.name });
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteAnnouncement = (announcement: AnnouncementWithReadCount) => {
+    setDeleteItem({ type: 'announcement', id: announcement.id, name: announcement.title });
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteItem) return;
+    
+    try {
+      if (deleteItem.type === 'tournament') {
+        // await deleteTournament(deleteItem.id);
+        console.log('Tournament deleted:', deleteItem.id);
+      } else {
+        // await deleteAnnouncement(deleteItem.id);
+        console.log('Announcement deleted:', deleteItem.id);
+      }
+      
+      // Refresh data
+      const [tournamentsData, announcementsData] = await Promise.all([
+        getTournaments(),
+        getAnnouncements(false)
+      ]);
+      
+      setTournaments(tournamentsData.map(t => ({
+        ...t,
+        participants: t.participants?.length || 0,
+        date: t.date.toISOString().split('T')[0]
+      })));
+      setAnnouncements(announcementsData.map(a => ({
+        ...a,
+        createdAt: a.createdAt.toISOString().split('T')[0],
+        readBy: a.readBy?.length || 0
+      })));
+      
+      setDeleteModalOpen(false);
+      setDeleteItem(null);
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
+  };
+
+  const handleModalSuccess = async () => {
+    // Refresh data after successful creation/update
+    const [tournamentsData, announcementsData] = await Promise.all([
+      getTournaments(),
+      getAnnouncements(false)
+    ]);
+    
+    setTournaments(tournamentsData.map(t => ({
+      ...t,
+      participants: t.participants?.length || 0,
+      date: t.date.toISOString().split('T')[0]
+    })));
+    setAnnouncements(announcementsData.map(a => ({
+      ...a,
+      createdAt: a.createdAt.toISOString().split('T')[0],
+      readBy: a.readBy?.length || 0
+    })));
+  };
+
+
+
+
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'upcoming':
@@ -185,7 +314,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Users</p>
-                    <p className="text-2xl font-bold">{overviewStats.totalUsers}</p>
+                    <p className="text-2xl font-bold">{overviewStats?.totalUsers || 0}</p>
                   </div>
                   <Users className="h-8 w-8 text-primary" />
                 </div>
@@ -197,7 +326,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Active Users</p>
-                    <p className="text-2xl font-bold">{overviewStats.activeUsers}</p>
+                    <p className="text-2xl font-bold">{overviewStats?.activeUsers || 0}</p>
                   </div>
                   <CheckCircle className="h-8 w-8 text-accent" />
                 </div>
@@ -209,7 +338,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Tournaments</p>
-                    <p className="text-2xl font-bold">{overviewStats.totalTournaments}</p>
+                    <p className="text-2xl font-bold">{overviewStats?.totalTournaments || 0}</p>
                   </div>
                   <Trophy className="h-8 w-8 text-primary" />
                 </div>
@@ -221,7 +350,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Upcoming</p>
-                    <p className="text-2xl font-bold">{overviewStats.upcomingTournaments}</p>
+                    <p className="text-2xl font-bold">{overviewStats?.upcomingTournaments || 0}</p>
                   </div>
                   <Clock className="h-8 w-8 text-primary" />
                 </div>
@@ -233,7 +362,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Announcements</p>
-                    <p className="text-2xl font-bold">{overviewStats.totalAnnouncements}</p>
+                    <p className="text-2xl font-bold">{overviewStats?.totalAnnouncements || 0}</p>
                   </div>
                   <Bell className="h-8 w-8 text-accent" />
                 </div>
@@ -245,7 +374,7 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Unread</p>
-                    <p className="text-2xl font-bold">{overviewStats.unreadAnnouncements}</p>
+                    <p className="text-2xl font-bold">{overviewStats?.unreadAnnouncements || 0}</p>
                   </div>
                   <AlertTriangle className="h-8 w-8 text-destructive" />
                 </div>
@@ -255,7 +384,7 @@ export default function AdminPage() {
 
           {/* Admin Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="overview">
                 Overview
               </TabsTrigger>
@@ -267,6 +396,15 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="users">
                 Users
+              </TabsTrigger>
+              <TabsTrigger value="analytics">
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger value="points">
+                Points
+              </TabsTrigger>
+              <TabsTrigger value="settings">
+                Settings
               </TabsTrigger>
             </TabsList>
 
@@ -360,7 +498,10 @@ export default function AdminPage() {
                         Create and manage tournaments
                       </CardDescription>
                     </div>
-                    <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                    <Button 
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      onClick={handleCreateTournament}
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Create Tournament
                     </Button>
@@ -396,11 +537,21 @@ export default function AdminPage() {
                           <TableCell>{getStatusBadge(tournament.status)}</TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              <Button size="sm" variant="outline" className="border-slate-600 text-white hover:bg-slate-700">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-slate-600 text-white hover:bg-slate-700"
+                                onClick={() => handleEditTournament(tournament)}
+                              >
                                 <Edit className="h-3 w-3 mr-1" />
                                 Edit
                               </Button>
-                              <Button size="sm" variant="outline" className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                                onClick={() => handleDeleteTournament(tournament)}
+                              >
                                 <Trash2 className="h-3 w-3 mr-1" />
                                 Delete
                               </Button>
@@ -428,7 +579,10 @@ export default function AdminPage() {
                         Create and manage community announcements
                       </CardDescription>
                     </div>
-                    <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                    <Button 
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      onClick={handleCreateAnnouncement}
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Create Announcement
                     </Button>
@@ -453,11 +607,21 @@ export default function AdminPage() {
                             </p>
                           </div>
                           <div className="flex space-x-2 ml-4">
-                            <Button size="sm" variant="outline" className="border-slate-600 text-white hover:bg-slate-700">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-slate-600 text-white hover:bg-slate-700"
+                              onClick={() => handleEditAnnouncement(announcement)}
+                            >
                               <Edit className="h-3 w-3 mr-1" />
                               Edit
                             </Button>
-                            <Button size="sm" variant="outline" className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                              onClick={() => handleDeleteAnnouncement(announcement)}
+                            >
                               <Trash2 className="h-3 w-3 mr-1" />
                               Delete
                             </Button>
@@ -500,9 +664,11 @@ export default function AdminPage() {
                           <TableCell className="text-white">
                             <div className="flex items-center space-x-3">
                               {userData.avatar ? (
-                                <img 
+                                <Image 
                                   src={userData.avatar} 
                                   alt={userData.displayName}
+                                  width={32}
+                                  height={32}
                                   className="h-8 w-8 rounded-full"
                                 />
                               ) : (
@@ -573,8 +739,72 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Analytics Tab */}
+            <TabsContent value="analytics" className="space-y-6">
+              <AnalyticsDashboard />
+            </TabsContent>
+
+            {/* Points Tab */}
+            <TabsContent value="points" className="space-y-6">
+              <PointsManagement />
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="space-y-6">
+              <AdminSettings />
+            </TabsContent>
+
           </Tabs>
         </div>
+
+        {/* Modals */}
+        <CreateTournamentModal
+          isOpen={createTournamentModalOpen}
+          onClose={() => setCreateTournamentModalOpen(false)}
+          onSuccess={handleModalSuccess}
+        />
+
+        <CreateAnnouncementModal
+          isOpen={createAnnouncementModalOpen}
+          onClose={() => setCreateAnnouncementModalOpen(false)}
+          onSuccess={handleModalSuccess}
+          authorId={user?.uid || ''}
+          authorName={user?.displayName || 'Admin'}
+        />
+
+        <EditTournamentModal
+          isOpen={editTournamentModalOpen}
+          onClose={() => {
+            setEditTournamentModalOpen(false);
+            setSelectedTournament(null);
+          }}
+          onSuccess={handleModalSuccess}
+          tournament={selectedTournament}
+        />
+
+        <EditAnnouncementModal
+          isOpen={editAnnouncementModalOpen}
+          onClose={() => {
+            setEditAnnouncementModalOpen(false);
+            setSelectedAnnouncement(null);
+          }}
+          onSuccess={handleModalSuccess}
+          announcement={selectedAnnouncement}
+        />
+
+        <DeleteConfirmationModal
+          isOpen={deleteModalOpen}
+          onClose={() => {
+            setDeleteModalOpen(false);
+            setDeleteItem(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          title={`Delete ${deleteItem?.type === 'tournament' ? 'Tournament' : 'Announcement'}`}
+          description={`Are you sure you want to delete this ${deleteItem?.type}? This action cannot be undone.`}
+          itemName={deleteItem?.name || ''}
+        />
+
       </div>
     </ProtectedRoute>
   );

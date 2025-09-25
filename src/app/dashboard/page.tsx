@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Trophy, Target, Calendar, Star, TrendingUp, Users, Award, Settings, Bell, Activity, Gamepad2, Crown, Edit } from 'lucide-react';
+import { Trophy, Calendar, Star, TrendingUp, Users, Award, Settings, Bell, Activity, Gamepad2, Crown, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { 
   getUserTournaments, 
@@ -17,14 +17,32 @@ import {
   getAnnouncements,
   getUserStats 
 } from '@/lib/database';
+import { Tournament, Announcement, UserStats, GameStats } from '@/types/types';
+
+type AnnouncementWithRead = Announcement & { read: boolean };
+type UserTournament = Tournament & { 
+  position?: number; 
+  points: number; 
+};
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [userTournaments, setUserTournaments] = useState<any[]>([]);
-  const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [achievements, setAchievements] = useState<any[]>([]);
-  const [userStats, setUserStats] = useState<any>(null);
+  const [userTournaments, setUserTournaments] = useState<UserTournament[]>([]);
+  const [announcements, setAnnouncements] = useState<AnnouncementWithRead[]>([]);
+  const [recentActivity, setRecentActivity] = useState<{
+    id: string;
+    type: string;
+    title: string;
+    description: string;
+    timestamp: Date;
+    points: number;
+  }[]>([]);
+  const [achievements, setAchievements] = useState<{
+    name: string;
+    description: string;
+    earned: boolean;
+  }[]>([]);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,7 +59,7 @@ export default function DashboardPage() {
           getUserStats(user.uid)
         ]);
         
-        setUserTournaments(tournaments);
+        setUserTournaments(tournaments as UserTournament[]);
         setAnnouncements(announcementsData.map(ann => ({
           ...ann,
           read: ann.readBy?.includes(user.uid) || false
@@ -66,7 +84,7 @@ export default function DashboardPage() {
     { label: 'Win Rate', value: userStats ? `${Math.round(userStats.winRate * 100)}%` : '0%', icon: TrendingUp, color: 'text-blue-400' },
   ];
 
-  const gameStats = userStats?.gameStats ? Object.entries(userStats.gameStats).map(([game, stats]: [string, any]) => ({
+  const gameStats = userStats?.gameStats ? Object.entries(userStats.gameStats).map(([game, stats]: [string, GameStats]) => ({
     game: game === 'mario_kart' ? 'Mario Kart' : game === 'super_smash_bros' ? 'Super Smash Bros' : game,
     gamesPlayed: stats.gamesPlayed || 0,
     wins: stats.wins || 0,

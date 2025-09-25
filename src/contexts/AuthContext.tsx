@@ -6,13 +6,10 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signOut,
-  GoogleAuthProvider,
-  signInWithPopup,
   sendPasswordResetEmail,
+  signOut as firebaseSignOut,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db, signInWithGoogle as firebaseSignInWithGoogle } from '@/lib/firebase';
+import { auth, signInWithGoogle as firebaseSignInWithGoogle } from '@/lib/firebase';
 import { User, AdminUser, UserStats } from '@/types/types';
 import { createUser, getUser, updateUser, getAdminUser, createUserStats } from '@/lib/database';
 
@@ -169,7 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await signOut(auth);
+    await firebaseSignOut(auth);
   };
 
   const resetPassword = async (email: string) => {

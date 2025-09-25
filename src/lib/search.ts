@@ -92,8 +92,8 @@ export const performSearch = async (options: SearchOptions): Promise<SearchResul
   if (categories.includes('games')) {
     results.games = GAME_DATA.filter(game =>
       game.title.toLowerCase().includes(query.toLowerCase()) ||
-      game.description.toLowerCase().includes(query.toLowerCase()) ||
-      game.subtitle.toLowerCase().includes(query.toLowerCase())
+      (game.description?.toLowerCase().includes(query.toLowerCase()) ?? false) ||
+      (game.subtitle?.toLowerCase().includes(query.toLowerCase()) ?? false)
     ).slice(0, limit);
   }
 
@@ -214,12 +214,12 @@ export const performAdvancedSearch = async (
     baseOptions.gameFilter = filters.gameType;
   }
 
-  let results = await performSearch(baseOptions);
+  const results = await performSearch(baseOptions);
 
   // Apply additional filters
   if (filters.pointsRange) {
     results.players = results.players.filter(player => {
-      const points = player.metadata?.points || 0;
+      const points = (player.metadata?.points as number) || 0;
       return points >= filters.pointsRange!.min && points <= filters.pointsRange!.max;
     });
   }
