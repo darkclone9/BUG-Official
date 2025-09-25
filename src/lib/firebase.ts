@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, query, orderBy, limit, where } from 'firebase/firestore';
+wimport { getFirestore, collection, getDocs, addDoc, updateDoc, doc, setDoc, query, orderBy, limit, where } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -227,7 +227,7 @@ export const signInWithGoogle = async () => {
       
       if (userDoc.empty) {
         // Create user document for new Google user
-        await addDoc(collection(db, 'users'), {
+        await setDoc(doc(db, 'users', user.uid), {
           uid: user.uid,
           displayName: user.displayName,
           email: user.email,
@@ -242,7 +242,7 @@ export const signInWithGoogle = async () => {
         console.log('Created new user document for Google user');
       } else {
         // Update last login date for existing user
-        const userDocRef = doc(db, 'users', userDoc.docs[0].id);
+        const userDocRef = doc(db, 'users', user.uid);
         await updateDoc(userDocRef, {
           lastLoginDate: new Date()
         });

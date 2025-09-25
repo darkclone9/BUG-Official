@@ -159,6 +159,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     await createUserStats(initialStats);
+
+    // Update the local state immediately to ensure the user is authenticated
+    setUser(newUser);
+    setFirebaseUser(firebaseUser);
   };
 
   const signInWithGoogle = async () => {
