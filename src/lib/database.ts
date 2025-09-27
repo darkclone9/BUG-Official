@@ -8,7 +8,8 @@ import {
     Tournament,
     TournamentRegistration,
     User,
-    UserStats
+    UserStats,
+    EloHistoryEntry
 } from '@/types/types';
 import {
     arrayRemove,
@@ -588,6 +589,48 @@ export const awardPoints = async (userId: string, points: number, reason: string
   await batch.commit();
 };
 
+// ELO-based Points Management
+export const awardEloBasedPoints = async (
+  userId: string,
+  points: number,
+  eloChange: number,
+  reason: string,
+  adminId: string,
+  tournamentId?: string,
+  opponentId?: string,
+  playerRankBefore?: number,
+  opponentRankBefore?: number
+): Promise<void> => {
+  const batch = writeBatch(db);
+
+  // Update user points and ELO rating
+  const userRef = doc(db, 'users', userId);
+  batch.update(userRef, {
+    points: increment(points),
+    weeklyPoints: increment(points),
+    monthlyPoints: increment(points),
+    eloRating: increment(eloChange),
+  });
+
+  // Create enhanced points transaction record
+  const transactionRef = doc(collection(db, 'points_transactions'));
+  batch.set(transactionRef, {
+    userId,
+    amount: points,
+    reason,
+    adminId,
+    timestamp: Timestamp.now(),
+    eloChange,
+    opponentId,
+    playerRankBefore,
+    opponentRankBefore,
+    isEloCalculated: true,
+    tournamentId,
+  });
+
+  await batch.commit();
+};
+
 // User Dashboard Functions
 export const getUserTournaments = async (userId: string): Promise<{
   id: string;
@@ -678,6 +721,252 @@ export const getUserAchievements = async (userId: string): Promise<{
   ];
 
   return availableAchievements;
+};
+
+// ELO Rating System Functions
+export const updateUserEloRating = async (userId: string, newRating: number): Promise<void> => {
+  const userRef = doc(db, 'users', userId);
+  await updateDoc(userRef, {
+    eloRating: newRating,
+  });
+};
+
+export const updateGameStatsElo = async (
+  userId: string,
+  gameType: GameType,
+  newRating: number,
+  eloHistoryEntry: EloHistoryEntry
+): Promise<void> => {
+  const statsRef = doc(db, 'user_stats', userId);
+  const statsDoc = await getDoc(statsRef);
+
+  if (statsDoc.exists()) {
+    const currentStats = statsDoc.data();
+    const gameStats = currentStats.gameStats || {};
+    const currentGameStats = gameStats[gameType] || {
+      gamesPlayed: 0,
+      wins: 0,
+      losses: 0,
+      winRate: 0,
+      averagePosition: 0,
+      bestPosition: 999,
+      pointsEarned: 0,
+      tournamentsWon: 0,
+      eloRating: 1200,
+      eloHistory: [],
+    };
+
+    // Update ELO rating and history
+    currentGameStats.eloRating = newRating;
+    currentGameStats.eloHistory = [...(currentGameStats.eloHistory || []), eloHistoryEntry];
+
+    // Keep only last 50 ELO history entries to prevent document size issues
+    if (currentGameStats.eloHistory.length > 50) {
+      currentGameStats.eloHistory = currentGameStats.eloHistory.slice(-50);
+    }
+
+    gameStats[gameType] = currentGameStats;
+
+    await updateDoc(statsRef, {
+      [`gameStats.${gameType}`]: currentGameStats,
+      lastUpdated: Timestamp.now(),
+    });
+  }
+};
+
+export const getEloLeaderboard = async (gameType?: GameType): Promise<LeaderboardEntry[]> => {
+  let usersQuery;
+
+  if (gameType) {
+    // For game-specific leaderboards, we need to query user_stats
+    const statsQuery = query(
+      collection(db, 'user_stats'),
+      orderBy(`gameStats.${gameType}.eloRating`, 'desc'),
+      limit(100)
+    );
+
+    const statsSnapshot = await getDocs(statsQuery);
+    const leaderboard: LeaderboardEntry[] = [];
+
+    for (const statDoc of statsSnapshot.docs) {
+      const statData = statDoc.data();
+      const gameStats = statData.gameStats?.[gameType];
+
+      if (gameStats && gameStats.eloRating) {
+        const userDoc = await getDoc(doc(db, 'users', statDoc.id));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          leaderboard.push({
+            uid: statDoc.id,
+            displayName: userData.displayName,
+            avatar: userData.avatar,
+            points: userData.points,
+            weeklyPoints: userData.weeklyPoints,
+            monthlyPoints: userData.monthlyPoints,
+            rank: 0, // Will be set after sorting
+            eloRating: gameStats.eloRating,
+          });
+        }
+      }
+    }
+
+    // Sort by ELO rating and assign ranks
+    leaderboard.sort((a, b) => (b.eloRating || 0) - (a.eloRating || 0));
+    leaderboard.forEach((entry, index) => {
+      entry.rank = index + 1;
+    });
+
+    return leaderboard;
+  } else {
+    // For overall leaderboard, use user ELO ratings
+    usersQuery = query(
+      collection(db, 'users'),
+      orderBy('eloRating', 'desc'),
+      limit(100)
+    );
+
+    const snapshot = await getDocs(usersQuery);
+
+    return snapshot.docs.map((doc, index) => ({
+      uid: doc.id,
+      displayName: doc.data().displayName,
+      avatar: doc.data().avatar,
+      points: doc.data().points,
+      weeklyPoints: doc.data().weeklyPoints,
+      monthlyPoints: doc.data().monthlyPoints,
+      rank: index + 1,
+      eloRating: doc.data().eloRating || 1200,
+    })) as LeaderboardEntry[];
+  }
+};
+
+// Tournament ELO Processing
+export const processTournamentWithElo = async (
+  tournamentId: string,
+  results: Array<{
+    playerId: string;
+    position: number;
+    opponentResults?: Array<{
+      opponentId: string;
+      result: 'win' | 'loss' | 'draw';
+    }>;
+  }>
+): Promise<void> => {
+  const tournament = await getTournament(tournamentId);
+  if (!tournament) {
+    throw new Error('Tournament not found');
+  }
+
+  const batch = writeBatch(db);
+
+  // Get all participant data
+  const participantData = new Map();
+  for (const result of results) {
+    const user = await getUser(result.playerId);
+    const userStats = await getUserStats(result.playerId);
+
+    if (user && userStats) {
+      const gameStats = userStats.gameStats[tournament.game] || {
+        gamesPlayed: 0,
+        wins: 0,
+        losses: 0,
+        winRate: 0,
+        averagePosition: 0,
+        bestPosition: 999,
+        pointsEarned: 0,
+        tournamentsWon: 0,
+        eloRating: user.eloRating || 1200,
+        eloHistory: [],
+      };
+
+      participantData.set(result.playerId, {
+        user,
+        userStats,
+        gameStats,
+        currentRating: gameStats.eloRating,
+        gamesPlayed: gameStats.gamesPlayed,
+      });
+    }
+  }
+
+  // Process ELO changes for each participant
+  for (const result of results) {
+    const participant = participantData.get(result.playerId);
+    if (!participant || !result.opponentResults) continue;
+
+    let totalEloChange = 0;
+    let totalBonusPoints = 0;
+    let currentRating = participant.currentRating;
+
+    // Process each match result
+    for (const opponentResult of result.opponentResults) {
+      const opponent = participantData.get(opponentResult.opponentId);
+      if (!opponent) continue;
+
+      // Import ELO calculation functions
+      const { calculateEloChange, createEloHistoryEntry } = await import('./eloSystem');
+
+      const eloResult = calculateEloChange(
+        {
+          playerRating: currentRating,
+          opponentRating: opponent.currentRating,
+          playerResult: opponentResult.result,
+        },
+        participant.gamesPlayed,
+        opponent.gamesPlayed
+      );
+
+      totalEloChange += eloResult.playerRatingChange;
+      totalBonusPoints += eloResult.pointsAwarded;
+      currentRating = eloResult.newPlayerRating;
+
+      // Create ELO history entry
+      const historyEntry = createEloHistoryEntry(
+        currentRating,
+        eloResult.playerRatingChange,
+        opponentResult.opponentId,
+        opponent.currentRating,
+        tournamentId,
+        opponentResult.result
+      );
+
+      // Update game stats with new ELO data
+      await updateGameStatsElo(
+        result.playerId,
+        tournament.game,
+        currentRating,
+        historyEntry
+      );
+    }
+
+    // Award ELO-based points
+    const adminId = tournament.createdBy;
+    const reason = `Tournament ${tournament.name} - Position ${result.position} (ELO-based)`;
+
+    await awardEloBasedPoints(
+      result.playerId,
+      totalBonusPoints,
+      totalEloChange,
+      reason,
+      adminId,
+      tournamentId,
+      undefined, // No single opponent for tournament
+      participantData.get(result.playerId)?.currentRating,
+      undefined
+    );
+
+    // Update user's overall ELO rating
+    await updateUserEloRating(result.playerId, currentRating);
+  }
+
+  // Update tournament status
+  const tournamentRef = doc(db, 'tournaments', tournamentId);
+  batch.update(tournamentRef, {
+    status: 'completed',
+    completedAt: Timestamp.now(),
+  });
+
+  await batch.commit();
 };
 
 export const getAdminOverviewStats = async (): Promise<{

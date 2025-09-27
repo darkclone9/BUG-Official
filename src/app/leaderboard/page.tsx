@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trophy, Search, Crown, Medal, Award, TrendingUp, Users, Star } from 'lucide-react';
-import { getLeaderboard, getUserStats } from '@/lib/database';
+import { getLeaderboard, getUserStats, getEloLeaderboard } from '@/lib/database';
 import { LeaderboardEntry, GameType } from '@/types/types';
 
 export default function LeaderboardPage() {
@@ -17,16 +17,25 @@ export default function LeaderboardPage() {
   const [gameFilter, setGameFilter] = useState('all');
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rankingType, setRankingType] = useState<'points' | 'elo'>('points');
 
   useEffect(() => {
     const loadLeaderboardData = async () => {
       try {
         setLoading(true);
         const gameType = gameFilter === 'all' ? undefined : gameFilter as GameType;
-        const timeframe = timeFilter as 'all' | 'weekly' | 'monthly';
-        
-        const data = await getLeaderboard(gameType, timeframe);
-        
+
+        let data: LeaderboardEntry[];
+
+        if (rankingType === 'elo') {
+          // Load ELO-based leaderboard
+          data = await getEloLeaderboard(gameType);
+        } else {
+          // Load points-based leaderboard
+          const timeframe = timeFilter as 'all' | 'weekly' | 'monthly';
+          data = await getLeaderboard(gameType, timeframe);
+        }
+
         // Enhance data with user stats
         const enhancedData = await Promise.all(
           data.map(async (entry, index) => {
@@ -40,7 +49,7 @@ export default function LeaderboardPage() {
             };
           })
         );
-        
+
         setLeaderboardData(enhancedData);
       } catch (error) {
         console.error('Error loading leaderboard data:', error);
@@ -50,20 +59,20 @@ export default function LeaderboardPage() {
     };
 
     loadLeaderboardData();
-  }, [timeFilter, gameFilter]);
+  }, [timeFilter, gameFilter, rankingType]);
 
   const getFilteredData = () => {
     let filtered = leaderboardData;
-    
+
     if (searchTerm) {
-      filtered = filtered.filter(player => 
+      filtered = filtered.filter(player =>
         player.displayName.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
+
     // Note: Game filtering would require additional data structure
     // For now, we'll show all players regardless of game filter
-    
+
     return filtered;
   };
 
@@ -93,7 +102,7 @@ export default function LeaderboardPage() {
     return <Badge variant="outline">Player</Badge>;
   };
 
-  const filteredData = getFilteredData().sort((a, b) => 
+  const filteredData = getFilteredData().sort((a, b) =>
     getPointsForTimeFilter(b) - getPointsForTimeFilter(a)
   );
 
@@ -116,7 +125,7 @@ export default function LeaderboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -143,7 +152,7 @@ export default function LeaderboardPage() {
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Top Player</CardTitle>
@@ -158,7 +167,7 @@ export default function LeaderboardPage() {
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Average Points</CardTitle>
@@ -166,7 +175,7 @@ export default function LeaderboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {leaderboardData.length > 0 
+                {leaderboardData.length > 0
                   ? Math.round(leaderboardData.reduce((sum, player) => sum + player.points, 0) / leaderboardData.length)
                   : 0
                 }
@@ -176,7 +185,7 @@ export default function LeaderboardPage() {
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active This Week</CardTitle>
@@ -204,18 +213,30 @@ export default function LeaderboardPage() {
               className="pl-10"
             />
           </div>
-          
-          <Select value={timeFilter} onValueChange={setTimeFilter}>
+
+          <Select value={rankingType} onValueChange={(value: 'points' | 'elo') => setRankingType(value)}>
             <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Time period" />
+              <SelectValue placeholder="Ranking type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="weekly">This Week</SelectItem>
-              <SelectItem value="monthly">This Month</SelectItem>
+              <SelectItem value="points">Points Ranking</SelectItem>
+              <SelectItem value="elo">ELO Ranking</SelectItem>
             </SelectContent>
           </Select>
-          
+
+          {rankingType === 'points' && (
+            <Select value={timeFilter} onValueChange={setTimeFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Time period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="weekly">This Week</SelectItem>
+                <SelectItem value="monthly">This Month</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+
           <Select value={gameFilter} onValueChange={setGameFilter}>
             <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Filter by game" />
@@ -233,7 +254,7 @@ export default function LeaderboardPage() {
           <CardHeader>
             <CardTitle>Player Rankings</CardTitle>
             <CardDescription>
-              Rankings based on {timeFilter === 'all' ? 'total points' : timeFilter === 'weekly' ? 'weekly points' : 'monthly points'}
+              Rankings based on {rankingType === 'elo' ? 'ELO ratings' : timeFilter === 'all' ? 'total points' : timeFilter === 'weekly' ? 'weekly points' : 'monthly points'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -244,31 +265,31 @@ export default function LeaderboardPage() {
                     <div className="flex items-center justify-center w-12 h-12">
                       {getRankIcon(player.rank)}
                     </div>
-                    
+
                     <Avatar className="h-12 w-12">
                       <AvatarImage src={player.avatar} alt={player.displayName} />
                       <AvatarFallback>
                         {player.displayName.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    
+
                     <div>
                       <h3 className="font-semibold text-lg">{player.displayName}</h3>
                       <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                         <span className="flex items-center">
                           <Trophy className="h-4 w-4 mr-1" />
-                          {getPointsForTimeFilter(player)} points
+                          {rankingType === 'elo' ? `${player.eloRating || 1200} ELO` : `${getPointsForTimeFilter(player)} points`}
                         </span>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="text-right">
                     <div className="text-2xl font-bold">
-                      {getPointsForTimeFilter(player).toLocaleString()}
+                      {rankingType === 'elo' ? (player.eloRating || 1200) : getPointsForTimeFilter(player).toLocaleString()}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {timeFilter === 'all' ? 'total' : timeFilter === 'weekly' ? 'this week' : 'this month'} points
+                      {rankingType === 'elo' ? 'ELO rating' : `${timeFilter === 'all' ? 'total' : timeFilter === 'weekly' ? 'this week' : 'this month'} points`}
                     </div>
                     <div className="mt-2">
                       {getRankBadge(player.rank)}
@@ -277,13 +298,13 @@ export default function LeaderboardPage() {
                 </div>
               ))}
             </div>
-            
+
             {filteredData.length === 0 && (
               <div className="text-center py-12">
                 <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">No players found</h3>
                 <p className="text-muted-foreground">
-                  {leaderboardData.length === 0 
+                  {leaderboardData.length === 0
                     ? "No players have joined yet. Be the first to register!"
                     : "Try adjusting your search or filter criteria"
                   }

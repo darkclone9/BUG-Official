@@ -7,6 +7,7 @@ export interface User {
   points: number;
   weeklyPoints: number;
   monthlyPoints: number;
+  eloRating: number; // New: ELO rating for competitive ranking
   joinDate: Date;
   achievements?: string[];
   isActive: boolean;
@@ -123,6 +124,7 @@ export interface LeaderboardEntry {
   weeklyPoints: number;
   monthlyPoints: number;
   rank: number;
+  eloRating?: number; // New: ELO rating for competitive ranking
 }
 
 export interface PointsTransaction {
@@ -134,6 +136,11 @@ export interface PointsTransaction {
   eventId?: string;
   adminId: string; // Who awarded/deducted points
   timestamp: Date;
+  eloChange?: number; // New: ELO rating change for this transaction
+  opponentId?: string; // New: Opponent's ID for ELO calculations
+  playerRankBefore?: number; // New: Player's rank before the match
+  opponentRankBefore?: number; // New: Opponent's rank before the match
+  isEloCalculated?: boolean; // New: Whether this transaction used ELO calculations
 }
 
 export interface Achievement {
@@ -173,6 +180,8 @@ export interface GameStats {
   tournamentsWon: number;
   currentRank?: number;
   peakRank?: number;
+  eloRating: number; // New: ELO rating for this specific game
+  eloHistory: EloHistoryEntry[]; // New: Track ELO changes over time
 }
 
 export interface TournamentRegistration {
@@ -221,4 +230,40 @@ export interface NotificationBadge {
   unreadAnnouncements: number;
   upcomingTournaments: number;
   pendingRegistrations: number;
+}
+
+// New ELO-specific interfaces
+export interface EloHistoryEntry {
+  date: Date;
+  rating: number;
+  change: number;
+  opponentId: string;
+  opponentRating: number;
+  tournamentId: string;
+  result: 'win' | 'loss' | 'draw';
+}
+
+export interface EloCalculationParams {
+  playerRating: number;
+  opponentRating: number;
+  playerResult: 'win' | 'loss' | 'draw'; // 1 for win, 0 for loss, 0.5 for draw
+  kFactor?: number; // K-factor for ELO calculation (default: 32)
+}
+
+export interface EloCalculationResult {
+  newPlayerRating: number;
+  newOpponentRating: number;
+  playerRatingChange: number;
+  opponentRatingChange: number;
+  pointsAwarded: number; // Bonus points based on ELO difference
+}
+
+export interface TournamentResult {
+  tournamentId: string;
+  playerId: string;
+  position: number;
+  opponentResults: {
+    opponentId: string;
+    result: 'win' | 'loss' | 'draw';
+  }[];
 }

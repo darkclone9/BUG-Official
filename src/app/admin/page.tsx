@@ -8,6 +8,7 @@ import DeleteConfirmationModal from '@/components/admin/DeleteConfirmationModal'
 import EditAnnouncementModal from '@/components/admin/EditAnnouncementModal';
 import EditTournamentModal from '@/components/admin/EditTournamentModal';
 import GameGenreManagement from '@/components/admin/GameGenreManagement';
+import EloManagement from '@/components/admin/EloManagement';
 import PointsManagement from '@/components/admin/PointsManagement';
 import Navigation from '@/components/Navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -389,7 +390,7 @@ export default function AdminPage() {
 
           {/* Admin Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-8">
+            <TabsList className="grid w-full grid-cols-9">
               <TabsTrigger value="overview">
                 Overview
               </TabsTrigger>
@@ -410,6 +411,9 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="points">
                 Points
+              </TabsTrigger>
+              <TabsTrigger value="elo">
+                ELO System
               </TabsTrigger>
               <TabsTrigger value="settings">
                 Settings
@@ -863,6 +867,11 @@ export default function AdminPage() {
             {/* Points Tab */}
             <TabsContent value="points" className="space-y-6">
               <PointsManagement />
+            </TabsContent>
+
+            {/* ELO System Tab */}
+            <TabsContent value="elo" className="space-y-6">
+              <EloManagement />
             </TabsContent>
 
             {/* Games Tab */}

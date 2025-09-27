@@ -58,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               points: 0,
               weeklyPoints: 0,
               monthlyPoints: 0,
+              eloRating: 1200, // Default ELO rating for new users
               joinDate: new Date(),
               achievements: [],
               isActive: true,
@@ -132,6 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       points: 0,
       weeklyPoints: 0,
       monthlyPoints: 0,
+      eloRating: 1200, // Default ELO rating for new users
       joinDate: new Date(),
       achievements: [],
       isActive: true,
