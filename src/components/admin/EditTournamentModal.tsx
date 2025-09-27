@@ -70,7 +70,7 @@ export default function EditTournamentModal({ isOpen, onClose, onSuccess, tourna
     setLoading(true);
 
     try {
-      const updates = {
+      const updates: Record<string, unknown> = {
         name: formData.name,
         description: formData.description,
         game: formData.game,
@@ -78,12 +78,18 @@ export default function EditTournamentModal({ isOpen, onClose, onSuccess, tourna
         registrationDeadline: formData.registrationDeadline,
         maxParticipants: formData.maxParticipants,
         format: formData.format,
-        entryFee: formData.entryFee || undefined,
-        prizePool: formData.prizePool || undefined,
         pointsAwarded: formData.pointsAwarded,
         rules: formData.rules.filter(rule => rule.trim() !== ''),
         status: formData.status,
       };
+
+      // Only add entryFee and prizePool if they have values
+      if (formData.entryFee && formData.entryFee > 0) {
+        updates.entryFee = formData.entryFee;
+      }
+      if (formData.prizePool && formData.prizePool > 0) {
+        updates.prizePool = formData.prizePool;
+      }
 
       await updateTournament(tournament.id, updates);
       onSuccess();
@@ -302,8 +308,8 @@ export default function EditTournamentModal({ isOpen, onClose, onSuccess, tourna
                   type="number"
                   min="0"
                   value={formData.pointsAwarded.first}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     pointsAwarded: { ...prev.pointsAwarded, first: parseInt(e.target.value) || 0 }
                   }))}
                 />
@@ -315,8 +321,8 @@ export default function EditTournamentModal({ isOpen, onClose, onSuccess, tourna
                   type="number"
                   min="0"
                   value={formData.pointsAwarded.second}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     pointsAwarded: { ...prev.pointsAwarded, second: parseInt(e.target.value) || 0 }
                   }))}
                 />
@@ -328,8 +334,8 @@ export default function EditTournamentModal({ isOpen, onClose, onSuccess, tourna
                   type="number"
                   min="0"
                   value={formData.pointsAwarded.third}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     pointsAwarded: { ...prev.pointsAwarded, third: parseInt(e.target.value) || 0 }
                   }))}
                 />
@@ -341,8 +347,8 @@ export default function EditTournamentModal({ isOpen, onClose, onSuccess, tourna
                   type="number"
                   min="0"
                   value={formData.pointsAwarded.participation}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     pointsAwarded: { ...prev.pointsAwarded, participation: parseInt(e.target.value) || 0 }
                   }))}
                 />

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useGameGenreOptions } from '@/hooks/useGameGenres';
 import { createTournament } from '@/lib/database';
 import { cn } from '@/lib/utils';
-import { GameType } from '@/types/types';
+import { GameType, Tournament } from '@/types/types';
 import { format } from 'date-fns';
 import { CalendarIcon, Plus, X } from 'lucide-react';
 import { useState } from 'react';
@@ -52,7 +52,7 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
     try {
       const tournamentId = `tournament_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      await createTournament({
+      const tournamentData: Partial<Tournament> = {
         id: tournamentId,
         name: formData.name,
         description: formData.description,
@@ -61,15 +61,23 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
         registrationDeadline: formData.registrationDeadline,
         maxParticipants: formData.maxParticipants,
         format: formData.format,
-        entryFee: formData.entryFee || undefined,
-        prizePool: formData.prizePool || undefined,
         pointsAwarded: formData.pointsAwarded,
         rules: formData.rules.filter(rule => rule.trim() !== ''),
         status: formData.status,
         participants: [],
         createdAt: new Date(),
         createdBy: 'current-admin-id', // This should be the current admin's ID
-      });
+      };
+
+      // Only add entryFee and prizePool if they have values
+      if (formData.entryFee && formData.entryFee > 0) {
+        tournamentData.entryFee = formData.entryFee;
+      }
+      if (formData.prizePool && formData.prizePool > 0) {
+        tournamentData.prizePool = formData.prizePool;
+      }
+
+      await createTournament(tournamentData as Tournament);
 
       onSuccess();
       onClose();
