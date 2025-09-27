@@ -11,6 +11,8 @@ import {
     UserStats,
     EloHistoryEntry
 } from '@/types/types';
+import { BracketMatch, TournamentBracket, BracketGenerationOptions } from '@/types/bracket';
+import { BracketGenerator } from './bracketGenerator';
 import {
     arrayRemove,
     arrayUnion,
@@ -27,6 +29,7 @@ import {
     updateDoc,
     where,
     writeBatch,
+    WriteBatch,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -1116,4 +1119,177 @@ export const reorderGameGenres = async (genreIds: string[]): Promise<void> => {
   });
 
   await batch.commit();
+};
+
+// Bracket Management Functions
+export const createTournamentBracket = async (
+  tournamentId: string,
+  format: 'single_elimination' | 'double_elimination' | 'round_robin',
+  participants: string[]
+): Promise<TournamentBracket> => {
+  const options: BracketGenerationOptions = {
+    format,
+    participants,
+    tournamentId,
+    randomizeSeeding: false,
+    seedByElo: true,
+  };
+
+  let matches: BracketMatch[] = [];
+
+  switch (format) {
+    case 'single_elimination':
+      matches = BracketGenerator.generateSingleElimination(options);
+      break;
+    case 'double_elimination':
+      matches = BracketGenerator.generateDoubleElimination(options);
+      break;
+    case 'round_robin':
+      // For round robin, we'll convert to BracketMatch format
+      const rrMatches = BracketGenerator.generateRoundRobin(options);
+      matches = rrMatches.map(rrMatch => ({
+        id: rrMatch.id,
+        tournamentId: rrMatch.tournamentId,
+        round: rrMatch.round,
+        matchNumber: parseInt(rrMatch.id.split('_').pop() || '0'),
+        bracket: 'winners' as const,
+        player1Id: rrMatch.player1Id,
+        player2Id: rrMatch.player2Id,
+        player1Name: rrMatch.player1Name,
+        player2Name: rrMatch.player2Name,
+        winnerId: rrMatch.winnerId,
+        score: rrMatch.score,
+        status: rrMatch.status,
+        scheduledTime: rrMatch.scheduledTime,
+        location: rrMatch.location,
+        createdAt: rrMatch.createdAt,
+        completedAt: rrMatch.completedAt,
+      }));
+      break;
+  }
+
+  const bracket: TournamentBracket = {
+    id: `bracket_${tournamentId}`,
+    tournamentId,
+    format,
+    matches,
+    winnersMatches: matches.filter(m => m.bracket === 'winners'),
+    losersMatches: format === 'double_elimination' ? matches.filter(m => m.bracket === 'losers') : undefined,
+    grandFinalMatch: format === 'double_elimination' ? matches.find(m => m.bracket === 'grand_final') : undefined,
+    totalRounds: Math.max(...matches.map(m => m.round)),
+    currentRound: 1,
+    isComplete: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  // Save bracket to Firestore
+  await setDoc(doc(db, 'tournament_brackets', bracket.id), {
+    ...bracket,
+    createdAt: Timestamp.fromDate(bracket.createdAt),
+    updatedAt: Timestamp.fromDate(bracket.updatedAt),
+    matches: bracket.matches.map(match => ({
+      ...match,
+      createdAt: Timestamp.fromDate(match.createdAt),
+      completedAt: match.completedAt ? Timestamp.fromDate(match.completedAt) : null,
+      scheduledTime: match.scheduledTime ? Timestamp.fromDate(match.scheduledTime) : null,
+    })),
+  });
+
+  return bracket;
+};
+
+export const getTournamentBracket = async (tournamentId: string): Promise<TournamentBracket | null> => {
+  const bracketDoc = await getDoc(doc(db, 'tournament_brackets', `bracket_${tournamentId}`));
+
+  if (!bracketDoc.exists()) return null;
+
+  const data = bracketDoc.data();
+  return {
+    ...data,
+    createdAt: data.createdAt.toDate(),
+    updatedAt: data.updatedAt.toDate(),
+    matches: data.matches.map((match: Record<string, unknown>) => ({
+      ...match,
+      createdAt: (match.createdAt as Timestamp).toDate(),
+      completedAt: match.completedAt ? (match.completedAt as Timestamp).toDate() : undefined,
+      scheduledTime: match.scheduledTime ? (match.scheduledTime as Timestamp).toDate() : undefined,
+    })),
+  } as TournamentBracket;
+};
+
+export const updateMatchResult = async (
+  matchId: string,
+  winnerId: string,
+  score?: { player1: number; player2: number }
+): Promise<void> => {
+  const batch = writeBatch(db);
+
+  // Find the bracket containing this match
+  const bracketsQuery = query(
+    collection(db, 'tournament_brackets'),
+    where('matches', 'array-contains-any', [{ id: matchId }])
+  );
+
+  const bracketsSnapshot = await getDocs(bracketsQuery);
+
+  if (bracketsSnapshot.empty) {
+    throw new Error('Match not found in any bracket');
+  }
+
+  const bracketDoc = bracketsSnapshot.docs[0];
+  const bracketData = bracketDoc.data() as TournamentBracket & { matches: BracketMatch[] };
+
+  // Update the specific match
+  const updatedMatches = bracketData.matches.map(match => {
+    if (match.id === matchId) {
+      const loserId = match.player1Id === winnerId ? match.player2Id : match.player1Id;
+      return {
+        ...match,
+        winnerId,
+        loserId,
+        score,
+        status: 'completed' as const,
+        completedAt: new Date(),
+      };
+    }
+    return match;
+  });
+
+  // Update bracket document
+  batch.update(bracketDoc.ref, {
+    matches: updatedMatches.map(match => ({
+      ...match,
+      createdAt: Timestamp.fromDate(match.createdAt),
+      completedAt: match.completedAt ? Timestamp.fromDate(match.completedAt) : null,
+      scheduledTime: match.scheduledTime ? Timestamp.fromDate(match.scheduledTime) : null,
+    })),
+    updatedAt: Timestamp.now(),
+  });
+
+  // Advance winners to next matches (simplified logic)
+  await advanceWinnerToNextMatch(updatedMatches, matchId, winnerId, batch);
+
+  await batch.commit();
+};
+
+const advanceWinnerToNextMatch = async (
+  matches: BracketMatch[],
+  completedMatchId: string,
+  winnerId: string,
+  _batch: WriteBatch
+): Promise<void> => {
+  const completedMatch = matches.find(m => m.id === completedMatchId);
+  if (!completedMatch || !completedMatch.nextMatchId) return;
+
+  const nextMatch = matches.find(m => m.id === completedMatch.nextMatchId);
+  if (!nextMatch) return;
+
+  // Determine which player slot to fill in the next match
+  const isFirstMatch = completedMatch.matchNumber % 2 === 1;
+
+  // Update the next match in the batch
+  // This would require finding the bracket document and updating it
+  // For now, this is a simplified implementation
+  console.log(`Advancing winner ${winnerId} to match ${nextMatch.id} as ${isFirstMatch ? 'player1' : 'player2'}`);
 };
