@@ -63,7 +63,7 @@ export default function EditAnnouncementModal({
         content: formData.content,
         priority: formData.priority,
         targetAudience: formData.targetAudience,
-        expiresAt: formData.expiresAt,
+        expiresAt: formData.expiresAt || undefined,
         isActive: formData.isActive,
         updatedAt: new Date(),
       };

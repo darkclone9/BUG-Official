@@ -18,8 +18,7 @@ import {
   createGameGenre,
   getGameGenres,
   updateGameGenre,
-  deleteGameGenre,
-  reorderGameGenres
+  deleteGameGenre
 } from '@/lib/database';
 
 interface GameGenreFormData {
@@ -412,7 +411,7 @@ export default function GameGenreManagement() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Deactivate Game Genre</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will deactivate "{genre.displayName}" but preserve it for historical tournament data.
+                              This will deactivate &quot;{genre.displayName}&quot; but preserve it for historical tournament data.
                               Are you sure you want to continue?
                             </AlertDialogDescription>
                           </AlertDialogHeader>

@@ -14,7 +14,7 @@ import {
   getUserStats,
   getUserTournaments
 } from '@/lib/database';
-import { Announcement, GameStats, Tournament, UserStats } from '@/types/types';
+import { Announcement, Tournament, UserStats } from '@/types/types';
 import { Activity, Award, Bell, Calendar, Crown, Edit, Gamepad2, Settings, Star, TrendingUp, Trophy, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -84,13 +84,15 @@ export default function DashboardPage() {
     { label: 'Win Rate', value: userStats ? `${Math.round(userStats.winRate * 100)}%` : '0%', icon: TrendingUp, color: 'text-blue-400' },
   ];
 
-  const gameStats = userStats?.gameStats ? Object.entries(userStats.gameStats).map(([game, stats]: [string, GameStats]) => ({
-    game: game === 'mario_kart' ? 'Mario Kart' : game === 'super_smash_bros' ? 'Super Smash Bros' : game,
-    gamesPlayed: stats.gamesPlayed || 0,
-    wins: stats.wins || 0,
-    winRate: `${Math.round((stats.winRate || 0) * 100)}%`,
-    bestPosition: stats.bestPosition || 0
-  })) : [];
+  const gameStats = userStats?.gameStats ? Object.entries(userStats.gameStats)
+    .filter(([, stats]) => stats !== undefined)
+    .map(([game, stats]) => ({
+      game: game === 'mario_kart' ? 'Mario Kart' : game === 'super_smash_bros' ? 'Super Smash Bros' : game,
+      gamesPlayed: stats!.gamesPlayed || 0,
+      wins: stats!.wins || 0,
+      winRate: `${Math.round((stats!.winRate || 0) * 100)}%`,
+      bestPosition: stats!.bestPosition || 0
+    })) : [];
 
   if (loading) {
     return (

@@ -1,12 +1,12 @@
 /**
  * Data Migration Script: Game Genres
- * 
+ *
  * This script migrates the hardcoded game types to the new dynamic game_genres collection.
  * Run this once after deploying the new game genre management feature.
  */
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, doc, setDoc, Timestamp } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, Timestamp } from 'firebase/firestore';
 
 // Firebase configuration (replace with your actual config)
 const firebaseConfig = {
@@ -108,33 +108,33 @@ const defaultGameGenres = [
 
 async function migrateGameGenres() {
   console.log('Starting game genres migration...');
-  
+
   try {
     const adminUserId = 'system-migration'; // Replace with actual admin UID if needed
-    
+
     for (const genre of defaultGameGenres) {
       const genreRef = doc(db, 'game_genres', genre.id);
-      
+
       const genreData = {
         ...genre,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
         createdBy: adminUserId,
       };
-      
+
       await setDoc(genreRef, genreData);
       console.log(`✅ Created genre: ${genre.displayName}`);
     }
-    
+
     console.log('\n🎉 Game genres migration completed successfully!');
     console.log(`📊 Migrated ${defaultGameGenres.length} game genres`);
-    
+
     // Log summary
     console.log('\n📋 Migration Summary:');
     defaultGameGenres.forEach((genre, index) => {
       console.log(`${index + 1}. ${genre.displayName} (${genre.name})`);
     });
-    
+
   } catch (error) {
     console.error('❌ Error during migration:', error);
     throw error;
