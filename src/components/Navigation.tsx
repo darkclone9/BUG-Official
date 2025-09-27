@@ -1,51 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Gamepad2, Trophy, BarChart3, Settings, LogOut, User, Menu, X, Search, Bell, Edit } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { BarChart3, Bell, Edit, Gamepad2, LogOut, Menu, Search, Settings, Trophy, User, X } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+import AnnouncementBar from './AnnouncementBar';
+import BroadcastBar from './BroadcastBar';
+import NotificationDropdown from './NotificationDropdown';
 import { ThemeToggle } from './ThemeToggle';
-import { getAnnouncements } from '@/lib/database';
 
 export default function Navigation() {
   const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(0);
-  
-  useEffect(() => {
-    const loadNotifications = async () => {
-      if (!user?.uid) {
-        setNotificationCount(0);
-        return;
-      }
-      
-      try {
-        const announcements = await getAnnouncements(true);
-        const unreadCount = announcements.filter(ann => 
-          !ann.readBy?.includes(user.uid)
-        ).length;
-        setNotificationCount(unreadCount);
-      } catch (error) {
-        console.error('Error loading notifications:', error);
-        setNotificationCount(0);
-      }
-    };
-
-    loadNotifications();
-  }, [user?.uid]);
 
   return (
-    <nav className="bg-background/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
+    <>
+      <BroadcastBar />
+      <AnnouncementBar />
+      <nav className="bg-background/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -76,7 +58,7 @@ export default function Navigation() {
           {/* Right side - Theme toggle and User menu */}
           <div className="flex items-center space-x-2">
             <ThemeToggle />
-            
+
             {/* Mobile Menu Button */}
             <div className="md:hidden">
               <Button
@@ -94,24 +76,15 @@ export default function Navigation() {
               {user ? (
                 <>
                   {/* Notifications */}
-                  <Link href="/dashboard">
-                    <Button variant="ghost" size="sm" className="relative h-9 w-9">
-                      <Bell className="h-4 w-4" />
-                      {notificationCount > 0 && (
-                        <span className="absolute -top-1 -right-1 h-5 w-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-                          {notificationCount > 9 ? '9+' : notificationCount}
-                        </span>
-                      )}
-                    </Button>
-                  </Link>
-                  
+                  <NotificationDropdown />
+
                   <Link href="/dashboard">
                     <Button variant="secondary" size="sm">
                       <Trophy className="h-4 w-4 mr-2" />
                       Dashboard
                     </Button>
                   </Link>
-                  
+
                   {user.role === 'admin' && (
                     <Link href="/admin">
                       <Button variant="outline" size="sm">
@@ -241,7 +214,7 @@ export default function Navigation() {
                 <Search className="inline h-4 w-4 mr-2" />
                 Search
               </Link>
-              
+
               {user ? (
                 <>
                   <div className="border-t border-border pt-2 mt-2">
@@ -252,11 +225,6 @@ export default function Navigation() {
                     >
                       <Bell className="inline h-4 w-4 mr-2" />
                       Notifications
-                      {notificationCount > 0 && (
-                        <span className="ml-auto h-5 w-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-                          {notificationCount > 9 ? '9+' : notificationCount}
-                        </span>
-                      )}
                     </Link>
                     <Link
                       href="/dashboard"
@@ -319,6 +287,6 @@ export default function Navigation() {
         )}
       </div>
     </nav>
+    </>
   );
 }
-

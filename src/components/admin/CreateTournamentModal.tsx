@@ -1,19 +1,20 @@
 'use client';
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Plus, X } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useGameGenreOptions } from '@/hooks/useGameGenres';
 import { createTournament } from '@/lib/database';
+import { cn } from '@/lib/utils';
 import { GameType } from '@/types/types';
+import { format } from 'date-fns';
+import { CalendarIcon, Plus, X } from 'lucide-react';
+import { useState } from 'react';
 
 interface CreateTournamentModalProps {
   isOpen: boolean;
@@ -23,10 +24,11 @@ interface CreateTournamentModalProps {
 
 export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: CreateTournamentModalProps) {
   const [loading, setLoading] = useState(false);
+  const { options: gameOptions, loading: genresLoading } = useGameGenreOptions(true);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    game: 'mario_kart' as GameType,
+    game: (gameOptions[0]?.value || 'mario_kart') as GameType,
     date: new Date(),
     registrationDeadline: new Date(),
     maxParticipants: 16,
@@ -49,7 +51,7 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
     setLoading(true);
     try {
       const tournamentId = `tournament_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       await createTournament({
         id: tournamentId,
         name: formData.name,
@@ -68,10 +70,10 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
         createdAt: new Date(),
         createdBy: 'current-admin-id', // This should be the current admin's ID
       });
-      
+
       onSuccess();
       onClose();
-      
+
       // Reset form
       setFormData({
         name: '',
@@ -145,14 +147,20 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
 
             <div className="space-y-2">
               <Label htmlFor="game">Game</Label>
-              <Select value={formData.game} onValueChange={(value: GameType) => setFormData(prev => ({ ...prev, game: value }))}>
+              <Select
+                value={formData.game}
+                onValueChange={(value: GameType) => setFormData(prev => ({ ...prev, game: value }))}
+                disabled={genresLoading}
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={genresLoading ? "Loading games..." : "Select a game"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="mario_kart">Mario Kart</SelectItem>
-                  <SelectItem value="super_smash_bros">Super Smash Bros</SelectItem>
-                  <SelectItem value="general">General</SelectItem>
+                  {gameOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -304,8 +312,8 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
                   type="number"
                   min="0"
                   value={formData.pointsAwarded.first}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     pointsAwarded: { ...prev.pointsAwarded, first: parseInt(e.target.value) || 0 }
                   }))}
                 />
@@ -317,8 +325,8 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
                   type="number"
                   min="0"
                   value={formData.pointsAwarded.second}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     pointsAwarded: { ...prev.pointsAwarded, second: parseInt(e.target.value) || 0 }
                   }))}
                 />
@@ -330,8 +338,8 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
                   type="number"
                   min="0"
                   value={formData.pointsAwarded.third}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     pointsAwarded: { ...prev.pointsAwarded, third: parseInt(e.target.value) || 0 }
                   }))}
                 />
@@ -343,8 +351,8 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
                   type="number"
                   min="0"
                   value={formData.pointsAwarded.participation}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     pointsAwarded: { ...prev.pointsAwarded, participation: parseInt(e.target.value) || 0 }
                   }))}
                 />

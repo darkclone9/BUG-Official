@@ -1,52 +1,55 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import AdminSettings from '@/components/admin/AdminSettings';
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import CreateAnnouncementModal from '@/components/admin/CreateAnnouncementModal';
+import CreateTournamentModal from '@/components/admin/CreateTournamentModal';
+import DeleteConfirmationModal from '@/components/admin/DeleteConfirmationModal';
+import EditAnnouncementModal from '@/components/admin/EditAnnouncementModal';
+import EditTournamentModal from '@/components/admin/EditTournamentModal';
+import GameGenreManagement from '@/components/admin/GameGenreManagement';
+import PointsManagement from '@/components/admin/PointsManagement';
 import Navigation from '@/components/Navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  Settings, 
-  Trophy, 
-  Bell, 
-  Users, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  AlertTriangle,
-  CheckCircle,
-  Clock
-} from 'lucide-react';
-import { 
-  getAdminOverviewStats, 
-  getTournaments, 
-  getAnnouncements, 
-  getAllUsers,
-  promoteUserToAdmin,
-  demoteAdminToUser
-} from '@/lib/database';
-import { Tournament, Announcement, User } from '@/types/types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+    deleteAnnouncement,
+    deleteTournament,
+    demoteAdminToUser,
+    getAdminOverviewStats,
+    getAllUsers,
+    getAnnouncements,
+    getTournaments,
+    promoteUserToAdmin
+} from '@/lib/database';
+import { Announcement, Tournament, User } from '@/types/types';
+import {
+    AlertTriangle,
+    Bell,
+    CheckCircle,
+    Clock,
+    Edit,
+    Plus,
+    Settings,
+    Trash2,
+    Trophy,
+    Users
+} from 'lucide-react';
 import Image from 'next/image';
-import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
-import PointsManagement from '@/components/admin/PointsManagement';
-import AdminSettings from '@/components/admin/AdminSettings';
-import CreateTournamentModal from '@/components/admin/CreateTournamentModal';
-import CreateAnnouncementModal from '@/components/admin/CreateAnnouncementModal';
-import EditTournamentModal from '@/components/admin/EditTournamentModal';
-import EditAnnouncementModal from '@/components/admin/EditAnnouncementModal';
-import DeleteConfirmationModal from '@/components/admin/DeleteConfirmationModal';
+import { useEffect, useState } from 'react';
 
-type TournamentWithParticipantCount = Omit<Tournament, 'participants' | 'date'> & { 
-  participants: number; 
-  date: string; 
+type TournamentWithParticipantCount = Omit<Tournament, 'participants' | 'date'> & {
+  participants: number;
+  date: string;
 };
-type AnnouncementWithReadCount = Omit<Announcement, 'createdAt' | 'readBy'> & { 
-  createdAt: string; 
-  readBy: number; 
+type AnnouncementWithReadCount = Omit<Announcement, 'createdAt' | 'readBy'> & {
+  createdAt: string;
+  readBy: number;
 };
 
 export default function AdminPage() {
@@ -65,7 +68,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [promotingUser, setPromotingUser] = useState<string | null>(null);
-  
+
   // Modal states
   const [createTournamentModalOpen, setCreateTournamentModalOpen] = useState(false);
   const [createAnnouncementModalOpen, setCreateAnnouncementModalOpen] = useState(false);
@@ -86,7 +89,7 @@ export default function AdminPage() {
           getAnnouncements(false),
           getAllUsers()
         ]);
-        
+
         setOverviewStats(stats);
         setTournaments(tournamentsData.map(t => ({
           ...t,
@@ -111,15 +114,15 @@ export default function AdminPage() {
 
   const handlePromoteToAdmin = async (userId: string) => {
     if (!user) return;
-    
+
     try {
       setPromotingUser(userId);
       await promoteUserToAdmin(userId, user.uid);
-      
+
       // Refresh users data
       const usersData = await getAllUsers();
       setUsers(usersData);
-      
+
       // Show success message (you could add a toast notification here)
       console.log('User promoted to admin successfully');
     } catch (error) {
@@ -133,11 +136,11 @@ export default function AdminPage() {
     try {
       setPromotingUser(userId);
       await demoteAdminToUser(userId);
-      
+
       // Refresh users data
       const usersData = await getAllUsers();
       setUsers(usersData);
-      
+
       // Show success message (you could add a toast notification here)
       console.log('Admin demoted to user successfully');
     } catch (error) {
@@ -189,22 +192,22 @@ export default function AdminPage() {
 
   const handleConfirmDelete = async () => {
     if (!deleteItem) return;
-    
+
     try {
       if (deleteItem.type === 'tournament') {
-        // await deleteTournament(deleteItem.id);
+        await deleteTournament(deleteItem.id);
         console.log('Tournament deleted:', deleteItem.id);
       } else {
-        // await deleteAnnouncement(deleteItem.id);
+        await deleteAnnouncement(deleteItem.id);
         console.log('Announcement deleted:', deleteItem.id);
       }
-      
+
       // Refresh data
       const [tournamentsData, announcementsData] = await Promise.all([
         getTournaments(),
         getAnnouncements(false)
       ]);
-      
+
       setTournaments(tournamentsData.map(t => ({
         ...t,
         participants: t.participants?.length || 0,
@@ -215,7 +218,7 @@ export default function AdminPage() {
         createdAt: a.createdAt.toISOString().split('T')[0],
         readBy: a.readBy?.length || 0
       })));
-      
+
       setDeleteModalOpen(false);
       setDeleteItem(null);
     } catch (error) {
@@ -229,7 +232,7 @@ export default function AdminPage() {
       getTournaments(),
       getAnnouncements(false)
     ]);
-    
+
     setTournaments(tournamentsData.map(t => ({
       ...t,
       participants: t.participants?.length || 0,
@@ -265,6 +268,8 @@ export default function AdminPage() {
         return <Badge className="bg-destructive text-destructive-foreground">Urgent</Badge>;
       case 'important':
         return <Badge className="bg-accent text-accent-foreground">Important</Badge>;
+      case 'broadcast':
+        return <Badge className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white">Broadcast</Badge>;
       case 'normal':
         return <Badge className="bg-primary text-primary-foreground">Normal</Badge>;
       default:
@@ -294,7 +299,7 @@ export default function AdminPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
         <Navigation />
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
@@ -320,7 +325,7 @@ export default function AdminPage() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="glass hover:shadow-lg transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -332,7 +337,7 @@ export default function AdminPage() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="glass hover:shadow-lg transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -344,7 +349,7 @@ export default function AdminPage() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="glass hover:shadow-lg transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -356,7 +361,7 @@ export default function AdminPage() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="glass hover:shadow-lg transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -368,7 +373,7 @@ export default function AdminPage() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="glass hover:shadow-lg transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -384,7 +389,7 @@ export default function AdminPage() {
 
           {/* Admin Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="overview">
                 Overview
               </TabsTrigger>
@@ -396,6 +401,9 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="users">
                 Users
+              </TabsTrigger>
+              <TabsTrigger value="games">
+                Games
               </TabsTrigger>
               <TabsTrigger value="analytics">
                 Analytics
@@ -498,7 +506,7 @@ export default function AdminPage() {
                         Create and manage tournaments
                       </CardDescription>
                     </div>
-                    <Button 
+                    <Button
                       className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                       onClick={handleCreateTournament}
                     >
@@ -537,18 +545,18 @@ export default function AdminPage() {
                           <TableCell>{getStatusBadge(tournament.status)}</TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 className="border-slate-600 text-white hover:bg-slate-700"
                                 onClick={() => handleEditTournament(tournament)}
                               >
                                 <Edit className="h-3 w-3 mr-1" />
                                 Edit
                               </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
                                 onClick={() => handleDeleteTournament(tournament)}
                               >
@@ -579,7 +587,7 @@ export default function AdminPage() {
                         Create and manage community announcements
                       </CardDescription>
                     </div>
-                    <Button 
+                    <Button
                       className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                       onClick={handleCreateAnnouncement}
                     >
@@ -589,8 +597,67 @@ export default function AdminPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {announcements.map((announcement) => (
+                  <div className="space-y-6">
+                    {/* Broadcast Announcements Section */}
+                    {announcements.filter(a => a.isActive && a.priority === 'broadcast').length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-medium text-purple-300 mb-4 flex items-center">
+                          <span className="w-3 h-3 bg-purple-500 rounded-full mr-2 animate-pulse"></span>
+                          Broadcast Announcements
+                        </h3>
+                        <div className="space-y-4">
+                          {announcements.filter(a => a.isActive && a.priority === 'broadcast').map((announcement) => (
+                            <div key={announcement.id} className="p-4 bg-gradient-to-r from-purple-700/30 to-indigo-700/30 rounded-lg border border-purple-500/20">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <h4 className="font-medium text-white">{announcement.title}</h4>
+                                    {getPriorityBadge(announcement.priority)}
+                                    <Badge variant="outline" className="text-xs">
+                                      {announcement.readBy} reads
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs bg-green-500/20 text-green-400 border-green-500">
+                                      Active
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-gray-300 mb-2">{announcement.content}</p>
+                                  <p className="text-xs text-gray-400">
+                                    Created {new Date(announcement.createdAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <div className="flex space-x-2 ml-4">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-slate-600 text-white hover:bg-slate-700"
+                                    onClick={() => handleEditAnnouncement(announcement)}
+                                  >
+                                    <Edit className="h-3 w-3 mr-1" />
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                                    onClick={() => handleDeleteAnnouncement(announcement)}
+                                  >
+                                    <Trash2 className="h-3 w-3 mr-1" />
+                                    Delete
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Regular Announcements Section */}
+                    {announcements.filter(a => a.isActive && a.priority !== 'broadcast').length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-300 mb-4">Regular Announcements</h3>
+                        <div className="space-y-4">
+                          {announcements.filter(a => a.isActive && a.priority !== 'broadcast').map((announcement) => (
                       <div key={announcement.id} className="p-4 bg-slate-700/50 rounded-lg">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -600,6 +667,9 @@ export default function AdminPage() {
                               <Badge variant="outline" className="text-xs">
                                 {announcement.readBy} reads
                               </Badge>
+                              <Badge variant="outline" className="text-xs bg-green-500/20 text-green-400 border-green-500">
+                                Active
+                              </Badge>
                             </div>
                             <p className="text-sm text-gray-300 mb-2">{announcement.content}</p>
                             <p className="text-xs text-gray-400">
@@ -607,18 +677,18 @@ export default function AdminPage() {
                             </p>
                           </div>
                           <div className="flex space-x-2 ml-4">
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="border-slate-600 text-white hover:bg-slate-700"
                               onClick={() => handleEditAnnouncement(announcement)}
                             >
                               <Edit className="h-3 w-3 mr-1" />
                               Edit
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
                               onClick={() => handleDeleteAnnouncement(announcement)}
                             >
@@ -628,7 +698,52 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Inactive Announcements Section */}
+                    {announcements.filter(a => !a.isActive).length > 0 && (
+                      <div className="mt-8">
+                        <h3 className="text-lg font-medium text-gray-300 mb-4">Inactive Announcements</h3>
+                        <div className="space-y-4">
+                          {announcements.filter(a => !a.isActive).map((announcement) => (
+                            <div key={announcement.id} className="p-4 bg-slate-700/30 rounded-lg opacity-60">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <h4 className="font-medium text-gray-400">{announcement.title}</h4>
+                                    {getPriorityBadge(announcement.priority)}
+                                    <Badge variant="outline" className="text-xs">
+                                      {announcement.readBy} reads
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs bg-red-500/20 text-red-400 border-red-500">
+                                      Inactive
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-gray-400 mb-2">{announcement.content}</p>
+                                  <p className="text-xs text-gray-500">
+                                    Created {new Date(announcement.createdAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <div className="flex space-x-2 ml-4">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-slate-600 text-gray-400 hover:bg-slate-700"
+                                    onClick={() => handleEditAnnouncement(announcement)}
+                                  >
+                                    <Edit className="h-3 w-3 mr-1" />
+                                    Edit
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -664,8 +779,8 @@ export default function AdminPage() {
                           <TableCell className="text-white">
                             <div className="flex items-center space-x-3">
                               {userData.avatar ? (
-                                <Image 
-                                  src={userData.avatar} 
+                                <Image
+                                  src={userData.avatar}
                                   alt={userData.displayName}
                                   width={32}
                                   height={32}
@@ -683,10 +798,10 @@ export default function AdminPage() {
                           </TableCell>
                           <TableCell className="text-gray-300">{userData.email}</TableCell>
                           <TableCell>
-                            <Badge 
+                            <Badge
                               className={
-                                userData.role === 'admin' 
-                                  ? 'bg-red-600 text-white' 
+                                userData.role === 'admin'
+                                  ? 'bg-red-600 text-white'
                                   : 'bg-blue-600 text-white'
                               }
                             >
@@ -700,9 +815,9 @@ export default function AdminPage() {
                           <TableCell>
                             <div className="flex space-x-2">
                               {userData.role === 'admin' ? (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
                                   onClick={() => handleDemoteFromAdmin(userData.uid)}
                                   disabled={promotingUser === userData.uid}
@@ -715,9 +830,9 @@ export default function AdminPage() {
                                   Demote
                                 </Button>
                               ) : (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
                                   onClick={() => handlePromoteToAdmin(userData.uid)}
                                   disabled={promotingUser === userData.uid}
@@ -748,6 +863,11 @@ export default function AdminPage() {
             {/* Points Tab */}
             <TabsContent value="points" className="space-y-6">
               <PointsManagement />
+            </TabsContent>
+
+            {/* Games Tab */}
+            <TabsContent value="games" className="space-y-6">
+              <GameGenreManagement />
             </TabsContent>
 
             {/* Settings Tab */}

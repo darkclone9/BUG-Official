@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-wimport { getFirestore, collection, getDocs, addDoc, updateDoc, doc, setDoc, query, orderBy, limit, where } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
+import { addDoc, collection, doc, getDocs, getFirestore, limit, orderBy, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -53,7 +53,7 @@ export const getUpcomingTournaments = async (limitCount = 3) => {
       id: doc.id,
       ...doc.data()
     })) as Record<string, unknown>[];
-    
+
     // Filter upcoming tournaments on the client side
     const upcoming = tournaments
       .filter(tournament => {
@@ -62,7 +62,7 @@ export const getUpcomingTournaments = async (limitCount = 3) => {
         return tournamentDate > now;
       })
       .slice(0, limitCount);
-    
+
     return upcoming;
   } catch (error) {
     console.error('Error fetching upcoming tournaments:', error);
@@ -94,7 +94,7 @@ export const getUsers = async () => {
       id: doc.id,
       ...doc.data()
     })) as Record<string, unknown>[];
-    
+
     // Sort by points on the client side
     return users.sort((a, b) => ((b.points as number) || 0) - ((a.points as number) || 0));
   } catch (error) {
@@ -112,7 +112,7 @@ export const getTopUsers = async (limitCount = 10) => {
       id: doc.id,
       ...doc.data()
     })) as Record<string, unknown>[];
-    
+
     // Sort by points on the client side
     const sortedUsers = users
       .sort((a, b) => ((b.points as number) || 0) - ((a.points as number) || 0))
@@ -121,7 +121,7 @@ export const getTopUsers = async (limitCount = 10) => {
         ...user,
         rank: index + 1
       }));
-    
+
     return sortedUsers;
   } catch (error) {
     console.error('Error fetching top users:', error);
@@ -214,17 +214,17 @@ export const resetPassword = async (email: string) => {
 export const signInWithGoogle = async () => {
   try {
     console.log('Starting Google sign-in...');
-    
+
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
-    
+
     console.log('Google sign-in successful:', user.email);
-    
+
     // Check if user document exists, if not create one
     try {
       // Try to get the user document
       const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
-      
+
       if (userDoc.empty) {
         // Create user document for new Google user
         await setDoc(doc(db, 'users', user.uid), {
@@ -252,7 +252,7 @@ export const signInWithGoogle = async () => {
       // If there's an error with the document operations, still return the user
       console.warn('Error updating user document:', docError);
     }
-    
+
     return user;
   } catch (error) {
     console.error('Error signing in with Google:', error);
@@ -262,4 +262,3 @@ export const signInWithGoogle = async () => {
 
 export { onAuthStateChanged };
 export default app;
-

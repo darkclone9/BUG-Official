@@ -1,19 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { updateAnnouncement } from '@/lib/database';
+import { cn } from '@/lib/utils';
 import { Announcement } from '@/types/types';
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface EditAnnouncementModalProps {
   isOpen: boolean;
@@ -22,17 +22,17 @@ interface EditAnnouncementModalProps {
   announcement: Announcement | null;
 }
 
-export default function EditAnnouncementModal({ 
-  isOpen, 
-  onClose, 
-  onSuccess, 
-  announcement 
+export default function EditAnnouncementModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  announcement
 }: EditAnnouncementModalProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    priority: 'normal' as 'normal' | 'important' | 'urgent',
+    priority: 'normal' as 'normal' | 'important' | 'urgent' | 'broadcast',
     targetAudience: 'all' as 'all' | 'members' | 'admins',
     expiresAt: null as Date | null,
     isActive: true,
@@ -63,7 +63,7 @@ export default function EditAnnouncementModal({
         content: formData.content,
         priority: formData.priority,
         targetAudience: formData.targetAudience,
-        expiresAt: formData.expiresAt || undefined,
+        expiresAt: formData.expiresAt,
         isActive: formData.isActive,
         updatedAt: new Date(),
       };
@@ -117,7 +117,7 @@ export default function EditAnnouncementModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
-              <Select value={formData.priority} onValueChange={(value: 'normal' | 'important' | 'urgent') => setFormData(prev => ({ ...prev, priority: value }))}>
+              <Select value={formData.priority} onValueChange={(value: 'normal' | 'important' | 'urgent' | 'broadcast') => setFormData(prev => ({ ...prev, priority: value }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -125,6 +125,7 @@ export default function EditAnnouncementModal({
                   <SelectItem value="normal">Normal</SelectItem>
                   <SelectItem value="important">Important</SelectItem>
                   <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value="broadcast">Broadcast</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -1,32 +1,33 @@
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  Timestamp,
-  writeBatch,
-  increment,
-  arrayUnion,
-  arrayRemove,
+    AdminUser,
+    Announcement,
+    GameGenre,
+    GameType,
+    LeaderboardEntry,
+    SearchResult,
+    Tournament,
+    TournamentRegistration,
+    User,
+    UserStats
+} from '@/types/types';
+import {
+    arrayRemove,
+    arrayUnion,
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    increment,
+    limit,
+    orderBy,
+    query,
+    setDoc,
+    Timestamp,
+    updateDoc,
+    where,
+    writeBatch,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import {
-  User,
-  Tournament,
-  TournamentRegistration,
-  UserStats,
-  Announcement,
-  AdminUser,
-  GameType,
-  SearchResult,
-  LeaderboardEntry,
-} from '@/types/types';
 
 // User Management
 export const createUser = async (user: User): Promise<void> => {
@@ -39,7 +40,7 @@ export const createUser = async (user: User): Promise<void> => {
 export const getUser = async (uid: string): Promise<User | null> => {
   const userDoc = await getDoc(doc(db, 'users', uid));
   if (!userDoc.exists()) return null;
-  
+
   const data = userDoc.data();
   return {
     ...data,
@@ -51,14 +52,14 @@ export const getUser = async (uid: string): Promise<User | null> => {
 export const updateUser = async (uid: string, updates: Partial<User>): Promise<void> => {
   const docRef = doc(db, 'users', uid);
   const updateData: Record<string, unknown> = { ...updates };
-  
+
   if (updates.joinDate) {
     updateData.joinDate = Timestamp.fromDate(updates.joinDate);
   }
   if (updates.lastLoginDate) {
     updateData.lastLoginDate = Timestamp.fromDate(updates.lastLoginDate);
   }
-  
+
   await updateDoc(docRef, updateData);
 };
 
@@ -75,14 +76,17 @@ export const updateUserProfile = async (uid: string, profileData: {
 };
 
 export const getAllUsers = async (): Promise<User[]> => {
-  const usersQuery = query(collection(db, 'users'), orderBy('displayName'));
+  const usersQuery = query(collection(db, 'users'));
   const snapshot = await getDocs(usersQuery);
-  
-  return snapshot.docs.map(doc => ({
+
+  const users = snapshot.docs.map(doc => ({
     ...doc.data(),
     joinDate: doc.data().joinDate.toDate(),
     lastLoginDate: doc.data().lastLoginDate?.toDate(),
   })) as User[];
+
+  // Sort by displayName on the client side
+  return users.sort((a, b) => a.displayName.localeCompare(b.displayName));
 };
 
 // Tournament Management
@@ -98,7 +102,7 @@ export const createTournament = async (tournament: Tournament): Promise<void> =>
 export const getTournament = async (id: string): Promise<Tournament | null> => {
   const tournamentDoc = await getDoc(doc(db, 'tournaments', id));
   if (!tournamentDoc.exists()) return null;
-  
+
   const data = tournamentDoc.data();
   return {
     ...data,
@@ -110,17 +114,17 @@ export const getTournament = async (id: string): Promise<Tournament | null> => {
 
 export const getTournaments = async (gameType?: GameType, status?: string): Promise<Tournament[]> => {
   let tournamentQuery = query(collection(db, 'tournaments'), orderBy('date', 'desc'));
-  
+
   if (gameType) {
     tournamentQuery = query(tournamentQuery, where('game', '==', gameType));
   }
-  
+
   if (status) {
     tournamentQuery = query(tournamentQuery, where('status', '==', status));
   }
-  
+
   const snapshot = await getDocs(tournamentQuery);
-  
+
   return snapshot.docs.map(doc => ({
     ...doc.data(),
     date: doc.data().date.toDate(),
@@ -132,7 +136,7 @@ export const getTournaments = async (gameType?: GameType, status?: string): Prom
 export const updateTournament = async (id: string, updates: Partial<Tournament>): Promise<void> => {
   const docRef = doc(db, 'tournaments', id);
   const updateData: Record<string, unknown> = { ...updates };
-  
+
   if (updates.date) {
     updateData.date = Timestamp.fromDate(updates.date);
   }
@@ -142,54 +146,54 @@ export const updateTournament = async (id: string, updates: Partial<Tournament>)
   if (updates.createdAt) {
     updateData.createdAt = Timestamp.fromDate(updates.createdAt);
   }
-  
+
   await updateDoc(docRef, updateData);
 };
 
 export const deleteTournament = async (id: string): Promise<void> => {
   const batch = writeBatch(db);
-  
+
   // Delete tournament document
   const tournamentRef = doc(db, 'tournaments', id);
   batch.delete(tournamentRef);
-  
+
   // Delete all tournament registrations
   const registrationsQuery = query(
     collection(db, 'tournament_registrations'),
     where('tournamentId', '==', id)
   );
   const registrationsSnapshot = await getDocs(registrationsQuery);
-  
+
   registrationsSnapshot.docs.forEach(doc => {
     batch.delete(doc.ref);
   });
-  
+
   await batch.commit();
 };
 
 // Tournament Registration Management
 export const registerForTournament = async (registration: TournamentRegistration): Promise<void> => {
   const batch = writeBatch(db);
-  
+
   // Add registration document
   const registrationRef = doc(db, 'tournament_registrations', registration.id);
   batch.set(registrationRef, {
     ...registration,
     registeredAt: Timestamp.fromDate(registration.registeredAt),
   });
-  
+
   // Update tournament participants
   const tournamentRef = doc(db, 'tournaments', registration.tournamentId);
   batch.update(tournamentRef, {
     participants: arrayUnion(registration.userId),
   });
-  
+
   await batch.commit();
 };
 
 export const unregisterFromTournament = async (tournamentId: string, userId: string): Promise<void> => {
   const batch = writeBatch(db);
-  
+
   // Find and delete registration
   const registrationsQuery = query(
     collection(db, 'tournament_registrations'),
@@ -197,17 +201,17 @@ export const unregisterFromTournament = async (tournamentId: string, userId: str
     where('userId', '==', userId)
   );
   const registrations = await getDocs(registrationsQuery);
-  
+
   registrations.forEach(doc => {
     batch.delete(doc.ref);
   });
-  
+
   // Update tournament participants
   const tournamentRef = doc(db, 'tournaments', tournamentId);
   batch.update(tournamentRef, {
     participants: arrayRemove(userId),
   });
-  
+
   await batch.commit();
 };
 
@@ -218,7 +222,7 @@ export const getTournamentRegistrations = async (tournamentId: string): Promise<
     orderBy('registeredAt')
   );
   const snapshot = await getDocs(registrationsQuery);
-  
+
   return snapshot.docs.map(doc => ({
     ...doc.data(),
     registeredAt: doc.data().registeredAt.toDate(),
@@ -232,7 +236,7 @@ export const getUserRegistrations = async (userId: string): Promise<TournamentRe
     orderBy('registeredAt', 'desc')
   );
   const snapshot = await getDocs(registrationsQuery);
-  
+
   return snapshot.docs.map(doc => ({
     ...doc.data(),
     registeredAt: doc.data().registeredAt.toDate(),
@@ -250,7 +254,7 @@ export const createUserStats = async (userStats: UserStats): Promise<void> => {
 export const getUserStats = async (uid: string): Promise<UserStats | null> => {
   const statsDoc = await getDoc(doc(db, 'user_stats', uid));
   if (!statsDoc.exists()) return null;
-  
+
   const data = statsDoc.data();
   return {
     ...data,
@@ -261,11 +265,11 @@ export const getUserStats = async (uid: string): Promise<UserStats | null> => {
 export const updateUserStats = async (uid: string, updates: Partial<UserStats>): Promise<void> => {
   const docRef = doc(db, 'user_stats', uid);
   const updateData: Record<string, unknown> = { ...updates };
-  
+
   if (updates.lastUpdated) {
     updateData.lastUpdated = Timestamp.fromDate(updates.lastUpdated);
   }
-  
+
   await updateDoc(docRef, updateData);
 };
 
@@ -305,13 +309,21 @@ export const createAnnouncement = async (announcement: Announcement): Promise<vo
 };
 
 export const getAnnouncements = async (activeOnly: boolean = true): Promise<Announcement[]> => {
-  let announcementsQuery = query(
-    collection(db, 'announcements'),
-    orderBy('createdAt', 'desc')
-  );
+  let announcementsQuery;
 
   if (activeOnly) {
-    announcementsQuery = query(announcementsQuery, where('isActive', '==', true));
+    // When filtering by isActive, put the where clause first, then orderBy
+    announcementsQuery = query(
+      collection(db, 'announcements'),
+      where('isActive', '==', true),
+      orderBy('createdAt', 'desc')
+    );
+  } else {
+    // When not filtering, just orderBy
+    announcementsQuery = query(
+      collection(db, 'announcements'),
+      orderBy('createdAt', 'desc')
+    );
   }
 
   const snapshot = await getDocs(announcementsQuery);
@@ -334,8 +346,14 @@ export const updateAnnouncement = async (id: string, updates: Partial<Announceme
   if (updates.updatedAt) {
     updateData.updatedAt = Timestamp.fromDate(updates.updatedAt);
   }
-  if (updates.expiresAt) {
-    updateData.expiresAt = Timestamp.fromDate(updates.expiresAt);
+
+  // Handle expiresAt field - can be a Date, null, or undefined
+  if ('expiresAt' in updates) {
+    if (updates.expiresAt) {
+      updateData.expiresAt = Timestamp.fromDate(updates.expiresAt);
+    } else {
+      updateData.expiresAt = null;
+    }
   }
 
   await updateDoc(docRef, updateData);
@@ -351,6 +369,62 @@ export const markAnnouncementAsRead = async (announcementId: string, userId: str
   await updateDoc(docRef, {
     readBy: arrayUnion(userId),
   });
+};
+
+export const dismissBroadcastAnnouncement = async (announcementId: string, userId: string): Promise<void> => {
+  const docRef = doc(db, 'announcements', announcementId);
+  await updateDoc(docRef, {
+    dismissedBy: arrayUnion(userId),
+  });
+};
+
+export const getBroadcastAnnouncements = async (): Promise<Announcement[]> => {
+  // Temporarily remove orderBy to avoid composite index requirement
+  const announcementsQuery = query(
+    collection(db, 'announcements'),
+    where('isActive', '==', true),
+    where('priority', '==', 'broadcast')
+  );
+
+  const snapshot = await getDocs(announcementsQuery);
+
+  const announcements = snapshot.docs.map(doc => ({
+    ...doc.data(),
+    createdAt: doc.data().createdAt.toDate(),
+    updatedAt: doc.data().updatedAt?.toDate(),
+    expiresAt: doc.data().expiresAt?.toDate(),
+  })) as Announcement[];
+
+  // Sort in memory instead of using orderBy
+  return announcements.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+};
+
+export const getRegularAnnouncements = async (activeOnly: boolean = true): Promise<Announcement[]> => {
+  let announcementsQuery;
+
+  if (activeOnly) {
+    announcementsQuery = query(
+      collection(db, 'announcements'),
+      where('isActive', '==', true),
+      where('priority', 'in', ['normal', 'important', 'urgent']),
+      orderBy('createdAt', 'desc')
+    );
+  } else {
+    announcementsQuery = query(
+      collection(db, 'announcements'),
+      where('priority', 'in', ['normal', 'important', 'urgent']),
+      orderBy('createdAt', 'desc')
+    );
+  }
+
+  const snapshot = await getDocs(announcementsQuery);
+
+  return snapshot.docs.map(doc => ({
+    ...doc.data(),
+    createdAt: doc.data().createdAt.toDate(),
+    updatedAt: doc.data().updatedAt?.toDate(),
+    expiresAt: doc.data().expiresAt?.toDate(),
+  })) as Announcement[];
 };
 
 // Admin User Management
@@ -530,7 +604,7 @@ export const getUserTournaments = async (userId: string): Promise<{
     orderBy('registeredAt', 'desc')
   );
   const registrationsSnapshot = await getDocs(registrationsQuery);
-  
+
   const tournaments = [];
   for (const regDoc of registrationsSnapshot.docs) {
     const regData = regDoc.data();
@@ -541,8 +615,8 @@ export const getUserTournaments = async (userId: string): Promise<{
         name: tournament.name,
         date: tournament.date,
         status: tournament.status,
-        position: tournament.winner === userId ? 1 : 
-                 tournament.runnerUp === userId ? 2 : 
+        position: tournament.winner === userId ? 1 :
+                 tournament.runnerUp === userId ? 2 :
                  tournament.thirdPlace === userId ? 3 : null,
         points: tournament.winner === userId ? tournament.pointsAwarded.first :
                 tournament.runnerUp === userId ? tournament.pointsAwarded.second :
@@ -552,7 +626,7 @@ export const getUserTournaments = async (userId: string): Promise<{
       });
     }
   }
-  
+
   return tournaments;
 };
 
@@ -571,12 +645,12 @@ export const getUserRecentActivity = async (userId: string): Promise<{
     limit(10)
   );
   const snapshot = await getDocs(transactionsQuery);
-  
+
   return snapshot.docs.map(doc => {
     const data = doc.data();
     return {
       id: doc.id,
-      type: data.reason.includes('tournament') ? 'tournament_win' : 
+      type: data.reason.includes('tournament') ? 'tournament_win' :
             data.reason.includes('achievement') ? 'achievement' : 'registration',
       title: data.reason,
       description: `Earned ${data.amount} points`,
@@ -593,7 +667,7 @@ export const getUserAchievements = async (userId: string): Promise<{
 }[]> => {
   const user = await getUser(userId);
   if (!user) return [];
-  
+
   // Define available achievements
   const availableAchievements = [
     { name: 'First Win', description: 'Win your first tournament', earned: user.points >= 50 },
@@ -602,7 +676,7 @@ export const getUserAchievements = async (userId: string): Promise<{
     { name: 'Champion', description: 'Win 10 tournaments', earned: user.points >= 500 },
     { name: 'Legend', description: 'Reach 1000 points', earned: user.points >= 1000 },
   ];
-  
+
   return availableAchievements;
 };
 
@@ -617,22 +691,22 @@ export const getAdminOverviewStats = async (): Promise<{
   const usersQuery = query(collection(db, 'users'));
   const tournamentsQuery = query(collection(db, 'tournaments'));
   const announcementsQuery = query(collection(db, 'announcements'), where('isActive', '==', true));
-  
+
   const [usersSnapshot, tournamentsSnapshot, announcementsSnapshot] = await Promise.all([
     getDocs(usersQuery),
     getDocs(tournamentsQuery),
     getDocs(announcementsQuery)
   ]);
-  
+
   const totalUsers = usersSnapshot.size;
   const activeUsers = usersSnapshot.docs.filter(doc => doc.data().isActive).length;
   const totalTournaments = tournamentsSnapshot.size;
   const upcomingTournaments = tournamentsSnapshot.docs.filter(doc => doc.data().status === 'upcoming').length;
   const totalAnnouncements = announcementsSnapshot.size;
-  const unreadAnnouncements = announcementsSnapshot.docs.filter(doc => 
+  const unreadAnnouncements = announcementsSnapshot.docs.filter(doc =>
     !doc.data().readBy || doc.data().readBy.length === 0
   ).length;
-  
+
   return {
     totalUsers,
     activeUsers,
@@ -665,6 +739,91 @@ export const resetMonthlyPoints = async (): Promise<void> => {
 
   snapshot.docs.forEach(doc => {
     batch.update(doc.ref, { monthlyPoints: 0 });
+  });
+
+  await batch.commit();
+};
+
+// Game Genre Management
+export const createGameGenre = async (genre: Omit<GameGenre, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  const genreRef = doc(collection(db, 'game_genres'));
+  const genreData = {
+    ...genre,
+    id: genreRef.id,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  };
+
+  await setDoc(genreRef, genreData);
+  return genreRef.id;
+};
+
+export const getGameGenres = async (activeOnly: boolean = false): Promise<GameGenre[]> => {
+  let genresQuery;
+
+  if (activeOnly) {
+    genresQuery = query(
+      collection(db, 'game_genres'),
+      where('isActive', '==', true),
+      orderBy('displayOrder')
+    );
+  } else {
+    // For all genres, just get all documents and sort on client side
+    genresQuery = query(collection(db, 'game_genres'));
+  }
+
+  const snapshot = await getDocs(genresQuery);
+
+  const genres = snapshot.docs.map(doc => ({
+    ...doc.data(),
+    createdAt: doc.data().createdAt.toDate(),
+    updatedAt: doc.data().updatedAt.toDate(),
+  })) as GameGenre[];
+
+  // Sort on client side if not using server-side ordering
+  if (!activeOnly) {
+    genres.sort((a, b) => a.displayOrder - b.displayOrder);
+  }
+
+  return genres;
+};
+
+export const getGameGenre = async (id: string): Promise<GameGenre | null> => {
+  const genreDoc = await getDoc(doc(db, 'game_genres', id));
+  if (!genreDoc.exists()) return null;
+
+  const data = genreDoc.data();
+  return {
+    ...data,
+    createdAt: data.createdAt.toDate(),
+    updatedAt: data.updatedAt.toDate(),
+  } as GameGenre;
+};
+
+export const updateGameGenre = async (id: string, updates: Partial<Omit<GameGenre, 'id' | 'createdAt'>>): Promise<void> => {
+  const docRef = doc(db, 'game_genres', id);
+  const updateData: Record<string, unknown> = {
+    ...updates,
+    updatedAt: Timestamp.now()
+  };
+
+  await updateDoc(docRef, updateData);
+};
+
+export const deleteGameGenre = async (id: string): Promise<void> => {
+  // Instead of deleting, we deactivate to preserve tournament history
+  await updateGameGenre(id, { isActive: false });
+};
+
+export const reorderGameGenres = async (genreIds: string[]): Promise<void> => {
+  const batch = writeBatch(db);
+
+  genreIds.forEach((id, index) => {
+    const genreRef = doc(db, 'game_genres', id);
+    batch.update(genreRef, {
+      displayOrder: index + 1,
+      updatedAt: Timestamp.now()
+    });
   });
 
   await batch.commit();

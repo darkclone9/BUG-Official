@@ -1,17 +1,17 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import {
-  User as FirebaseUser,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
-  signOut as firebaseSignOut,
-} from 'firebase/auth';
+import { createUser, createUserStats, getAdminUser, getUser, updateUser } from '@/lib/database';
 import { auth, signInWithGoogle as firebaseSignInWithGoogle } from '@/lib/firebase';
-import { User, AdminUser, UserStats } from '@/types/types';
-import { createUser, getUser, updateUser, getAdminUser, createUserStats } from '@/lib/database';
+import { AdminUser, User, UserStats } from '@/types/types';
+import {
+    createUserWithEmailAndPassword,
+    signOut as firebaseSignOut,
+    User as FirebaseUser,
+    onAuthStateChanged,
+    sendPasswordResetEmail,
+    signInWithEmailAndPassword,
+} from 'firebase/auth';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface AuthContextType {
   user: User | null;
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               uid: firebaseUser.uid,
               email: firebaseUser.email!,
               displayName: firebaseUser.displayName || 'Anonymous',
-              avatar: firebaseUser.photoURL || undefined,
+              ...(firebaseUser.photoURL && { avatar: firebaseUser.photoURL }),
               role: 'member',
               points: 0,
               weeklyPoints: 0,
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       uid: firebaseUser.uid,
       email: firebaseUser.email!,
       displayName,
-      avatar: firebaseUser.photoURL || undefined,
+      ...(firebaseUser.photoURL && { avatar: firebaseUser.photoURL }),
       role: 'member',
       points: 0,
       weeklyPoints: 0,
@@ -179,7 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     if (!firebaseUser) return;
-    
+
     try {
       const userData = await getUser(firebaseUser.uid);
       if (userData) {
@@ -215,4 +215,3 @@ export function useAuth() {
   }
   return context;
 }
-

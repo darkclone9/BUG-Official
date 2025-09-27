@@ -1,28 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Trophy, Calendar, Star, TrendingUp, Users, Award, Settings, Bell, Activity, Gamepad2, Crown, Edit } from 'lucide-react';
-import Link from 'next/link';
-import { 
-  getUserTournaments, 
-  getUserRecentActivity, 
-  getUserAchievements, 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import {
   getAnnouncements,
-  getUserStats 
+  getUserAchievements,
+  getUserRecentActivity,
+  getUserStats,
+  getUserTournaments
 } from '@/lib/database';
-import { Tournament, Announcement, UserStats, GameStats } from '@/types/types';
+import { Announcement, GameStats, Tournament, UserStats } from '@/types/types';
+import { Activity, Award, Bell, Calendar, Crown, Edit, Gamepad2, Settings, Star, TrendingUp, Trophy, Users } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 type AnnouncementWithRead = Announcement & { read: boolean };
-type UserTournament = Tournament & { 
-  position?: number; 
-  points: number; 
+type UserTournament = Tournament & {
+  position?: number;
+  points: number;
 };
 
 export default function DashboardPage() {
@@ -48,7 +48,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadDashboardData = async () => {
       if (!user?.uid) return;
-      
+
       try {
         setLoading(true);
         const [tournaments, announcementsData, activity, achievementsData, statsData] = await Promise.all([
@@ -58,7 +58,7 @@ export default function DashboardPage() {
           getUserAchievements(user.uid),
           getUserStats(user.uid)
         ]);
-        
+
         setUserTournaments(tournaments as UserTournament[]);
         setAnnouncements(announcementsData.map(ann => ({
           ...ann,
@@ -114,7 +114,7 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
         <Navigation />
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Welcome Section */}
           <div className="mb-8">
@@ -207,8 +207,9 @@ export default function DashboardPage() {
           </Card>
 
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* My Tournaments */}
-            <div className="lg:col-span-2">
+            {/* Left Column - My Tournaments and Recent Activity */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* My Tournaments */}
               <Card className="glass hover:shadow-lg transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -262,10 +263,8 @@ export default function DashboardPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
 
-            {/* Recent Activity */}
-            <div className="lg:col-span-2 mb-8">
+              {/* Recent Activity */}
               <Card className="glass hover:shadow-lg transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -304,8 +303,9 @@ export default function DashboardPage() {
               </Card>
             </div>
 
-            {/* Achievements */}
-            <div>
+            {/* Right Sidebar - Achievements, Game Stats, Quick Actions */}
+            <div className="space-y-6">
+              {/* Achievements */}
               <Card className="glass hover:shadow-lg transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -346,7 +346,7 @@ export default function DashboardPage() {
               </Card>
 
               {/* Game Statistics */}
-              <Card className="glass hover:shadow-lg transition-all duration-300 mt-6">
+              <Card className="glass hover:shadow-lg transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Gamepad2 className="h-5 w-5 mr-2 text-primary" />
@@ -386,7 +386,7 @@ export default function DashboardPage() {
               </Card>
 
               {/* Quick Actions */}
-              <Card className="glass hover:shadow-lg transition-all duration-300 mt-6">
+              <Card className="glass hover:shadow-lg transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Settings className="h-5 w-5 mr-2 text-primary" />
@@ -421,4 +421,3 @@ export default function DashboardPage() {
     </ProtectedRoute>
   );
 }
-

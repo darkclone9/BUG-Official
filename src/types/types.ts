@@ -18,13 +18,30 @@ export interface User {
   };
 }
 
-export type GameType = 'mario_kart' | 'super_smash_bros' | 'general';
+// Legacy GameType for backward compatibility
+export type GameType = 'mario_kart' | 'super_smash_bros' | 'general' | string;
+
+// New GameGenre interface for dynamic game management
+export interface GameGenre {
+  id: string;
+  name: string;
+  description: string;
+  displayName: string;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string; // Admin UID
+  iconUrl?: string;
+  color?: string;
+}
 
 export interface Tournament {
   id: string;
   name: string;
   description: string;
   game: GameType;
+  gameGenreId?: string; // New field for dynamic game genres
   date: Date;
   registrationDeadline: Date;
   maxParticipants: number;
@@ -81,10 +98,11 @@ export interface Announcement {
   createdAt: Date;
   updatedAt?: Date;
   isActive: boolean;
-  priority: 'normal' | 'important' | 'urgent';
+  priority: 'normal' | 'important' | 'urgent' | 'broadcast';
   expiresAt?: Date;
   targetAudience: 'all' | 'members' | 'admins';
   readBy: string[]; // User UIDs who have read the announcement
+  dismissedBy?: string[]; // User UIDs who have dismissed the announcement (for broadcast)
 }
 
 export interface Message {
