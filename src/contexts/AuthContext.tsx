@@ -2,7 +2,7 @@
 
 import { createUser, createUserStats, getAdminUser, getUser, updateUser } from '@/lib/database';
 import { auth, signInWithGoogle as firebaseSignInWithGoogle } from '@/lib/firebase';
-import { AdminUser, User, UserStats } from '@/types/types';
+import { AdminUser, User, UserStats, UserRole } from '@/types/types';
 import {
     createUserWithEmailAndPassword,
     signOut as firebaseSignOut,
@@ -12,6 +12,7 @@ import {
     signInWithEmailAndPassword,
 } from 'firebase/auth';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import * as permissions from '@/lib/permissions';
 
 interface AuthContextType {
   user: User | null;
@@ -26,6 +27,21 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
   refreshUser: () => Promise<void>;
+  // Permission checking functions
+  hasRole: (role: UserRole) => boolean;
+  hasAnyRole: (roles: UserRole[]) => boolean;
+  hasAllRoles: (roles: UserRole[]) => boolean;
+  canEditPointsSettings: () => boolean;
+  canApprovePoints: () => boolean;
+  canAwardPoints: () => boolean;
+  canManageShopProducts: () => boolean;
+  canManageShopOrders: () => boolean;
+  canCreateEvents: () => boolean;
+  canAccessAdminPanel: () => boolean;
+  canAccessShopManagement: () => boolean;
+  canAccessPointsManagement: () => boolean;
+  canEditUserRoles: (targetUserRoles: UserRole[]) => boolean;
+  canAssignRole: (roleToAssign: UserRole) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -194,6 +210,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Permission checking functions
+  const getUserRoles = (): UserRole[] => {
+    return user?.roles || [];
+  };
+
+  const hasRole = (role: UserRole): boolean => {
+    return permissions.hasRole(getUserRoles(), role);
+  };
+
+  const hasAnyRole = (roles: UserRole[]): boolean => {
+    return permissions.hasAnyRole(getUserRoles(), roles);
+  };
+
+  const hasAllRoles = (roles: UserRole[]): boolean => {
+    return permissions.hasAllRoles(getUserRoles(), roles);
+  };
+
+  const canEditPointsSettings = (): boolean => {
+    return permissions.canEditPointsSettings(getUserRoles());
+  };
+
+  const canApprovePoints = (): boolean => {
+    return permissions.canApprovePoints(getUserRoles());
+  };
+
+  const canAwardPoints = (): boolean => {
+    return permissions.canAwardPoints(getUserRoles());
+  };
+
+  const canManageShopProducts = (): boolean => {
+    return permissions.canManageShopProducts(getUserRoles());
+  };
+
+  const canManageShopOrders = (): boolean => {
+    return permissions.canManageShopOrders(getUserRoles());
+  };
+
+  const canCreateEvents = (): boolean => {
+    return permissions.canCreateEvents(getUserRoles());
+  };
+
+  const canAccessAdminPanel = (): boolean => {
+    return permissions.canAccessAdminPanel(getUserRoles());
+  };
+
+  const canAccessShopManagement = (): boolean => {
+    return permissions.canAccessShopManagement(getUserRoles());
+  };
+
+  const canAccessPointsManagement = (): boolean => {
+    return permissions.canAccessPointsManagement(getUserRoles());
+  };
+
+  const canEditUserRoles = (targetUserRoles: UserRole[]): boolean => {
+    return permissions.canEditUserRoles(getUserRoles(), targetUserRoles);
+  };
+
+  const canAssignRole = (roleToAssign: UserRole): boolean => {
+    return permissions.canAssignRole(getUserRoles(), roleToAssign);
+  };
+
   const value = {
     user,
     firebaseUser,
@@ -207,6 +284,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetPassword,
     updateProfile: async () => {},
     refreshUser,
+    // Permission checking functions
+    hasRole,
+    hasAnyRole,
+    hasAllRoles,
+    canEditPointsSettings,
+    canApprovePoints,
+    canAwardPoints,
+    canManageShopProducts,
+    canManageShopOrders,
+    canCreateEvents,
+    canAccessAdminPanel,
+    canAccessShopManagement,
+    canAccessPointsManagement,
+    canEditUserRoles,
+    canAssignRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

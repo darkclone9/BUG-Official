@@ -2498,3 +2498,213 @@ export const getUserPickupQueueItems = async (userId: string): Promise<PickupQue
     } as PickupQueueItem;
   });
 };
+
+// ============================================================================
+// ROLE MANAGEMENT
+// ============================================================================
+
+/**
+ * Assign a role to a user
+ * Checks permissions before assigning
+ */
+export const assignUserRole = async (
+  userId: string,
+  roleToAssign: UserRole,
+  assignedBy: string,
+  assignerRoles: UserRole[]
+): Promise<void> => {
+  // Import permissions dynamically to avoid circular dependency
+  const { canAssignRole } = await import('./permissions');
+
+  // Check if assigner has permission to assign this role
+  if (!canAssignRole(assignerRoles, roleToAssign)) {
+    throw new Error(`You do not have permission to assign the role: ${roleToAssign}`);
+  }
+
+  // Get current user
+  const user = await getUser(userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Check if user already has this role
+  if (user.roles && user.roles.includes(roleToAssign)) {
+    throw new Error('User already has this role');
+  }
+
+  // Add role to user's roles array
+  await updateDoc(doc(db, 'users', userId), {
+    roles: arrayUnion(roleToAssign),
+  });
+
+  // Log the role assignment
+  await logRoleChange(userId, 'assigned', roleToAssign, assignedBy);
+};
+
+/**
+ * Remove a role from a user
+ * Checks permissions before removing
+ */
+export const removeUserRole = async (
+  userId: string,
+  roleToRemove: UserRole,
+  removedBy: string,
+  removerRoles: UserRole[]
+): Promise<void> => {
+  // Import permissions dynamically to avoid circular dependency
+  const { canEditUserRoles } = await import('./permissions');
+
+  // Get current user
+  const user = await getUser(userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Check if remover has permission to edit this user's roles
+  if (!canEditUserRoles(removerRoles, user.roles || [])) {
+    throw new Error('You do not have permission to edit this user\'s roles');
+  }
+
+  // Check if user has this role
+  if (!user.roles || !user.roles.includes(roleToRemove)) {
+    throw new Error('User does not have this role');
+  }
+
+  // Remove role from user's roles array
+  await updateDoc(doc(db, 'users', userId), {
+    roles: arrayRemove(roleToRemove),
+  });
+
+  // Log the role change
+  await logRoleChange(userId, 'removed', roleToRemove, removedBy);
+};
+
+/**
+ * Get all users with a specific role
+ */
+export const getUsersByRole = async (role: UserRole): Promise<User[]> => {
+  const usersQuery = query(
+    collection(db, 'users'),
+    where('roles', 'array-contains', role)
+  );
+
+  const snapshot = await getDocs(usersQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      joinDate: data.joinDate.toDate(),
+      lastLoginDate: data.lastLoginDate ? data.lastLoginDate.toDate() : undefined,
+    } as User;
+  });
+};
+
+/**
+ * Update user's primary role (for backward compatibility)
+ */
+export const updateUserPrimaryRole = async (
+  userId: string,
+  newRole: 'admin' | 'member' | 'guest'
+): Promise<void> => {
+  await updateDoc(doc(db, 'users', userId), {
+    role: newRole,
+  });
+};
+
+/**
+ * Log role changes for audit trail
+ */
+const logRoleChange = async (
+  userId: string,
+  action: 'assigned' | 'removed',
+  role: UserRole,
+  changedBy: string
+): Promise<void> => {
+  const logId = `role_log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  await setDoc(doc(db, 'role_change_logs', logId), {
+    id: logId,
+    userId,
+    action,
+    role,
+    changedBy,
+    timestamp: Timestamp.now(),
+  });
+};
+
+/**
+ * Get role change history for a user
+ */
+export const getUserRoleHistory = async (userId: string): Promise<any[]> => {
+  const logsQuery = query(
+    collection(db, 'role_change_logs'),
+    where('userId', '==', userId),
+    orderBy('timestamp', 'desc'),
+    limit(50)
+  );
+
+  const snapshot = await getDocs(logsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      timestamp: data.timestamp.toDate(),
+    };
+  });
+};
+
+/**
+ * Get all role change logs (admin only)
+ */
+export const getAllRoleChangeLogs = async (limitCount: number = 100): Promise<any[]> => {
+  const logsQuery = query(
+    collection(db, 'role_change_logs'),
+    orderBy('timestamp', 'desc'),
+    limit(limitCount)
+  );
+
+  const snapshot = await getDocs(logsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      timestamp: data.timestamp.toDate(),
+    };
+  });
+};
+
+/**
+ * Bulk assign roles to multiple users
+ */
+export const bulkAssignRoles = async (
+  userIds: string[],
+  roleToAssign: UserRole,
+  assignedBy: string,
+  assignerRoles: UserRole[]
+): Promise<{ success: number; failed: number; errors: string[] }> => {
+  const { canAssignRole } = await import('./permissions');
+
+  // Check permission
+  if (!canAssignRole(assignerRoles, roleToAssign)) {
+    throw new Error(`You do not have permission to assign the role: ${roleToAssign}`);
+  }
+
+  let success = 0;
+  let failed = 0;
+  const errors: string[] = [];
+
+  for (const userId of userIds) {
+    try {
+      await assignUserRole(userId, roleToAssign, assignedBy, assignerRoles);
+      success++;
+    } catch (error) {
+      failed++;
+      errors.push(`${userId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  return { success, failed, errors };
+};
