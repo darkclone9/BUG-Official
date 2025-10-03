@@ -6,7 +6,9 @@ import { ShopProduct } from '@/types/types';
 import { getShopProduct } from '@/lib/database';
 import { formatCents, formatPointsAsDiscount } from '@/lib/points';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, ShoppingCart, Sparkles, Minus, Plus, Package, Truck } from 'lucide-react';
@@ -18,6 +20,7 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { addItem } = useCart();
   const productId = params.productId as string;
 
   const [product, setProduct] = useState<ShopProduct | null>(null);
@@ -55,9 +58,22 @@ export default function ProductDetailPage() {
   };
 
   const handleAddToCart = () => {
-    // TODO: Implement cart functionality in Phase 5
-    console.log('Add to cart:', { productId, quantity, selectedVariant });
-    alert('Cart functionality will be implemented in Phase 5!');
+    if (!product) return;
+
+    // Validate variant selection if required
+    if (product.variants && product.variants.length > 0 && !selectedVariant) {
+      toast.error('Please select a variant');
+      return;
+    }
+
+    // Add to cart
+    addItem(product, quantity, selectedVariant);
+
+    // Show success message
+    toast.success(`Added ${quantity} ${product.name} to cart`);
+
+    // Reset quantity
+    setQuantity(1);
   };
 
   if (loading) {
@@ -149,7 +165,7 @@ export default function ProductDetailPage() {
                   {product.category}
                 </Badge>
               </div>
-              
+
               {/* Badges */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {product.pointsEligible && (
@@ -297,4 +313,3 @@ export default function ProductDetailPage() {
     </div>
   );
 }
-
