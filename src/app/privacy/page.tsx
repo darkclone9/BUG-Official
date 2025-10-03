@@ -242,8 +242,8 @@ export default function PrivacyPage() {
               <div className="space-y-2">
                 <p>
                   <strong className="text-foreground">Email:</strong>{' '}
-                  <a href="mailto:privacy@buggamingclub.com" className="text-primary hover:underline">
-                    privacy@buggamingclub.com
+                  <a href="mailto:belhavengamingclub@gmail.com" className="text-primary hover:underline">
+                    belhavengamingclub@gmail.com
                   </a>
                 </p>
                 <p>

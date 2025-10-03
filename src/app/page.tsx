@@ -130,196 +130,202 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Consolidated What's Happening Section - Vertical Slice */}
+      {/* Consolidated What's Happening Section - Horizontal 3-Column Layout */}
       <section className="py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-8 md:mb-12">
             What&apos;s Happening
           </h2>
 
-          <div className="space-y-12">
-            {/* Upcoming Club Events Subsection */}
-            <div>
-              <h3 className="text-xl md:text-2xl font-semibold text-foreground mb-6 flex items-center">
-                <Calendar className="h-6 w-6 mr-2 text-primary" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Column 1: Upcoming Club Events */}
+            <div className="flex flex-col">
+              <h3 className="text-lg md:text-xl font-semibold text-foreground mb-4 flex items-center">
+                <Calendar className="h-5 w-5 mr-2 text-primary" />
                 Upcoming Club Events
               </h3>
-              {loading ? (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <Card key={i} className="glass">
-                      <CardHeader className="p-4">
-                        <div className="animate-pulse">
-                          <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                          <div className="h-3 bg-muted rounded w-1/2"></div>
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  ))}
-                </div>
-              ) : clubEvents.length > 0 ? (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {clubEvents.slice(0, 4).map((event) => (
-                    <Card key={event.id} className="glass hover:shadow-lg transition-all duration-300">
-                      <CardHeader className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <CardTitle className="text-sm md:text-base line-clamp-1">{event.name}</CardTitle>
-                          <Badge variant="secondary" className="text-xs shrink-0 ml-2">
-                            {event.eventType.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                          </Badge>
-                        </div>
-                        <CardDescription className="text-xs space-y-1">
-                          <div className="flex items-center">
-                            <Calendar className="inline h-3 w-3 mr-1" />
-                            {new Date(event.date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric'
-                            })}
+              <div className="flex-1 space-y-3">
+                {loading ? (
+                  <>
+                    {[1, 2, 3].map((i) => (
+                      <Card key={i} className="glass">
+                        <CardHeader className="p-3">
+                          <div className="animate-pulse">
+                            <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-muted rounded w-1/2"></div>
                           </div>
-                          <div className="flex items-center">
-                            <MapPin className="inline h-3 w-3 mr-1" />
-                            <span className="line-clamp-1">{event.location}</span>
+                        </CardHeader>
+                      </Card>
+                    ))}
+                  </>
+                ) : clubEvents.length > 0 ? (
+                  <>
+                    {clubEvents.slice(0, 3).map((event) => (
+                      <Card key={event.id} className="glass hover:shadow-lg transition-all duration-300">
+                        <CardHeader className="p-3">
+                          <div className="flex justify-between items-start mb-1">
+                            <CardTitle className="text-sm line-clamp-1">{event.name}</CardTitle>
+                            <Badge variant="secondary" className="text-xs shrink-0 ml-2">
+                              {event.eventType.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                            </Badge>
                           </div>
-                        </CardDescription>
-                      </CardHeader>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No upcoming events</p>
-                </div>
-              )}
-              <div className="text-center mt-6">
+                          <CardDescription className="text-xs space-y-1">
+                            <div className="flex items-center">
+                              <Calendar className="inline h-3 w-3 mr-1" />
+                              {new Date(event.date).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </div>
+                            <div className="flex items-center">
+                              <MapPin className="inline h-3 w-3 mr-1" />
+                              <span className="line-clamp-1">{event.location}</span>
+                            </div>
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
+                    ))}
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No upcoming events</p>
+                  </div>
+                )}
+              </div>
+              <div className="text-center mt-4">
                 <Link href="/events">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="w-full">
                     View All Events
                   </Button>
                 </Link>
               </div>
             </div>
 
-            {/* Upcoming Tournaments Subsection */}
-            <div className="border-t border-border pt-8">
-              <h3 className="text-xl md:text-2xl font-semibold text-foreground mb-6 flex items-center">
-                <Trophy className="h-6 w-6 mr-2 text-primary" />
+            {/* Column 2: Upcoming Tournaments */}
+            <div className="flex flex-col">
+              <h3 className="text-lg md:text-xl font-semibold text-foreground mb-4 flex items-center">
+                <Trophy className="h-5 w-5 mr-2 text-primary" />
                 Upcoming Tournaments
               </h3>
-              {loading ? (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <Card key={i} className="glass">
-                      <CardHeader className="p-4">
-                        <div className="animate-pulse">
-                          <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                          <div className="h-3 bg-muted rounded w-1/2"></div>
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  ))}
-                </div>
-              ) : upcomingEvents.length > 0 ? (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {upcomingEvents.slice(0, 4).map((event) => (
-                    <Card key={event.id} className="glass hover:shadow-lg transition-all duration-300">
-                      <CardHeader className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <CardTitle className="text-sm md:text-base line-clamp-1">{event.name}</CardTitle>
-                          <Badge variant="secondary" className="bg-primary text-primary-foreground text-xs shrink-0 ml-2">
-                            {event.pointsAwarded || 100} pts
-                          </Badge>
-                        </div>
-                        <CardDescription className="text-xs space-y-1">
-                          <div className="flex items-center">
-                            <Calendar className="inline h-3 w-3 mr-1" />
-                            {new Date(event.date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric'
-                            })}
+              <div className="flex-1 space-y-3">
+                {loading ? (
+                  <>
+                    {[1, 2, 3].map((i) => (
+                      <Card key={i} className="glass">
+                        <CardHeader className="p-3">
+                          <div className="animate-pulse">
+                            <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-muted rounded w-1/2"></div>
                           </div>
-                          <div className="flex items-center">
-                            <Gamepad2 className="inline h-3 w-3 mr-1" />
-                            {event.game === 'mario_kart' ? 'Mario Kart' : 'Super Smash Bros'}
+                        </CardHeader>
+                      </Card>
+                    ))}
+                  </>
+                ) : upcomingEvents.length > 0 ? (
+                  <>
+                    {upcomingEvents.slice(0, 3).map((event) => (
+                      <Card key={event.id} className="glass hover:shadow-lg transition-all duration-300">
+                        <CardHeader className="p-3">
+                          <div className="flex justify-between items-start mb-1">
+                            <CardTitle className="text-sm line-clamp-1">{event.name}</CardTitle>
+                            <Badge variant="secondary" className="bg-primary text-primary-foreground text-xs shrink-0 ml-2">
+                              {event.pointsAwarded || 100} pts
+                            </Badge>
                           </div>
-                          <div className="flex items-center text-muted-foreground">
-                            <Users className="inline h-3 w-3 mr-1" />
-                            {event.participants || 0}/{event.maxParticipants || 16}
-                          </div>
-                        </CardDescription>
-                      </CardHeader>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No upcoming tournaments</p>
-                </div>
-              )}
-              <div className="text-center mt-6">
+                          <CardDescription className="text-xs space-y-1">
+                            <div className="flex items-center">
+                              <Calendar className="inline h-3 w-3 mr-1" />
+                              {new Date(event.date).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </div>
+                            <div className="flex items-center">
+                              <Gamepad2 className="inline h-3 w-3 mr-1" />
+                              {event.game === 'mario_kart' ? 'Mario Kart' : 'Super Smash Bros'}
+                            </div>
+                            <div className="flex items-center text-muted-foreground">
+                              <Users className="inline h-3 w-3 mr-1" />
+                              {event.participants || 0}/{event.maxParticipants || 16}
+                            </div>
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
+                    ))}
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No upcoming tournaments</p>
+                  </div>
+                )}
+              </div>
+              <div className="text-center mt-4">
                 <Link href="/tournaments">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="w-full">
                     View All Tournaments
                   </Button>
                 </Link>
               </div>
             </div>
 
-            {/* Recent Champions Subsection */}
-            <div className="border-t border-border pt-8">
-              <h3 className="text-xl md:text-2xl font-semibold text-foreground mb-6 flex items-center">
-                <Star className="h-6 w-6 mr-2 text-primary" />
+            {/* Column 3: Recent Champions */}
+            <div className="flex flex-col">
+              <h3 className="text-lg md:text-xl font-semibold text-foreground mb-4 flex items-center">
+                <Star className="h-5 w-5 mr-2 text-primary" />
                 Recent Champions
               </h3>
-              {loading ? (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[1, 2, 3].map((i) => (
-                    <Card key={i} className="glass">
-                      <CardHeader className="p-4">
-                        <div className="animate-pulse">
-                          <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                          <div className="h-3 bg-muted rounded w-1/2"></div>
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  ))}
-                </div>
-              ) : recentWinners.length > 0 ? (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recentWinners.slice(0, 3).map((winner, index) => (
-                    <Card key={winner.id || index} className="glass hover:shadow-lg transition-all duration-300">
-                      <CardHeader className="p-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex-shrink-0">
-                            {index === 0 && <Trophy className="h-6 w-6 text-primary" />}
-                            {index === 1 && <Trophy className="h-6 w-6 text-muted-foreground" />}
-                            {index === 2 && <Trophy className="h-6 w-6 text-accent" />}
+              <div className="flex-1 space-y-3">
+                {loading ? (
+                  <>
+                    {[1, 2, 3].map((i) => (
+                      <Card key={i} className="glass">
+                        <CardHeader className="p-3">
+                          <div className="animate-pulse">
+                            <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-muted rounded w-1/2"></div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <CardTitle className="text-sm md:text-base line-clamp-1">{winner.displayName}</CardTitle>
-                            <CardDescription className="text-xs line-clamp-1">
-                              {winner.tournament || 'Top Player'}
-                            </CardDescription>
-                            <div className="flex items-center text-xs text-primary mt-1">
-                              <Star className="h-3 w-3 mr-1" />
-                              {winner.points || 0} pts
+                        </CardHeader>
+                      </Card>
+                    ))}
+                  </>
+                ) : recentWinners.length > 0 ? (
+                  <>
+                    {recentWinners.slice(0, 3).map((winner, index) => (
+                      <Card key={winner.id || index} className="glass hover:shadow-lg transition-all duration-300">
+                        <CardHeader className="p-3">
+                          <div className="flex items-center space-x-2">
+                            <div className="flex-shrink-0">
+                              {index === 0 && <Trophy className="h-5 w-5 text-primary" />}
+                              {index === 1 && <Trophy className="h-5 w-5 text-muted-foreground" />}
+                              {index === 2 && <Trophy className="h-5 w-5 text-accent" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-sm line-clamp-1">{winner.displayName}</CardTitle>
+                              <CardDescription className="text-xs line-clamp-1">
+                                {winner.tournament || 'Top Player'}
+                              </CardDescription>
+                              <div className="flex items-center text-xs text-primary mt-1">
+                                <Star className="h-3 w-3 mr-1" />
+                                {winner.points || 0} pts
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No champions yet</p>
-                </div>
-              )}
-              <div className="text-center mt-6">
+                        </CardHeader>
+                      </Card>
+                    ))}
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No champions yet</p>
+                  </div>
+                )}
+              </div>
+              <div className="text-center mt-4">
                 <Link href="/leaderboard">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="w-full">
                     View Full Leaderboard
                   </Button>
                 </Link>

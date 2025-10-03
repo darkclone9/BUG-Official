@@ -15,6 +15,7 @@ import { GameType, Tournament } from '@/types/types';
 import { format } from 'date-fns';
 import { CalendarIcon, Plus, X } from 'lucide-react';
 import { useState } from 'react';
+import AiAssistantButton from '@/components/admin/AiAssistantButton';
 
 interface CreateTournamentModalProps {
   isOpen: boolean;
@@ -151,6 +152,12 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
                 placeholder="Enter tournament name"
                 required
               />
+              <AiAssistantButton
+                currentText={formData.name}
+                type="tournament_name"
+                onAccept={(improvedText) => setFormData(prev => ({ ...prev, name: improvedText }))}
+                disabled={loading}
+              />
             </div>
 
             <div className="space-y-2">
@@ -183,6 +190,12 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
               placeholder="Enter tournament description"
               rows={3}
               required
+            />
+            <AiAssistantButton
+              currentText={formData.description}
+              type="tournament_description"
+              onAccept={(improvedText) => setFormData(prev => ({ ...prev, description: improvedText }))}
+              disabled={loading}
             />
           </div>
 

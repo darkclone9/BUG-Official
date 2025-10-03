@@ -11,6 +11,7 @@ import { ClubEvent, ClubEventNotification, EventType, EventStatus, LocationType 
 import { createEvent, sendEventNotification, getAllUsers } from '@/lib/database';
 import { X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import AiAssistantButton from '@/components/admin/AiAssistantButton';
 
 interface CreateEventModalProps {
   onClose: () => void;
@@ -166,6 +167,12 @@ export default function CreateEventModal({ onClose, onSuccess }: CreateEventModa
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
+            <AiAssistantButton
+              currentText={formData.name}
+              type="event_name"
+              onAccept={(improvedText) => setFormData({ ...formData, name: improvedText })}
+              disabled={loading}
+            />
           </div>
 
           <div className="space-y-2">
@@ -176,6 +183,12 @@ export default function CreateEventModal({ onClose, onSuccess }: CreateEventModa
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
               required
+            />
+            <AiAssistantButton
+              currentText={formData.description}
+              type="event_description"
+              onAccept={(improvedText) => setFormData({ ...formData, description: improvedText })}
+              disabled={loading}
             />
           </div>
 

@@ -167,10 +167,10 @@ export default function ContactPage() {
                     For general inquiries and support:
                   </p>
                   <a
-                    href="mailto:contact@buggamingclub.com"
+                    href="mailto:belhavengamingclub@gmail.com"
                     className="text-primary hover:underline font-medium"
                   >
-                    contact@buggamingclub.com
+                    belhavengamingclub@gmail.com
                   </a>
                 </CardContent>
               </Card>

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trophy, Search, Crown, Medal, Award, TrendingUp, Users, Star } from 'lucide-react';
-import { getLeaderboard, getUserStats, getEloLeaderboard } from '@/lib/database';
+import { getLeaderboard, getUserStats, getEloLeaderboard, getLatestPointsReason } from '@/lib/database';
 import { LeaderboardEntry, GameType } from '@/types/types';
 
 export default function LeaderboardPage() {
@@ -36,16 +36,20 @@ export default function LeaderboardPage() {
           data = await getLeaderboard(gameType, timeframe);
         }
 
-        // Enhance data with user stats
+        // Enhance data with user stats and latest points reason
         const enhancedData = await Promise.all(
           data.map(async (entry, index) => {
-            const userStats = await getUserStats(entry.uid);
+            const [userStats, latestReason] = await Promise.all([
+              getUserStats(entry.uid),
+              getLatestPointsReason(entry.uid)
+            ]);
             return {
               ...entry,
               rank: index + 1,
               wins: userStats?.totalWins || 0,
               tournaments: userStats?.totalGamesPlayed || 0,
               gameStats: userStats?.gameStats || {},
+              latestPointsReason: latestReason || undefined,
             };
           })
         );
@@ -281,6 +285,11 @@ export default function LeaderboardPage() {
                           {rankingType === 'elo' ? `${player.eloRating || 1200} ELO` : `${getPointsForTimeFilter(player)} points`}
                         </span>
                       </div>
+                      {player.latestPointsReason && (
+                        <div className="mt-1 text-xs text-muted-foreground italic">
+                          Latest: {player.latestPointsReason}
+                        </div>
+                      )}
                     </div>
                   </div>
 

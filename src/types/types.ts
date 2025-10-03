@@ -138,6 +138,7 @@ export interface LeaderboardEntry {
   monthlyPoints: number;
   rank: number;
   eloRating?: number; // New: ELO rating for competitive ranking
+  latestPointsReason?: string; // Latest reason for points awarded
 }
 
 export interface PointsTransaction {

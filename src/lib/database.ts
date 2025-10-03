@@ -727,6 +727,23 @@ export const getUserRecentActivity = async (userId: string): Promise<{
   });
 };
 
+export const getLatestPointsReason = async (userId: string): Promise<string | null> => {
+  const transactionsQuery = query(
+    collection(db, 'points_transactions'),
+    where('userId', '==', userId),
+    orderBy('timestamp', 'desc'),
+    limit(1)
+  );
+  const snapshot = await getDocs(transactionsQuery);
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  const data = snapshot.docs[0].data();
+  return data.reason || null;
+};
+
 export const getUserAchievements = async (userId: string): Promise<{
   name: string;
   description: string;
