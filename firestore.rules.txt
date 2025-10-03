@@ -22,9 +22,11 @@ service cloud.firestore {
 
     // Tournament registrations - users can read/write their own registrations
     match /tournament_registrations/{registrationId} {
-      allow read, write: if request.auth != null &&
-        resource.data.userId == request.auth.uid;
       allow read: if request.auth != null; // Allow reading for tournament management
+      allow create: if request.auth != null &&
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
     }
 
     // User stats - public read for leaderboards and player directory, users can write their own stats
@@ -63,6 +65,21 @@ service cloud.firestore {
       allow write: if request.auth != null &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Tournament brackets - authenticated users can read, admins can write
+    match /tournament_brackets/{bracketId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // User external profiles - users can read/write their own profiles
+    match /user_external_profiles/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null; // Allow reading for leaderboards and comparisons
     }
   }
 }
