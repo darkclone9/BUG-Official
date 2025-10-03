@@ -76,9 +76,9 @@ service cloud.firestore {
       allow read: if request.auth != null; // Allow reading for leaderboards and comparisons
     }
 
-    // Events - authenticated users can read, admins and event organizers can write
+    // Events - public can read published events, authenticated users can read all, admins and event organizers can write
     match /events/{eventId} {
-      allow read: if request.auth != null;
+      allow read: if true; // Allow public read access for events (needed for landing page)
       allow write: if hasRole('admin') || hasRole('event_organizer');
     }
 

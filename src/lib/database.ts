@@ -1386,6 +1386,30 @@ export const getEventsByStatus = async (status: ClubEvent['status']): Promise<Cl
   });
 };
 
+export const getUpcomingPublishedEvents = async (limitCount?: number): Promise<ClubEvent[]> => {
+  const now = new Date();
+  const eventsQuery = query(
+    collection(db, 'events'),
+    where('status', '==', 'published'),
+    where('date', '>=', Timestamp.fromDate(now)),
+    orderBy('date', 'asc'),
+    ...(limitCount ? [limit(limitCount)] : [])
+  );
+  const snapshot = await getDocs(eventsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      date: data.date.toDate(),
+      endDate: data.endDate ? data.endDate.toDate() : undefined,
+      registrationDeadline: data.registrationDeadline ? data.registrationDeadline.toDate() : undefined,
+      createdAt: data.createdAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+    } as ClubEvent;
+  });
+};
+
 export const updateEvent = async (id: string, updates: Partial<ClubEvent>): Promise<void> => {
   const docRef = doc(db, 'events', id);
   const updateData: Record<string, unknown> = { ...updates };

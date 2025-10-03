@@ -68,6 +68,14 @@ export default function CreateEventModal({ onClose, onSuccess }: CreateEventModa
     setLoading(true);
     try {
       const eventDate = new Date(`${formData.date}T${formData.time || '00:00'}`);
+
+      // Validate that the date is valid
+      if (isNaN(eventDate.getTime())) {
+        alert('Please enter a valid event date');
+        setLoading(false);
+        return;
+      }
+
       const endDate = formData.endDate ? new Date(`${formData.endDate}T${formData.endTime || '23:59'}`) : undefined;
       const regDeadline = formData.registrationDeadline
         ? new Date(`${formData.registrationDeadline}T${formData.registrationDeadlineTime || '23:59'}`)

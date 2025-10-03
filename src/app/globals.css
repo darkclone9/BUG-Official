@@ -45,71 +45,73 @@
 
 :root {
   --radius: 0.75rem;
-  --background: oklch(0.99 0.005 240);
-  --foreground: oklch(0.15 0.01 240);
+  /* Light mode - Green and Yellow Theme */
+  --background: oklch(0.99 0.005 140);
+  --foreground: oklch(0.25 0.08 145); /* Dark Green #1d4d25 */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.01 240);
+  --card-foreground: oklch(0.25 0.08 145);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.01 240);
-  --primary: oklch(0.45 0.15 200);
-  --primary-foreground: oklch(0.98 0.005 240);
-  --secondary: oklch(0.96 0.02 200);
-  --secondary-foreground: oklch(0.25 0.02 240);
-  --muted: oklch(0.96 0.02 200);
-  --muted-foreground: oklch(0.5 0.02 240);
-  --accent: oklch(0.92 0.05 180);
-  --accent-foreground: oklch(0.2 0.02 240);
+  --popover-foreground: oklch(0.25 0.08 145);
+  --primary: oklch(0.65 0.15 145); /* Bright Green #4ab74c */
+  --primary-foreground: oklch(0.99 0.005 140);
+  --secondary: oklch(0.58 0.12 145); /* Medium Green #399a49 */
+  --secondary-foreground: oklch(0.99 0.005 140);
+  --muted: oklch(0.75 0.08 145); /* Light Green #88c292 */
+  --muted-foreground: oklch(0.35 0.06 145);
+  --accent: oklch(0.95 0.12 105); /* Primary Yellow #fdf579 */
+  --accent-foreground: oklch(0.25 0.08 145); /* Dark Green text on yellow */
   --destructive: oklch(0.6 0.2 20);
-  --border: oklch(0.9 0.02 200);
-  --input: oklch(0.95 0.02 200);
-  --ring: oklch(0.45 0.15 200);
-  --chart-1: oklch(0.6 0.15 200);
-  --chart-2: oklch(0.5 0.12 180);
-  --chart-3: oklch(0.4 0.1 160);
-  --chart-4: oklch(0.7 0.15 220);
-  --chart-5: oklch(0.55 0.12 190);
-  --sidebar: oklch(0.98 0.01 240);
-  --sidebar-foreground: oklch(0.2 0.02 240);
-  --sidebar-primary: oklch(0.45 0.15 200);
-  --sidebar-primary-foreground: oklch(0.98 0.005 240);
-  --sidebar-accent: oklch(0.92 0.05 180);
-  --sidebar-accent-foreground: oklch(0.2 0.02 240);
-  --sidebar-border: oklch(0.9 0.02 200);
-  --sidebar-ring: oklch(0.45 0.15 200);
+  --border: oklch(0.85 0.05 145);
+  --input: oklch(0.95 0.03 145);
+  --ring: oklch(0.65 0.15 145);
+  --chart-1: oklch(0.65 0.15 145); /* Bright Green */
+  --chart-2: oklch(0.58 0.12 145); /* Medium Green */
+  --chart-3: oklch(0.75 0.08 145); /* Light Green */
+  --chart-4: oklch(0.95 0.12 105); /* Yellow */
+  --chart-5: oklch(0.25 0.08 145); /* Dark Green */
+  --sidebar: oklch(0.98 0.01 145);
+  --sidebar-foreground: oklch(0.25 0.08 145);
+  --sidebar-primary: oklch(0.65 0.15 145);
+  --sidebar-primary-foreground: oklch(0.99 0.005 140);
+  --sidebar-accent: oklch(0.95 0.12 105);
+  --sidebar-accent-foreground: oklch(0.25 0.08 145);
+  --sidebar-border: oklch(0.85 0.05 145);
+  --sidebar-ring: oklch(0.65 0.15 145);
 }
 
 .dark {
-  --background: oklch(0.08 0.01 240);
-  --foreground: oklch(0.95 0.01 240);
-  --card: oklch(0.12 0.02 240);
-  --card-foreground: oklch(0.95 0.01 240);
-  --popover: oklch(0.12 0.02 240);
-  --popover-foreground: oklch(0.95 0.01 240);
-  --primary: oklch(0.6 0.15 200);
-  --primary-foreground: oklch(0.08 0.01 240);
-  --secondary: oklch(0.18 0.02 240);
-  --secondary-foreground: oklch(0.9 0.01 240);
-  --muted: oklch(0.18 0.02 240);
-  --muted-foreground: oklch(0.6 0.02 240);
-  --accent: oklch(0.25 0.05 180);
-  --accent-foreground: oklch(0.9 0.01 240);
+  /* Dark mode - Green and Yellow Theme */
+  --background: oklch(0.12 0.02 145); /* Dark green background */
+  --foreground: oklch(0.92 0.05 145); /* Light green text */
+  --card: oklch(0.18 0.03 145);
+  --card-foreground: oklch(0.92 0.05 145);
+  --popover: oklch(0.18 0.03 145);
+  --popover-foreground: oklch(0.92 0.05 145);
+  --primary: oklch(0.70 0.15 145); /* Brighter green for dark mode */
+  --primary-foreground: oklch(0.12 0.02 145);
+  --secondary: oklch(0.60 0.12 145); /* Medium green */
+  --secondary-foreground: oklch(0.95 0.03 145);
+  --muted: oklch(0.25 0.04 145);
+  --muted-foreground: oklch(0.70 0.08 145);
+  --accent: oklch(0.90 0.12 105); /* Slightly darker yellow for dark mode */
+  --accent-foreground: oklch(0.15 0.06 145); /* Dark green text on yellow */
   --destructive: oklch(0.65 0.2 20);
-  --border: oklch(0.25 0.02 240);
-  --input: oklch(0.2 0.02 240);
-  --ring: oklch(0.6 0.15 200);
-  --chart-1: oklch(0.65 0.15 200);
-  --chart-2: oklch(0.55 0.12 180);
-  --chart-3: oklch(0.45 0.1 160);
-  --chart-4: oklch(0.75 0.15 220);
-  --chart-5: oklch(0.6 0.12 190);
-  --sidebar: oklch(0.1 0.02 240);
-  --sidebar-foreground: oklch(0.9 0.01 240);
-  --sidebar-primary: oklch(0.6 0.15 200);
-  --sidebar-primary-foreground: oklch(0.08 0.01 240);
-  --sidebar-accent: oklch(0.25 0.05 180);
-  --sidebar-accent-foreground: oklch(0.9 0.01 240);
-  --sidebar-border: oklch(0.25 0.02 240);
-  --sidebar-ring: oklch(0.6 0.15 200);
+  --border: oklch(0.30 0.04 145);
+  --input: oklch(0.22 0.03 145);
+  --ring: oklch(0.70 0.15 145);
+  --chart-1: oklch(0.70 0.15 145); /* Bright Green */
+  --chart-2: oklch(0.60 0.12 145); /* Medium Green */
+  --chart-3: oklch(0.75 0.08 145); /* Light Green */
+  --chart-4: oklch(0.90 0.12 105); /* Yellow */
+  --chart-5: oklch(0.40 0.08 145); /* Darker Green */
+  --sidebar: oklch(0.15 0.03 145);
+  --sidebar-foreground: oklch(0.90 0.05 145);
+  --sidebar-primary: oklch(0.70 0.15 145);
+  --sidebar-primary-foreground: oklch(0.12 0.02 145);
+  --sidebar-accent: oklch(0.90 0.12 105);
+  --sidebar-accent-foreground: oklch(0.15 0.06 145);
+  --sidebar-border: oklch(0.30 0.04 145);
+  --sidebar-ring: oklch(0.70 0.15 145);
 }
 
 @layer base {
@@ -119,36 +121,36 @@
   body {
     @apply bg-background text-foreground transition-colors duration-300;
   }
-  
+
   /* Apple-inspired smooth transitions */
   * {
     transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
-  
+
   /* Custom scrollbar styling */
   ::-webkit-scrollbar {
     width: 8px;
   }
-  
+
   ::-webkit-scrollbar-track {
     @apply bg-muted;
   }
-  
+
   ::-webkit-scrollbar-thumb {
     @apply bg-muted-foreground/30 rounded-full;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/50;
   }
-  
+
   /* Glass morphism effect for cards */
   .glass {
     backdrop-filter: blur(16px);
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
   }
-  
+
   .dark .glass {
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.1);

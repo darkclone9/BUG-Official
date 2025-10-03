@@ -5,9 +5,11 @@ import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Users, Calendar, Star, Gamepad2, Target, Zap } from 'lucide-react';
+import { Trophy, Users, Calendar, Star, Gamepad2, Target, Zap, MapPin, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { getUpcomingTournaments, getTopUsers } from '@/lib/firebase';
+import { getUpcomingPublishedEvents } from '@/lib/database';
+import { ClubEvent } from '@/types/types';
 
 type TournamentData = {
   id: string;
@@ -30,19 +32,22 @@ type UserData = {
 
 export default function Home() {
   const [upcomingEvents, setUpcomingEvents] = useState<TournamentData[]>([]);
+  const [clubEvents, setClubEvents] = useState<ClubEvent[]>([]);
   const [recentWinners, setRecentWinners] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [tournaments, topUsers] = await Promise.all([
+        const [tournaments, topUsers, events] = await Promise.all([
           getUpcomingTournaments(3),
-          getTopUsers(3)
+          getTopUsers(3),
+          getUpcomingPublishedEvents(6)
         ]);
-        
+
         setUpcomingEvents(tournaments as unknown as TournamentData[]);
         setRecentWinners(topUsers as unknown as UserData[]);
+        setClubEvents(events);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -56,7 +61,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       {/* Hero Section */}
       <section className="relative py-16 md:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
@@ -67,7 +72,7 @@ export default function Home() {
             </span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground mb-6 md:mb-8 max-w-3xl mx-auto">
-            Compete in Mario Kart and Super Smash Bros tournaments, climb the leaderboards, and prove your skills. 
+            Compete in Mario Kart and Super Smash Bros tournaments, climb the leaderboards, and prove your skills.
             Earn points, track your statistics, and become a legend in our gaming community.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center max-w-md sm:max-w-none mx-auto">
@@ -259,6 +264,87 @@ export default function Home() {
             <Link href="/leaderboard">
               <Button variant="outline">
                 View Full Leaderboard
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Club Events Section */}
+      <section className="py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-8 md:mb-12">
+            Upcoming Club Events
+          </h2>
+          {loading ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="glass">
+                  <CardHeader className="p-4 md:p-6">
+                    <div className="animate-pulse">
+                      <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-muted rounded w-1/2 mb-4"></div>
+                      <div className="h-3 bg-muted rounded w-full"></div>
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          ) : clubEvents.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {clubEvents.map((event) => (
+                <Card key={event.id} className="glass hover:shadow-lg transition-all duration-300">
+                  <CardHeader className="p-4 md:p-6">
+                    <div className="flex justify-between items-start mb-2">
+                      <CardTitle className="text-base md:text-lg">{event.name}</CardTitle>
+                      <Badge variant="secondary" className="text-xs">
+                        {event.eventType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-sm space-y-1">
+                      <div className="flex items-center">
+                        <Calendar className="inline h-4 w-4 mr-2" />
+                        {new Date(event.date).toLocaleDateString('en-US', {
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                      <div className="flex items-center">
+                        <MapPin className="inline h-4 w-4 mr-2" />
+                        {event.location}
+                      </div>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 md:p-6 pt-0">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {event.description.length > 100
+                        ? `${event.description.substring(0, 100)}...`
+                        : event.description}
+                    </p>
+                    {event.maxParticipants && (
+                      <div className="flex items-center text-sm text-muted-foreground mt-3">
+                        <Users className="inline h-4 w-4 mr-1" />
+                        {event.currentParticipants || 0}/{event.maxParticipants} registered
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Calendar className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-medium mb-2">No upcoming events</h3>
+              <p className="text-muted-foreground mb-4">Check back later for new club events!</p>
+            </div>
+          )}
+          <div className="text-center mt-8">
+            <Link href="/events">
+              <Button variant="outline">
+                View All Events
               </Button>
             </Link>
           </div>
