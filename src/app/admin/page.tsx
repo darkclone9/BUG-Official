@@ -10,6 +10,7 @@ import EditTournamentModal from '@/components/admin/EditTournamentModal';
 import GameGenreManagement from '@/components/admin/GameGenreManagement';
 import EloManagement from '@/components/admin/EloManagement';
 import PointsManagement from '@/components/admin/PointsManagement';
+import RoleManagement from '@/components/admin/RoleManagement';
 import Navigation from '@/components/Navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,7 @@ import {
     Edit,
     Plus,
     Settings,
+    Shield,
     Trash2,
     Trophy,
     Users,
@@ -402,7 +404,7 @@ export default function AdminPage() {
 
           {/* Admin Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-9">
+            <TabsList className="grid w-full grid-cols-10">
               <TabsTrigger value="overview">
                 Overview
               </TabsTrigger>
@@ -414,6 +416,9 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="users">
                 Users
+              </TabsTrigger>
+              <TabsTrigger value="roles">
+                Roles
               </TabsTrigger>
               <TabsTrigger value="games">
                 Games
@@ -889,6 +894,11 @@ export default function AdminPage() {
             {/* Games Tab */}
             <TabsContent value="games" className="space-y-6">
               <GameGenreManagement />
+            </TabsContent>
+
+            {/* Roles Tab */}
+            <TabsContent value="roles" className="space-y-6">
+              <RoleManagement />
             </TabsContent>
 
             {/* Settings Tab */}

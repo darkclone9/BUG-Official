@@ -8,6 +8,7 @@ import {
     Tournament,
     TournamentRegistration,
     User,
+    UserRole,
     UserStats,
     EloHistoryEntry,
     ClubEvent,
@@ -78,6 +79,23 @@ export const updateUserProfile = async (uid: string, profileData: {
   const docRef = doc(db, 'users', uid);
   await updateDoc(docRef, {
     ...profileData,
+    updatedAt: Timestamp.now()
+  });
+};
+
+export const updateUserRoles = async (uid: string, roles: UserRole[]): Promise<void> => {
+  const docRef = doc(db, 'users', uid);
+  // Determine primary role (admin takes precedence, then president, then first role)
+  let primaryRole: 'admin' | 'member' | 'guest' = 'member';
+  if (roles.includes('admin')) {
+    primaryRole = 'admin';
+  } else if (roles.includes('guest')) {
+    primaryRole = 'guest';
+  }
+
+  await updateDoc(docRef, {
+    role: primaryRole, // Keep backward compatibility
+    roles: roles,
     updatedAt: Timestamp.now()
   });
 };

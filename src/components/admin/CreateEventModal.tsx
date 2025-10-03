@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ClubEvent, EventType, EventStatus, LocationType } from '@/types/types';
-import { createEvent } from '@/lib/database';
+import { ClubEvent, ClubEventNotification, EventType, EventStatus, LocationType } from '@/types/types';
+import { createEvent, sendEventNotification, getAllUsers } from '@/lib/database';
 import { X } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface CreateEventModalProps {
   onClose: () => void;
@@ -40,10 +41,29 @@ export default function CreateEventModal({ onClose, onSuccess }: CreateEventModa
     notes: '',
     tags: '',
   });
+  const [sendNotification, setSendNotification] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    // Validate required fields
+    if (!formData.name.trim()) {
+      alert('Please enter an event name');
+      return;
+    }
+    if (!formData.description.trim()) {
+      alert('Please enter an event description');
+      return;
+    }
+    if (!formData.date) {
+      alert('Please select an event date');
+      return;
+    }
+    if (!formData.location.trim()) {
+      alert('Please enter an event location');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -78,6 +98,37 @@ export default function CreateEventModal({ onClose, onSuccess }: CreateEventModa
       };
 
       await createEvent(event);
+
+      // Send notification to event organizers if checkbox is checked
+      if (sendNotification) {
+        try {
+          const allUsers = await getAllUsers();
+          const eventOrganizers = allUsers.filter(u =>
+            u.roles && u.roles.includes('event_organizer')
+          );
+
+          for (const organizer of eventOrganizers) {
+            const notification: ClubEventNotification = {
+              id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              eventId: event.id,
+              eventName: event.name,
+              recipientEmail: organizer.email,
+              recipientName: organizer.displayName,
+              subject: `New Event Created: ${event.name}`,
+              message: `A new event "${event.name}" has been created for ${event.date.toLocaleDateString()}. Location: ${event.location}. Description: ${event.description}`,
+              templateType: 'event_created',
+              status: 'sent',
+              sentAt: new Date(),
+              sentBy: user.uid,
+            };
+            await sendEventNotification(notification);
+          }
+        } catch (notifError) {
+          console.error('Error sending notifications:', notifError);
+          // Don't fail the whole operation if notifications fail
+        }
+      }
+
       onSuccess();
     } catch (error) {
       console.error('Error creating event:', error);
@@ -315,6 +366,21 @@ export default function CreateEventModal({ onClose, onSuccess }: CreateEventModa
               rows={2}
               placeholder="Notes for admins only"
             />
+          </div>
+
+          {/* Notification Checkbox */}
+          <div className="flex items-center space-x-2 pt-4 border-t">
+            <Checkbox
+              id="sendNotification"
+              checked={sendNotification}
+              onCheckedChange={(checked) => setSendNotification(checked as boolean)}
+            />
+            <Label
+              htmlFor="sendNotification"
+              className="text-sm font-normal cursor-pointer"
+            >
+              Send notification to Event Organizers
+            </Label>
           </div>
 
           <div className="flex gap-4 pt-4">

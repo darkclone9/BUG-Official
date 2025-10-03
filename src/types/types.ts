@@ -1,9 +1,22 @@
+// User role types
+export type UserRole =
+  | 'admin'
+  | 'member'
+  | 'guest'
+  | 'event_organizer'
+  | 'officer'
+  | 'president'
+  | 'vice_president'
+  | 'treasurer'
+  | string; // Allow dynamic game genre officer roles like "mario_kart_officer"
+
 export interface User {
   uid: string;
   email: string;
   displayName: string;
   avatar?: string;
-  role: 'admin' | 'member' | 'guest';
+  role: 'admin' | 'member' | 'guest'; // Primary role for backward compatibility
+  roles: UserRole[]; // New: Array of roles for multi-role support
   points: number;
   weeklyPoints: number;
   monthlyPoints: number;

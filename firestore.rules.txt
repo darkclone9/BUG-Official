@@ -1,23 +1,27 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection - public read for leaderboard, users can write their own data, admins can update roles
+    // Helper function to check if user has a specific role
+    function hasRole(role) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role ||
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles != null &&
+          role in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles));
+    }
+
+    // Users collection - public read for leaderboard, users can write their own data, admins can update roles and points
     match /users/{userId} {
       allow read: if true; // Allow public read access for leaderboard
       allow write: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
-        // Only allow updating role field for admin promotion/demotion
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
+      // Allow admins to update role, roles, points, weeklyPoints, monthlyPoints, and eloRating
+      allow update: if hasRole('admin');
     }
 
     // Tournaments collection - authenticated users can read, admins can write
     match /tournaments/{tournamentId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if hasRole('admin');
     }
 
     // Tournament registrations - users can read/write their own registrations
@@ -38,41 +42,31 @@ service cloud.firestore {
     // Announcements - authenticated users can read all, unauthenticated users can read broadcast only, admins can write
     match /announcements/{announcementId} {
       allow read: if request.auth != null || resource.data.priority == 'broadcast';
-      allow write: if request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if hasRole('admin');
     }
 
     // Admin users - only admins can read/write
     match /admin_users/{adminId} {
-      allow read, write: if request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow read, write: if hasRole('admin');
     }
 
     // Points transactions - only admins can write, users can read their own
     match /points_transactions/{transactionId} {
       allow read: if request.auth != null &&
         resource.data.userId == request.auth.uid;
-      allow write: if request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if hasRole('admin');
     }
 
     // Game genres - public read for dropdowns and filters, admins can write
     match /game_genres/{genreId} {
       allow read: if true; // Allow public read access for dropdowns and filters
-      allow write: if request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if hasRole('admin');
     }
 
     // Tournament brackets - authenticated users can read, admins can write
     match /tournament_brackets/{bracketId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if hasRole('admin');
     }
 
     // User external profiles - users can read/write their own profiles
@@ -82,12 +76,10 @@ service cloud.firestore {
       allow read: if request.auth != null; // Allow reading for leaderboards and comparisons
     }
 
-    // Events - authenticated users can read, admins can write
+    // Events - authenticated users can read, admins and event organizers can write
     match /events/{eventId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if hasRole('admin') || hasRole('event_organizer');
     }
 
     // Event registrations - users can read/write their own registrations
@@ -99,11 +91,9 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
 
-    // Event notifications - only admins can read/write
+    // Event notifications - only admins and event organizers can read/write
     match /event_notifications/{notificationId} {
-      allow read, write: if request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow read, write: if hasRole('admin') || hasRole('event_organizer');
     }
   }
 }

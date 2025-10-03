@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               displayName: firebaseUser.displayName || 'Anonymous',
               ...(firebaseUser.photoURL && { avatar: firebaseUser.photoURL }),
               role: 'member',
+              roles: ['member'], // Initialize with member role
               points: 0,
               weeklyPoints: 0,
               monthlyPoints: 0,
@@ -130,6 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       displayName,
       ...(firebaseUser.photoURL && { avatar: firebaseUser.photoURL }),
       role: 'member',
+      roles: ['member'], // Initialize with member role
       points: 0,
       weeklyPoints: 0,
       monthlyPoints: 0,
