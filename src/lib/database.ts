@@ -13,7 +13,14 @@ import {
     EloHistoryEntry,
     ClubEvent,
     ClubEventRegistration,
-    ClubEventNotification
+    ClubEventNotification,
+    PointsSettings,
+    PointsTransactionEnhanced,
+    PointsCategory,
+    PointsMultiplier,
+    ShopProduct,
+    ShopOrder,
+    PickupQueueItem
 } from '@/types/types';
 import { BracketMatch, TournamentBracket, BracketGenerationOptions } from '@/types/bracket';
 import { BracketGenerator } from './bracketGenerator';
@@ -1589,4 +1596,905 @@ export const getAllEventNotifications = async (): Promise<ClubEventNotification[
     ...doc.data(),
     sentAt: doc.data().sentAt.toDate(),
   })) as ClubEventNotification[];
+};
+
+// ============================================================================
+// SHOP & POINTS SYSTEM
+// ============================================================================
+
+/**
+ * Get or create points settings
+ * Returns default settings if none exist
+ */
+export const getPointsSettings = async (): Promise<PointsSettings> => {
+  const settingsDoc = await getDoc(doc(db, 'points_settings', 'default'));
+
+  if (!settingsDoc.exists()) {
+    // Create default settings
+    const defaultSettings: PointsSettings = {
+      id: 'default',
+      conversionRate: 1000,
+      perItemDiscountCap: 50,
+      perOrderDiscountCap: 3000,
+      monthlyEarningCap: 10000,
+      expirationMonths: 12,
+      earningValues: {
+        eventAttendance: 100,
+        volunteerWork: 250,
+        eventHosting: 500,
+        contributionMin: 50,
+        contributionMax: 150,
+      },
+      approvedEmailDomains: ['.edu', 'belhaven.edu'],
+      approvedEmails: [],
+      updatedAt: new Date(),
+      updatedBy: 'system',
+    };
+
+    await setDoc(doc(db, 'points_settings', 'default'), {
+      ...defaultSettings,
+      updatedAt: Timestamp.fromDate(defaultSettings.updatedAt),
+    });
+
+    return defaultSettings;
+  }
+
+  const data = settingsDoc.data();
+  return {
+    ...data,
+    updatedAt: data.updatedAt.toDate(),
+  } as PointsSettings;
+};
+
+/**
+ * Update points settings (President/Co-President/Head Admin only)
+ */
+export const updatePointsSettings = async (
+  settings: Partial<PointsSettings>,
+  updatedBy: string
+): Promise<void> => {
+  await updateDoc(doc(db, 'points_settings', 'default'), {
+    ...settings,
+    updatedAt: Timestamp.now(),
+    updatedBy,
+  });
+};
+
+/**
+ * Award points to a user with approval workflow
+ */
+export const awardPointsEnhanced = async (
+  userId: string,
+  amount: number,
+  reason: string,
+  category: PointsCategory,
+  awardedBy: string,
+  requiresApproval: boolean = false,
+  multiplier: number = 1.0,
+  multiplierCampaignId?: string
+): Promise<string> => {
+  const batch = writeBatch(db);
+  const transactionId = `pts_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // Calculate final amount with multiplier
+  const finalAmount = Math.floor(amount * multiplier);
+
+  // Get points settings for expiration calculation
+  const settings = await getPointsSettings();
+  const expirationDate = new Date();
+  expirationDate.setMonth(expirationDate.getMonth() + settings.expirationMonths);
+
+  // Create transaction record
+  const transactionRef = doc(db, 'points_transactions', transactionId);
+  batch.set(transactionRef, {
+    id: transactionId,
+    userId,
+    amount: finalAmount,
+    reason,
+    category,
+    timestamp: Timestamp.now(),
+    adminId: awardedBy,
+    expirationDate: Timestamp.fromDate(expirationDate),
+    multiplierApplied: multiplier,
+    multiplierCampaignId: multiplierCampaignId || null,
+    approvalStatus: requiresApproval ? 'pending' : 'approved',
+    approvedBy: requiresApproval ? null : awardedBy,
+    approvedAt: requiresApproval ? null : Timestamp.now(),
+  });
+
+  // If auto-approved, update user points immediately
+  if (!requiresApproval) {
+    const userRef = doc(db, 'users', userId);
+    batch.update(userRef, {
+      points: increment(finalAmount),
+      pointsBalance: increment(finalAmount),
+      pointsEarned: increment(finalAmount),
+      monthlyPointsEarned: increment(finalAmount),
+    });
+  }
+
+  await batch.commit();
+  return transactionId;
+};
+
+/**
+ * Approve pending points transaction
+ */
+export const approvePointsTransaction = async (
+  transactionId: string,
+  approvedBy: string
+): Promise<void> => {
+  const batch = writeBatch(db);
+
+  // Get transaction
+  const transactionDoc = await getDoc(doc(db, 'points_transactions', transactionId));
+  if (!transactionDoc.exists()) {
+    throw new Error('Transaction not found');
+  }
+
+  const transaction = transactionDoc.data();
+  if (transaction.approvalStatus !== 'pending') {
+    throw new Error('Transaction is not pending approval');
+  }
+
+  // Update transaction
+  const transactionRef = doc(db, 'points_transactions', transactionId);
+  batch.update(transactionRef, {
+    approvalStatus: 'approved',
+    approvedBy,
+    approvedAt: Timestamp.now(),
+  });
+
+  // Update user points
+  const userRef = doc(db, 'users', transaction.userId);
+  batch.update(userRef, {
+    points: increment(transaction.amount),
+    pointsBalance: increment(transaction.amount),
+    pointsEarned: increment(transaction.amount),
+    monthlyPointsEarned: increment(transaction.amount),
+  });
+
+  await batch.commit();
+};
+
+/**
+ * Deny pending points transaction
+ */
+export const denyPointsTransaction = async (
+  transactionId: string,
+  deniedBy: string,
+  deniedReason: string
+): Promise<void> => {
+  await updateDoc(doc(db, 'points_transactions', transactionId), {
+    approvalStatus: 'denied',
+    approvedBy: deniedBy,
+    approvedAt: Timestamp.now(),
+    deniedReason,
+  });
+};
+
+/**
+ * Spend points on a purchase
+ */
+export const spendPoints = async (
+  userId: string,
+  amount: number,
+  orderId: string,
+  reason: string
+): Promise<void> => {
+  const batch = writeBatch(db);
+  const transactionId = `pts_spend_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // Create transaction record
+  const transactionRef = doc(db, 'points_transactions', transactionId);
+  batch.set(transactionRef, {
+    id: transactionId,
+    userId,
+    amount: -amount, // Negative for spending
+    reason,
+    category: 'purchase',
+    timestamp: Timestamp.now(),
+    adminId: 'system',
+    approvalStatus: 'approved',
+    approvedBy: 'system',
+    approvedAt: Timestamp.now(),
+    orderId,
+  });
+
+  // Update user points
+  const userRef = doc(db, 'users', userId);
+  batch.update(userRef, {
+    pointsBalance: increment(-amount),
+    pointsSpent: increment(amount),
+  });
+
+  await batch.commit();
+};
+
+/**
+ * Get user's available points (excluding expired)
+ */
+export const getUserAvailablePoints = async (userId: string): Promise<number> => {
+  const user = await getUser(userId);
+  if (!user) return 0;
+
+  // Get all non-expired earning transactions
+  const now = new Date();
+  const transactionsQuery = query(
+    collection(db, 'points_transactions'),
+    where('userId', '==', userId),
+    where('approvalStatus', '==', 'approved'),
+    where('amount', '>', 0), // Only earnings
+    where('expirationDate', '>', Timestamp.fromDate(now))
+  );
+
+  const snapshot = await getDocs(transactionsQuery);
+  const earned = snapshot.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
+
+  // Subtract spent points
+  const spentQuery = query(
+    collection(db, 'points_transactions'),
+    where('userId', '==', userId),
+    where('category', '==', 'purchase')
+  );
+
+  const spentSnapshot = await getDocs(spentQuery);
+  const spent = spentSnapshot.docs.reduce((sum, doc) => sum + Math.abs(doc.data().amount), 0);
+
+  return Math.max(0, earned - spent);
+};
+
+/**
+ * Get pending points transactions for approval
+ */
+export const getPendingPointsTransactions = async (): Promise<PointsTransactionEnhanced[]> => {
+  const transactionsQuery = query(
+    collection(db, 'points_transactions'),
+    where('approvalStatus', '==', 'pending'),
+    orderBy('timestamp', 'desc')
+  );
+
+  const snapshot = await getDocs(transactionsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      timestamp: data.timestamp.toDate(),
+      expirationDate: data.expirationDate ? data.expirationDate.toDate() : undefined,
+      approvedAt: data.approvedAt ? data.approvedAt.toDate() : undefined,
+    } as PointsTransactionEnhanced;
+  });
+};
+
+/**
+ * Get user's points transaction history
+ */
+export const getUserPointsHistory = async (
+  userId: string,
+  limitCount: number = 50
+): Promise<PointsTransactionEnhanced[]> => {
+  const transactionsQuery = query(
+    collection(db, 'points_transactions'),
+    where('userId', '==', userId),
+    orderBy('timestamp', 'desc'),
+    limit(limitCount)
+  );
+
+  const snapshot = await getDocs(transactionsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      timestamp: data.timestamp.toDate(),
+      expirationDate: data.expirationDate ? data.expirationDate.toDate() : undefined,
+      approvedAt: data.approvedAt ? data.approvedAt.toDate() : undefined,
+    } as PointsTransactionEnhanced;
+  });
+};
+
+/**
+ * Expire old points (should be run as scheduled function)
+ */
+export const expireOldPoints = async (): Promise<number> => {
+  const now = new Date();
+  let expiredCount = 0;
+
+  // Find all transactions with expired points that haven't been marked as expired
+  const expiredQuery = query(
+    collection(db, 'points_transactions'),
+    where('expirationDate', '<=', Timestamp.fromDate(now)),
+    where('approvalStatus', '==', 'approved'),
+    where('amount', '>', 0) // Only earnings can expire
+  );
+
+  const snapshot = await getDocs(expiredQuery);
+
+  // Process in batches
+  const batches: WriteBatch[] = [];
+  let currentBatch = writeBatch(db);
+  let operationCount = 0;
+
+  for (const transactionDoc of snapshot.docs) {
+    const transaction = transactionDoc.data();
+
+    // Create expiration transaction
+    const expirationId = `pts_expired_${transactionDoc.id}`;
+    const expirationRef = doc(db, 'points_transactions', expirationId);
+
+    currentBatch.set(expirationRef, {
+      id: expirationId,
+      userId: transaction.userId,
+      amount: -transaction.amount,
+      reason: `Points expired from: ${transaction.reason}`,
+      category: 'expired',
+      timestamp: Timestamp.now(),
+      adminId: 'system',
+      approvalStatus: 'approved',
+      approvedBy: 'system',
+      approvedAt: Timestamp.now(),
+      originalTransactionId: transactionDoc.id,
+    });
+
+    // Update user's expired points counter
+    const userRef = doc(db, 'users', transaction.userId);
+    currentBatch.update(userRef, {
+      pointsBalance: increment(-transaction.amount),
+      pointsExpired: increment(transaction.amount),
+    });
+
+    operationCount += 2;
+    expiredCount++;
+
+    // Firestore batch limit is 500 operations
+    if (operationCount >= 400) {
+      batches.push(currentBatch);
+      currentBatch = writeBatch(db);
+      operationCount = 0;
+    }
+  }
+
+  // Add final batch if it has operations
+  if (operationCount > 0) {
+    batches.push(currentBatch);
+  }
+
+  // Commit all batches
+  for (const batch of batches) {
+    await batch.commit();
+  }
+
+  return expiredCount;
+};
+
+/**
+ * Reset monthly points cap for a user
+ */
+export const resetMonthlyPointsCap = async (userId: string): Promise<void> => {
+  await updateDoc(doc(db, 'users', userId), {
+    monthlyPointsEarned: 0,
+    lastMonthlyReset: Timestamp.now(),
+  });
+};
+
+/**
+ * Reset monthly caps for all users (should be run as scheduled function)
+ */
+export const resetAllMonthlyPointsCaps = async (): Promise<number> => {
+  const usersSnapshot = await getDocs(collection(db, 'users'));
+  let resetCount = 0;
+
+  const batches: WriteBatch[] = [];
+  let currentBatch = writeBatch(db);
+  let operationCount = 0;
+
+  for (const userDoc of usersSnapshot.docs) {
+    const userRef = doc(db, 'users', userDoc.id);
+    currentBatch.update(userRef, {
+      monthlyPointsEarned: 0,
+      lastMonthlyReset: Timestamp.now(),
+    });
+
+    operationCount++;
+    resetCount++;
+
+    if (operationCount >= 400) {
+      batches.push(currentBatch);
+      currentBatch = writeBatch(db);
+      operationCount = 0;
+    }
+  }
+
+  if (operationCount > 0) {
+    batches.push(currentBatch);
+  }
+
+  for (const batch of batches) {
+    await batch.commit();
+  }
+
+  return resetCount;
+};
+
+/**
+ * Create points multiplier campaign
+ */
+export const createPointsMultiplier = async (
+  multiplier: Omit<PointsMultiplier, 'id' | 'createdAt'>
+): Promise<string> => {
+  const multiplierId = `mult_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  await setDoc(doc(db, 'points_multipliers', multiplierId), {
+    ...multiplier,
+    id: multiplierId,
+    createdAt: Timestamp.now(),
+    startDate: Timestamp.fromDate(multiplier.startDate),
+    endDate: Timestamp.fromDate(multiplier.endDate),
+  });
+
+  return multiplierId;
+};
+
+/**
+ * Get active points multiplier for a category
+ */
+export const getActiveMultiplier = async (
+  category: PointsCategory
+): Promise<PointsMultiplier | null> => {
+  const now = new Date();
+
+  const multipliersQuery = query(
+    collection(db, 'points_multipliers'),
+    where('isActive', '==', true),
+    where('startDate', '<=', Timestamp.fromDate(now)),
+    where('endDate', '>=', Timestamp.fromDate(now))
+  );
+
+  const snapshot = await getDocs(multipliersQuery);
+
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    const multiplier = {
+      ...data,
+      startDate: data.startDate.toDate(),
+      endDate: data.endDate.toDate(),
+      createdAt: data.createdAt.toDate(),
+    } as PointsMultiplier;
+
+    // Check if this multiplier applies to the category
+    if (multiplier.applicableCategories.includes(category)) {
+      return multiplier;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Get all points multipliers
+ */
+export const getAllPointsMultipliers = async (): Promise<PointsMultiplier[]> => {
+  const multipliersQuery = query(
+    collection(db, 'points_multipliers'),
+    orderBy('createdAt', 'desc')
+  );
+
+  const snapshot = await getDocs(multipliersQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      startDate: data.startDate.toDate(),
+      endDate: data.endDate.toDate(),
+      createdAt: data.createdAt.toDate(),
+    } as PointsMultiplier;
+  });
+};
+
+/**
+ * Update points multiplier
+ */
+export const updatePointsMultiplier = async (
+  multiplierId: string,
+  updates: Partial<PointsMultiplier>
+): Promise<void> => {
+  const updateData: Record<string, unknown> = { ...updates };
+
+  if (updates.startDate) {
+    updateData.startDate = Timestamp.fromDate(updates.startDate);
+  }
+  if (updates.endDate) {
+    updateData.endDate = Timestamp.fromDate(updates.endDate);
+  }
+
+  await updateDoc(doc(db, 'points_multipliers', multiplierId), updateData);
+};
+
+/**
+ * Delete points multiplier
+ */
+export const deletePointsMultiplier = async (multiplierId: string): Promise<void> => {
+  await updateDoc(doc(db, 'points_multipliers', multiplierId), {
+    isActive: false,
+  });
+};
+
+/**
+ * Check if user has exceeded monthly earning cap
+ */
+export const checkMonthlyEarningCap = async (
+  userId: string,
+  pointsToAdd: number
+): Promise<{ allowed: boolean; remaining: number; exceeded: number }> => {
+  const user = await getUser(userId);
+  if (!user) {
+    return { allowed: false, remaining: 0, exceeded: 0 };
+  }
+
+  const settings = await getPointsSettings();
+  const currentMonthlyPoints = user.monthlyPointsEarned || 0;
+  const remaining = Math.max(0, settings.monthlyEarningCap - currentMonthlyPoints);
+  const exceeded = Math.max(0, (currentMonthlyPoints + pointsToAdd) - settings.monthlyEarningCap);
+
+  return {
+    allowed: (currentMonthlyPoints + pointsToAdd) <= settings.monthlyEarningCap,
+    remaining,
+    exceeded,
+  };
+};
+
+// ============================================================================
+// SHOP PRODUCT MANAGEMENT
+// ============================================================================
+
+/**
+ * Create a new shop product
+ */
+export const createShopProduct = async (
+  product: Omit<ShopProduct, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<string> => {
+  const productId = `prod_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  await setDoc(doc(db, 'shop_products', productId), {
+    ...product,
+    id: productId,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+
+  return productId;
+};
+
+/**
+ * Get all active shop products
+ */
+export const getShopProducts = async (includeInactive: boolean = false): Promise<ShopProduct[]> => {
+  let productsQuery;
+
+  if (includeInactive) {
+    productsQuery = query(collection(db, 'shop_products'));
+  } else {
+    productsQuery = query(
+      collection(db, 'shop_products'),
+      where('isActive', '==', true)
+    );
+  }
+
+  const snapshot = await getDocs(productsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      createdAt: data.createdAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+    } as ShopProduct;
+  });
+};
+
+/**
+ * Get a single shop product
+ */
+export const getShopProduct = async (productId: string): Promise<ShopProduct | null> => {
+  const productDoc = await getDoc(doc(db, 'shop_products', productId));
+
+  if (!productDoc.exists()) return null;
+
+  const data = productDoc.data();
+  return {
+    ...data,
+    createdAt: data.createdAt.toDate(),
+    updatedAt: data.updatedAt.toDate(),
+  } as ShopProduct;
+};
+
+/**
+ * Update shop product
+ */
+export const updateShopProduct = async (
+  productId: string,
+  updates: Partial<ShopProduct>
+): Promise<void> => {
+  await updateDoc(doc(db, 'shop_products', productId), {
+    ...updates,
+    updatedAt: Timestamp.now(),
+  });
+};
+
+/**
+ * Delete shop product (soft delete)
+ */
+export const deleteShopProduct = async (productId: string): Promise<void> => {
+  await updateDoc(doc(db, 'shop_products', productId), {
+    isActive: false,
+    updatedAt: Timestamp.now(),
+  });
+};
+
+/**
+ * Update product stock
+ */
+export const updateProductStock = async (
+  productId: string,
+  quantityChange: number
+): Promise<void> => {
+  await updateDoc(doc(db, 'shop_products', productId), {
+    stock: increment(quantityChange),
+    updatedAt: Timestamp.now(),
+  });
+};
+
+// ============================================================================
+// SHOP ORDER MANAGEMENT
+// ============================================================================
+
+/**
+ * Create a new shop order
+ */
+export const createShopOrder = async (
+  order: Omit<ShopOrder, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<string> => {
+  const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  await setDoc(doc(db, 'shop_orders', orderId), {
+    ...order,
+    id: orderId,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+    shippingAddress: order.shippingAddress || null,
+  });
+
+  return orderId;
+};
+
+/**
+ * Get shop order by ID
+ */
+export const getShopOrder = async (orderId: string): Promise<ShopOrder | null> => {
+  const orderDoc = await getDoc(doc(db, 'shop_orders', orderId));
+
+  if (!orderDoc.exists()) return null;
+
+  const data = orderDoc.data();
+  return {
+    ...data,
+    createdAt: data.createdAt.toDate(),
+    updatedAt: data.updatedAt.toDate(),
+    completedAt: data.completedAt ? data.completedAt.toDate() : undefined,
+  } as ShopOrder;
+};
+
+/**
+ * Get user's shop orders
+ */
+export const getUserShopOrders = async (userId: string): Promise<ShopOrder[]> => {
+  const ordersQuery = query(
+    collection(db, 'shop_orders'),
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc')
+  );
+
+  const snapshot = await getDocs(ordersQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      createdAt: data.createdAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+      completedAt: data.completedAt ? data.completedAt.toDate() : undefined,
+    } as ShopOrder;
+  });
+};
+
+/**
+ * Get all shop orders (admin)
+ */
+export const getAllShopOrders = async (status?: string): Promise<ShopOrder[]> => {
+  let ordersQuery;
+
+  if (status) {
+    ordersQuery = query(
+      collection(db, 'shop_orders'),
+      where('status', '==', status),
+      orderBy('createdAt', 'desc')
+    );
+  } else {
+    ordersQuery = query(
+      collection(db, 'shop_orders'),
+      orderBy('createdAt', 'desc')
+    );
+  }
+
+  const snapshot = await getDocs(ordersQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      createdAt: data.createdAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+      completedAt: data.completedAt ? data.completedAt.toDate() : undefined,
+    } as ShopOrder;
+  });
+};
+
+/**
+ * Update shop order status
+ */
+export const updateShopOrderStatus = async (
+  orderId: string,
+  status: ShopOrder['status'],
+  updates?: Partial<ShopOrder>
+): Promise<void> => {
+  const updateData: Record<string, unknown> = {
+    status,
+    updatedAt: Timestamp.now(),
+    ...updates,
+  };
+
+  if (status === 'completed') {
+    updateData.completedAt = Timestamp.now();
+  }
+
+  await updateDoc(doc(db, 'shop_orders', orderId), updateData);
+};
+
+/**
+ * Get shop order by Stripe session ID
+ */
+export const getShopOrderByStripeSession = async (
+  stripeSessionId: string
+): Promise<ShopOrder | null> => {
+  const ordersQuery = query(
+    collection(db, 'shop_orders'),
+    where('stripeSessionId', '==', stripeSessionId),
+    limit(1)
+  );
+
+  const snapshot = await getDocs(ordersQuery);
+
+  if (snapshot.empty) return null;
+
+  const data = snapshot.docs[0].data();
+  return {
+    ...data,
+    createdAt: data.createdAt.toDate(),
+    updatedAt: data.updatedAt.toDate(),
+    completedAt: data.completedAt ? data.completedAt.toDate() : undefined,
+  } as ShopOrder;
+};
+
+// ============================================================================
+// CAMPUS PICKUP QUEUE MANAGEMENT
+// ============================================================================
+
+/**
+ * Add order to campus pickup queue
+ */
+export const addToPickupQueue = async (
+  order: ShopOrder
+): Promise<string> => {
+  const queueItemId = `pickup_${order.id}`;
+
+  await setDoc(doc(db, 'pickup_queue', queueItemId), {
+    id: queueItemId,
+    orderId: order.id,
+    userId: order.userId,
+    userDisplayName: order.userDisplayName,
+    userEmail: order.userEmail,
+    items: order.items,
+    status: 'pending',
+    createdAt: Timestamp.now(),
+  });
+
+  return queueItemId;
+};
+
+/**
+ * Get campus pickup queue
+ */
+export const getPickupQueue = async (status?: string): Promise<PickupQueueItem[]> => {
+  let queueQuery;
+
+  if (status) {
+    queueQuery = query(
+      collection(db, 'pickup_queue'),
+      where('status', '==', status),
+      orderBy('createdAt', 'desc')
+    );
+  } else {
+    queueQuery = query(
+      collection(db, 'pickup_queue'),
+      orderBy('createdAt', 'desc')
+    );
+  }
+
+  const snapshot = await getDocs(queueQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      createdAt: data.createdAt.toDate(),
+      notifiedAt: data.notifiedAt ? data.notifiedAt.toDate() : undefined,
+      pickedUpAt: data.pickedUpAt ? data.pickedUpAt.toDate() : undefined,
+    } as PickupQueueItem;
+  });
+};
+
+/**
+ * Update pickup queue item status
+ */
+export const updatePickupQueueStatus = async (
+  queueItemId: string,
+  status: PickupQueueItem['status'],
+  pickedUpBy?: string,
+  notes?: string
+): Promise<void> => {
+  const updateData: Record<string, unknown> = {
+    status,
+  };
+
+  if (status === 'ready') {
+    updateData.notifiedAt = Timestamp.now();
+  }
+
+  if (status === 'completed') {
+    updateData.pickedUpAt = Timestamp.now();
+    if (pickedUpBy) {
+      updateData.pickedUpBy = pickedUpBy;
+    }
+  }
+
+  if (notes) {
+    updateData.notes = notes;
+  }
+
+  await updateDoc(doc(db, 'pickup_queue', queueItemId), updateData);
+};
+
+/**
+ * Get user's pickup queue items
+ */
+export const getUserPickupQueueItems = async (userId: string): Promise<PickupQueueItem[]> => {
+  const queueQuery = query(
+    collection(db, 'pickup_queue'),
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc')
+  );
+
+  const snapshot = await getDocs(queueQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      createdAt: data.createdAt.toDate(),
+      notifiedAt: data.notifiedAt ? data.notifiedAt.toDate() : undefined,
+      pickedUpAt: data.pickedUpAt ? data.pickedUpAt.toDate() : undefined,
+    } as PickupQueueItem;
+  });
 };
