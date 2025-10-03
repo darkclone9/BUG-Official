@@ -22,24 +22,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the generative model
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    // Get the generative model (using the latest Gemini model)
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     // Create the prompt based on the type
     let prompt = '';
-    
+
     if (type === 'event_name' || type === 'tournament_name') {
-      prompt = `You are Antony the Ant, the helpful mascot of BUG Gaming Club. 
-      
+      prompt = `You are Antony the Ant, the helpful mascot of BUG Gaming Club.
+
 A user has written the following ${type === 'event_name' ? 'event' : 'tournament'} name:
 "${text}"
 
-Please improve this name to make it more engaging, professional, and exciting while maintaining the original intent. 
+Please improve this name to make it more engaging, professional, and exciting while maintaining the original intent.
 The name should be catchy and appeal to gamers. Keep it concise (under 60 characters).
 
 Return ONLY the improved name, nothing else.`;
     } else if (type === 'event_description' || type === 'tournament_description') {
-      prompt = `You are Antony the Ant, the helpful mascot of BUG Gaming Club. 
+      prompt = `You are Antony the Ant, the helpful mascot of BUG Gaming Club.
 
 A user has written the following ${type === 'event_description' ? 'event' : 'tournament'} description:
 "${text}"
@@ -68,10 +68,26 @@ Return ONLY the improved description, nothing else.`;
     return NextResponse.json({ improvedText });
   } catch (error) {
     console.error('Error in AI assistant:', error);
+
+    // Provide more detailed error message
+    let errorMessage = 'Failed to generate improved text. Please try again.';
+
+    if (error instanceof Error) {
+      // Check for specific Gemini API errors
+      if (error.message.includes('API key')) {
+        errorMessage = 'Invalid API key. Please check your Gemini API key configuration.';
+      } else if (error.message.includes('quota')) {
+        errorMessage = 'API quota exceeded. Please try again later.';
+      } else if (error.message.includes('blocked')) {
+        errorMessage = 'Content was blocked by safety filters. Please try different text.';
+      } else {
+        errorMessage = `AI Error: ${error.message}`;
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Failed to generate improved text. Please try again.' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
 }
-
