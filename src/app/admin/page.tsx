@@ -39,7 +39,8 @@ import {
     Settings,
     Trash2,
     Trophy,
-    Users
+    Users,
+    Calendar
 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
@@ -304,13 +305,24 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-4">
-              <Settings className="inline h-10 w-10 mr-3 text-primary" />
-              Admin Panel
-            </h1>
-            <p className="text-xl text-muted-foreground">
-              Manage tournaments, announcements, and community settings
-            </p>
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-4xl font-bold text-foreground mb-4">
+                  <Settings className="inline h-10 w-10 mr-3 text-primary" />
+                  Admin Panel
+                </h1>
+                <p className="text-xl text-muted-foreground">
+                  Manage tournaments, announcements, and community settings
+                </p>
+              </div>
+              <Button
+                onClick={() => window.location.href = '/admin/events'}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Manage Events
+              </Button>
+            </div>
           </div>
 
           {/* Overview Stats */}

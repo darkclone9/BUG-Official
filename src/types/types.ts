@@ -267,3 +267,76 @@ export interface TournamentResult {
     result: 'win' | 'loss' | 'draw';
   }[];
 }
+
+// Event Management Types
+export type EventType =
+  | 'tournament'
+  | 'social_gathering'
+  | 'workshop'
+  | 'meeting'
+  | 'stream'
+  | 'competition'
+  | 'other';
+
+export type EventStatus =
+  | 'draft'
+  | 'published'
+  | 'ongoing'
+  | 'completed'
+  | 'cancelled';
+
+export type LocationType = 'physical' | 'virtual' | 'hybrid';
+
+export interface ClubEvent {
+  id: string;
+  name: string;
+  description: string;
+  eventType: EventType;
+  date: Date;
+  endDate?: Date;
+  location: string;
+  locationType: LocationType;
+  virtualLink?: string; // For online events
+  maxParticipants?: number;
+  currentParticipants: number;
+  registrationDeadline?: Date;
+  status: EventStatus;
+  game?: GameType; // Associated game if applicable
+  gameGenreId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string; // Admin UID
+  imageUrl?: string;
+  tags?: string[];
+  customFields?: Record<string, unknown>; // For event-specific details
+  requiresRegistration: boolean;
+  registrationFee?: number;
+  notes?: string; // Internal admin notes
+}
+
+export interface ClubEventRegistration {
+  id: string;
+  eventId: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  registeredAt: Date;
+  status: 'registered' | 'confirmed' | 'cancelled' | 'attended' | 'no_show';
+  notes?: string;
+  customResponses?: Record<string, unknown>; // For custom registration fields
+}
+
+export interface ClubEventNotification {
+  id: string;
+  eventId: string;
+  eventName: string;
+  recipientEmail: string;
+  recipientName?: string;
+  subject: string;
+  message: string;
+  sentAt: Date;
+  sentBy: string; // Admin UID who sent the notification
+  status: 'sent' | 'failed' | 'pending';
+  errorMessage?: string;
+  templateType?: 'event_created' | 'event_updated' | 'event_cancelled' | 'reminder' | 'custom';
+}

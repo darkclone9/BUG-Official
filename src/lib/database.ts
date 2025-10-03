@@ -9,7 +9,10 @@ import {
     TournamentRegistration,
     User,
     UserStats,
-    EloHistoryEntry
+    EloHistoryEntry,
+    ClubEvent,
+    ClubEventRegistration,
+    ClubEventNotification
 } from '@/types/types';
 import { BracketMatch, TournamentBracket, BracketGenerationOptions } from '@/types/bracket';
 import { BracketGenerator } from './bracketGenerator';
@@ -1292,4 +1295,239 @@ const advanceWinnerToNextMatch = async (
   // This would require finding the bracket document and updating it
   // For now, this is a simplified implementation
   console.log(`Advancing winner ${winnerId} to match ${nextMatch.id} as ${isFirstMatch ? 'player1' : 'player2'}`);
+};
+
+// ============================================================================
+// Event Management Functions
+// ============================================================================
+
+export const createEvent = async (event: ClubEvent): Promise<void> => {
+  await setDoc(doc(db, 'events', event.id), {
+    ...event,
+    date: Timestamp.fromDate(event.date),
+    endDate: event.endDate ? Timestamp.fromDate(event.endDate) : null,
+    registrationDeadline: event.registrationDeadline ? Timestamp.fromDate(event.registrationDeadline) : null,
+    createdAt: Timestamp.fromDate(event.createdAt),
+    updatedAt: Timestamp.fromDate(event.updatedAt),
+  });
+};
+
+export const getEvent = async (id: string): Promise<ClubEvent | null> => {
+  const eventDoc = await getDoc(doc(db, 'events', id));
+  if (!eventDoc.exists()) return null;
+
+  const data = eventDoc.data();
+  return {
+    ...data,
+    date: data.date.toDate(),
+    endDate: data.endDate ? data.endDate.toDate() : undefined,
+    registrationDeadline: data.registrationDeadline ? data.registrationDeadline.toDate() : undefined,
+    createdAt: data.createdAt.toDate(),
+    updatedAt: data.updatedAt.toDate(),
+  } as ClubEvent;
+};
+
+export const getAllEvents = async (): Promise<ClubEvent[]> => {
+  const eventsQuery = query(
+    collection(db, 'events'),
+    orderBy('date', 'desc')
+  );
+  const snapshot = await getDocs(eventsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      date: data.date.toDate(),
+      endDate: data.endDate ? data.endDate.toDate() : undefined,
+      registrationDeadline: data.registrationDeadline ? data.registrationDeadline.toDate() : undefined,
+      createdAt: data.createdAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+    } as ClubEvent;
+  });
+};
+
+export const getEventsByStatus = async (status: ClubEvent['status']): Promise<ClubEvent[]> => {
+  const eventsQuery = query(
+    collection(db, 'events'),
+    where('status', '==', status),
+    orderBy('date', 'desc')
+  );
+  const snapshot = await getDocs(eventsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      date: data.date.toDate(),
+      endDate: data.endDate ? data.endDate.toDate() : undefined,
+      registrationDeadline: data.registrationDeadline ? data.registrationDeadline.toDate() : undefined,
+      createdAt: data.createdAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+    } as ClubEvent;
+  });
+};
+
+export const updateEvent = async (id: string, updates: Partial<ClubEvent>): Promise<void> => {
+  const docRef = doc(db, 'events', id);
+  const updateData: Record<string, unknown> = { ...updates };
+
+  if (updates.date) {
+    updateData.date = Timestamp.fromDate(updates.date);
+  }
+  if (updates.endDate) {
+    updateData.endDate = Timestamp.fromDate(updates.endDate);
+  }
+  if (updates.registrationDeadline) {
+    updateData.registrationDeadline = Timestamp.fromDate(updates.registrationDeadline);
+  }
+  updateData.updatedAt = Timestamp.now();
+
+  await updateDoc(docRef, updateData);
+};
+
+export const deleteEvent = async (id: string): Promise<void> => {
+  const batch = writeBatch(db);
+
+  // Delete the event
+  batch.delete(doc(db, 'events', id));
+
+  // Delete all registrations for this event
+  const registrationsQuery = query(
+    collection(db, 'event_registrations'),
+    where('eventId', '==', id)
+  );
+  const registrations = await getDocs(registrationsQuery);
+  registrations.forEach(doc => {
+    batch.delete(doc.ref);
+  });
+
+  await batch.commit();
+};
+
+export const duplicateEvent = async (eventId: string, newName: string): Promise<string> => {
+  const originalEvent = await getEvent(eventId);
+  if (!originalEvent) throw new Error('Event not found');
+
+  const newEventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const newEvent: ClubEvent = {
+    ...originalEvent,
+    id: newEventId,
+    name: newName,
+    status: 'draft',
+    currentParticipants: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  await createEvent(newEvent);
+  return newEventId;
+};
+
+// Event Registration Management
+export const registerForEvent = async (registration: ClubEventRegistration): Promise<void> => {
+  const batch = writeBatch(db);
+
+  // Add registration document
+  const registrationRef = doc(db, 'event_registrations', registration.id);
+  batch.set(registrationRef, {
+    ...registration,
+    registeredAt: Timestamp.fromDate(registration.registeredAt),
+  });
+
+  // Update event participant count
+  const eventRef = doc(db, 'events', registration.eventId);
+  batch.update(eventRef, {
+    currentParticipants: increment(1),
+  });
+
+  await batch.commit();
+};
+
+export const unregisterFromEvent = async (eventId: string, userId: string): Promise<void> => {
+  const batch = writeBatch(db);
+
+  // Find and delete registration
+  const registrationsQuery = query(
+    collection(db, 'event_registrations'),
+    where('eventId', '==', eventId),
+    where('userId', '==', userId)
+  );
+  const registrations = await getDocs(registrationsQuery);
+
+  registrations.forEach(doc => {
+    batch.delete(doc.ref);
+  });
+
+  // Update event participant count
+  const eventRef = doc(db, 'events', eventId);
+  batch.update(eventRef, {
+    currentParticipants: increment(-1),
+  });
+
+  await batch.commit();
+};
+
+export const getEventRegistrations = async (eventId: string): Promise<ClubEventRegistration[]> => {
+  const registrationsQuery = query(
+    collection(db, 'event_registrations'),
+    where('eventId', '==', eventId),
+    orderBy('registeredAt')
+  );
+  const snapshot = await getDocs(registrationsQuery);
+
+  return snapshot.docs.map(doc => ({
+    ...doc.data(),
+    registeredAt: doc.data().registeredAt.toDate(),
+  })) as ClubEventRegistration[];
+};
+
+export const getUserEventRegistrations = async (userId: string): Promise<ClubEventRegistration[]> => {
+  const registrationsQuery = query(
+    collection(db, 'event_registrations'),
+    where('userId', '==', userId),
+    orderBy('registeredAt', 'desc')
+  );
+  const snapshot = await getDocs(registrationsQuery);
+
+  return snapshot.docs.map(doc => ({
+    ...doc.data(),
+    registeredAt: doc.data().registeredAt.toDate(),
+  })) as ClubEventRegistration[];
+};
+
+// Event Notification Management
+export const sendEventNotification = async (notification: ClubEventNotification): Promise<void> => {
+  await setDoc(doc(db, 'event_notifications', notification.id), {
+    ...notification,
+    sentAt: Timestamp.fromDate(notification.sentAt),
+  });
+};
+
+export const getEventNotifications = async (eventId: string): Promise<ClubEventNotification[]> => {
+  const notificationsQuery = query(
+    collection(db, 'event_notifications'),
+    where('eventId', '==', eventId),
+    orderBy('sentAt', 'desc')
+  );
+  const snapshot = await getDocs(notificationsQuery);
+
+  return snapshot.docs.map(doc => ({
+    ...doc.data(),
+    sentAt: doc.data().sentAt.toDate(),
+  })) as ClubEventNotification[];
+};
+
+export const getAllEventNotifications = async (): Promise<ClubEventNotification[]> => {
+  const notificationsQuery = query(
+    collection(db, 'event_notifications'),
+    orderBy('sentAt', 'desc'),
+    limit(100)
+  );
+  const snapshot = await getDocs(notificationsQuery);
+
+  return snapshot.docs.map(doc => ({
+    ...doc.data(),
+    sentAt: doc.data().sentAt.toDate(),
+  })) as ClubEventNotification[];
 };
