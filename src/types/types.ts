@@ -1,14 +1,16 @@
 // User role types
 export type UserRole =
-  | 'admin'
-  | 'member'
-  | 'guest'
-  | 'event_organizer'
-  | 'officer'
-  | 'president'
-  | 'vice_president'
-  | 'treasurer'
-  | string; // Allow dynamic game genre officer roles like "mario_kart_officer"
+  | 'president'        // Highest authority - can edit all roles and settings
+  | 'co_president'     // Second highest - can edit all roles and settings
+  | 'head_admin'       // Can edit admin roles and below, manage shop settings
+  | 'admin'            // Can approve points, manage orders
+  | 'officer'          // Can approve volunteer points
+  | 'event_organizer'  // Can create/manage events
+  | 'vice_president'   // Legacy role
+  | 'treasurer'        // Legacy role
+  | 'member'           // Regular user
+  | 'guest'            // Guest user
+  | string;            // Allow dynamic game genre officer roles like "mario_kart_officer"
 
 export interface User {
   uid: string;
@@ -30,6 +32,15 @@ export interface User {
     emailUpdates: boolean;
     favoriteGames: GameType[];
   };
+  // Shop & Points System fields
+  pointsBalance?: number;          // Current available points for redemption
+  pointsEarned?: number;           // Total points earned all-time
+  pointsSpent?: number;            // Total points spent all-time
+  pointsExpired?: number;          // Total points that have expired
+  lastMonthlyReset?: Date;         // Last time monthly cap was reset
+  monthlyPointsEarned?: number;    // Points earned this month (for cap tracking)
+  campusEmail?: string;            // Verified .edu email for eligibility
+  isEmailVerified?: boolean;       // Email verification status
 }
 
 // Legacy GameType for backward compatibility
@@ -353,4 +364,173 @@ export interface ClubEventNotification {
   status: 'sent' | 'failed' | 'pending';
   errorMessage?: string;
   templateType?: 'event_created' | 'event_updated' | 'event_cancelled' | 'reminder' | 'custom';
+}
+
+// ============================================================================
+// SHOP & POINTS SYSTEM TYPES
+// ============================================================================
+
+// Shop Product
+export interface ShopProduct {
+  id: string;
+  name: string;
+  description: string;
+  price: number;                    // Price in USD cents (e.g., 2500 = $25.00)
+  images: string[];                 // Array of image URLs
+  category: ProductCategory;
+  pointsEligible: boolean;          // Can points be used for discount?
+  stock: number;                    // Available quantity (-1 = unlimited)
+  isActive: boolean;                // Is product visible in shop?
+  printfulId?: string;              // Printful product ID for POD integration
+  printifyId?: string;              // Printify product ID for POD integration
+  variants?: ProductVariant[];      // Size, color, etc.
+  tags?: string[];                  // For filtering/search
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;                // Admin UID
+}
+
+export type ProductCategory =
+  | 'apparel'
+  | 'accessories'
+  | 'stickers'
+  | 'posters'
+  | 'digital'
+  | 'other';
+
+export interface ProductVariant {
+  id: string;
+  name: string;                     // e.g., "Size", "Color"
+  options: string[];                // e.g., ["S", "M", "L", "XL"]
+  priceModifier?: number;           // Additional cost in cents
+}
+
+// Shop Order
+export interface ShopOrder {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userDisplayName: string;
+  items: OrderItem[];
+  subtotal: number;                 // Total before discounts (cents)
+  pointsDiscount: number;           // Discount from points (cents)
+  pointsUsed: number;               // Number of points redeemed
+  shipping: number;                 // Shipping cost (cents)
+  tax: number;                      // Tax amount (cents)
+  total: number;                    // Final total paid (cents)
+  fulfillmentType: 'campus_pickup' | 'shipping';
+  shippingAddress?: ShippingAddress;
+  status: OrderStatus;
+  stripeSessionId: string;
+  stripePaymentIntentId?: string;
+  printfulOrderId?: string;         // POD order ID
+  printifyOrderId?: string;         // POD order ID
+  trackingNumber?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt?: Date;
+}
+
+export type OrderStatus =
+  | 'pending'           // Payment pending
+  | 'paid'              // Payment successful
+  | 'processing'        // Being fulfilled
+  | 'ready_pickup'      // Ready for campus pickup
+  | 'shipped'           // Shipped to customer
+  | 'completed'         // Order complete
+  | 'cancelled'         // Order cancelled
+  | 'refunded';         // Order refunded
+
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  productImage: string;
+  quantity: number;
+  price: number;                    // Price per item (cents)
+  variant?: string;                 // Selected variant (e.g., "Size: L")
+  pointsEligible: boolean;
+}
+
+export interface ShippingAddress {
+  name: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  phone?: string;
+}
+
+// Points Settings (configurable by President/Co-President/Head Admin)
+export interface PointsSettings {
+  id: string;
+  conversionRate: number;           // Points per $1 (default: 1000)
+  perItemDiscountCap: number;       // Max discount % per item (default: 50)
+  perOrderDiscountCap: number;      // Max discount $ per order in cents (default: 3000 = $30)
+  monthlyEarningCap: number;        // Max points per month (default: 10000)
+  expirationMonths: number;         // Points expire after X months (default: 12)
+  earningValues: {
+    eventAttendance: number;        // Points for QR check-in (default: 100)
+    volunteerWork: number;          // Points for volunteering (default: 250)
+    eventHosting: number;           // Points for hosting event (default: 500)
+    contributionMin: number;        // Min contribution points (default: 50)
+    contributionMax: number;        // Max contribution points (default: 150)
+  };
+  approvedEmailDomains: string[];   // e.g., [".edu", "belhaven.edu"]
+  approvedEmails: string[];         // Manually approved emails
+  updatedAt: Date;
+  updatedBy: string;                // Admin UID
+}
+
+// Points Transaction (enhanced from existing)
+export interface PointsTransactionEnhanced extends PointsTransaction {
+  expirationDate?: Date;            // When these points expire
+  multiplierApplied?: number;       // Sponsor multiplier (e.g., 1.5, 2.0)
+  multiplierCampaignId?: string;    // Which campaign applied the multiplier
+  approvalStatus: 'pending' | 'approved' | 'denied';
+  approvedBy?: string;              // Admin UID who approved
+  approvedAt?: Date;
+  deniedReason?: string;
+  category: PointsCategory;
+}
+
+export type PointsCategory =
+  | 'event_attendance'
+  | 'volunteer_work'
+  | 'event_hosting'
+  | 'contribution'
+  | 'purchase'              // Points spent on shop purchase
+  | 'expired'               // Points that expired
+  | 'adjustment';           // Manual admin adjustment
+
+// Points Multiplier Campaign
+export interface PointsMultiplier {
+  id: string;
+  name: string;                     // e.g., "Double Points Weekend"
+  description: string;
+  multiplier: number;               // e.g., 1.5, 2.0
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  applicableCategories: PointsCategory[]; // Which earning types get multiplier
+  createdAt: Date;
+  createdBy: string;                // Admin UID
+}
+
+// Campus Pickup Queue Item
+export interface PickupQueueItem {
+  id: string;
+  orderId: string;
+  userId: string;
+  userDisplayName: string;
+  userEmail: string;
+  items: OrderItem[];
+  status: 'pending' | 'ready' | 'completed';
+  notifiedAt?: Date;                // When user was notified order is ready
+  pickedUpAt?: Date;
+  pickedUpBy?: string;              // Admin UID who marked as picked up
+  notes?: string;
+  createdAt: Date;
 }
