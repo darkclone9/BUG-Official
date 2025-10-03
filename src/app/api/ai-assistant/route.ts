@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the generative model (using the latest Gemini model)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Get the generative model (using Gemini Pro which is stable and widely available)
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
     // Create the prompt based on the type
     let prompt = '';
