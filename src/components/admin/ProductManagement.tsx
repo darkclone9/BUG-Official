@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ShopProduct } from '@/types/types';
-import { getAllShopProducts, createShopProduct, updateShopProduct, deleteShopProduct } from '@/lib/database';
+import { getShopProducts, createShopProduct, updateShopProduct, deleteShopProduct } from '@/lib/database';
 import { formatCents } from '@/lib/points';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +54,7 @@ export default function ProductManagement() {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const data = await getAllShopProducts();
+      const data = await getShopProducts(true); // Include inactive products for admin
       setProducts(data);
     } catch (error) {
       console.error('Error loading products:', error);
@@ -352,4 +352,3 @@ export default function ProductManagement() {
     </div>
   );
 }
-
