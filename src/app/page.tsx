@@ -5,7 +5,7 @@ import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Users, Calendar, Star, Gamepad2, Target, Zap, MapPin } from 'lucide-react';
+import { Trophy, Users, Calendar, Star, Gamepad2, Target, Zap, MapPin, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { getUpcomingTournaments, getTopUsers } from '@/lib/firebase';
 import { getUpcomingPublishedEvents } from '@/lib/database';
@@ -82,6 +82,12 @@ export default function Home() {
                 Join Now
               </Button>
             </Link>
+            <Link href="/shop" className="w-full sm:w-auto">
+              <Button size="lg" variant="default" className="w-full px-6 md:px-8 py-3 bg-accent hover:bg-accent/90">
+                <ShoppingBag className="mr-2 h-5 w-5" />
+                Shop Merch
+              </Button>
+            </Link>
             <Link href="/tournaments" className="w-full sm:w-auto">
               <Button size="lg" variant="outline" className="w-full px-6 md:px-8 py-3">
                 <Trophy className="mr-2 h-5 w-5" />
@@ -98,7 +104,7 @@ export default function Home() {
           <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-8 md:mb-12">
             Why Join Our Gaming Club?
           </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             <Card className="glass hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <Trophy className="h-12 w-12 text-primary mb-4" />
@@ -113,7 +119,16 @@ export default function Home() {
                 <Target className="h-12 w-12 text-accent mb-4" />
                 <CardTitle>Points System</CardTitle>
                 <CardDescription>
-                  Earn points for participation, wins, and achievements. Climb the leaderboards and show your skills.
+                  Earn points for participation, wins, and achievements. Redeem them for exclusive merch in our shop!
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            <Card className="glass hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => window.location.href = '/shop'}>
+              <CardHeader>
+                <ShoppingBag className="h-12 w-12 text-accent mb-4" />
+                <CardTitle>Exclusive Shop</CardTitle>
+                <CardDescription>
+                  Browse and purchase gaming merch, apparel, and accessories. Use your points for discounts!
                 </CardDescription>
               </CardHeader>
             </Card>

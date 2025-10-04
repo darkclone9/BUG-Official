@@ -11,7 +11,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
-import { BarChart3, Bell, Edit, Gamepad2, LogOut, Menu, Search, Settings, Trophy, User, X } from 'lucide-react';
+import { BarChart3, Bell, Edit, Gamepad2, LogOut, Menu, Search, Settings, ShoppingBag, Trophy, User, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import AnnouncementBar from './AnnouncementBar';
@@ -49,6 +49,9 @@ export default function Navigation() {
             </Link>
             <Link href="/players" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
               Players
+            </Link>
+            <Link href="/shop" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
+              Shop
             </Link>
             <Link href="/search" className="text-muted-foreground hover:text-foreground transition-colors">
               <Search className="h-4 w-4" />
@@ -205,6 +208,14 @@ export default function Navigation() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Players
+              </Link>
+              <Link
+                href="/shop"
+                className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <ShoppingBag className="inline h-4 w-4 mr-2" />
+                Shop
               </Link>
               <Link
                 href="/search"
