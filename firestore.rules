@@ -22,8 +22,9 @@ service cloud.firestore {
       // Anyone can read user profiles (for leaderboards, player lists, etc.)
       allow read: if true;
 
-      // Users can create their own profile
-      allow create: if isSignedIn() && request.auth.uid == userId;
+      // Users can create their own profile during signup
+      // Allow creation if authenticated AND the userId matches the auth UID
+      allow create: if request.auth != null && request.auth.uid == userId;
 
       // Users can update their own profile, admins can update any profile
       allow update: if isOwner(userId) || isAdmin();
