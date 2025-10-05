@@ -44,8 +44,9 @@ service cloud.firestore {
 
     // Events collection
     match /events/{eventId} {
-      // Anyone can read published events
-      allow read: if resource.data.status == 'published' || isAdmin();
+      // Admins can read all events
+      // Non-admins can only read published events
+      allow read: if isAdmin() || resource.data.status == 'published';
 
       // Only admins can create, update, or delete events
       allow create, update, delete: if isAdmin();
@@ -75,9 +76,9 @@ service cloud.firestore {
 
     // Shop products collection
     match /shop_products/{productId} {
-      // Anyone can read active products
       // Admins can read all products (including inactive)
-      allow read: if resource.data.isActive == true || isAdmin();
+      // Non-admins can only read active products
+      allow read: if isAdmin() || resource.data.isActive == true;
 
       // Only admins can create, update, or delete products
       allow create, update, delete: if isAdmin();
@@ -107,8 +108,9 @@ service cloud.firestore {
 
     // Announcements collection
     match /announcements/{announcementId} {
-      // Anyone can read active announcements
-      allow read: if resource.data.isActive == true || isAdmin();
+      // Admins can read all announcements
+      // Non-admins can only read active announcements
+      allow read: if isAdmin() || resource.data.isActive == true;
 
       // Only admins can create or delete announcements
       allow create, delete: if isAdmin();
@@ -122,8 +124,9 @@ service cloud.firestore {
 
     // Broadcasts collection
     match /broadcasts/{broadcastId} {
-      // Anyone can read active broadcasts
-      allow read: if resource.data.isActive == true || isAdmin();
+      // Admins can read all broadcasts
+      // Non-admins can only read active broadcasts
+      allow read: if isAdmin() || resource.data.isActive == true;
 
       // Only admins can create or delete broadcasts
       allow create, delete: if isAdmin();
