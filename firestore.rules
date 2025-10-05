@@ -158,6 +158,15 @@ service cloud.firestore {
     // ADMIN COLLECTIONS
     // ============================================
 
+    // Admin users collection
+    match /admin_users/{userId} {
+      // Only admins can read admin user data
+      allow read: if isAdmin();
+
+      // Only admins can create, update, or delete admin users
+      allow create, update, delete: if isAdmin();
+    }
+
     // Admin logs collection
     match /admin_logs/{logId} {
       // Only admins can read logs
@@ -168,6 +177,79 @@ service cloud.firestore {
 
       // No one can update or delete logs
       allow update, delete: if false;
+    }
+
+    // Role change logs collection
+    match /role_change_logs/{logId} {
+      // Only admins can read role change logs
+      allow read: if isAdmin();
+
+      // Only admins can create role change logs
+      allow create: if isAdmin();
+
+      // No one can update or delete logs
+      allow update, delete: if false;
+    }
+
+    // ============================================
+    // USER STATS & REGISTRATIONS
+    // ============================================
+
+    // User stats collection
+    match /user_stats/{userId} {
+      // Anyone can read user stats (for leaderboards)
+      allow read: if true;
+
+      // Users can create their own stats during signup
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // Only admins can update or delete user stats
+      allow update, delete: if isAdmin();
+    }
+
+    // Tournament registrations collection
+    match /tournament_registrations/{registrationId} {
+      // Users can read their own registrations, admins can read all
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+
+      // Users can create their own registrations
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+
+      // Only admins can update or delete registrations
+      allow update, delete: if isAdmin();
+    }
+
+    // Event registrations collection
+    match /event_registrations/{registrationId} {
+      // Users can read their own registrations, admins can read all
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+
+      // Users can create their own registrations
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+
+      // Only admins can update or delete registrations
+      allow update, delete: if isAdmin();
+    }
+
+    // Event notifications collection
+    match /event_notifications/{notificationId} {
+      // Users can read notifications for events they're registered for
+      allow read: if isSignedIn();
+
+      // Only admins can create, update, or delete event notifications
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Pickup queue collection
+    match /pickup_queue/{queueId} {
+      // Users can read their own pickup queue items, admins can read all
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+
+      // System can create pickup queue items (via server-side code)
+      allow create: if true;
+
+      // Only admins can update or delete pickup queue items
+      allow update, delete: if isAdmin();
     }
 
     // ============================================
