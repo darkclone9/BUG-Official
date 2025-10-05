@@ -110,8 +110,14 @@ service cloud.firestore {
       // Anyone can read active announcements
       allow read: if resource.data.isActive == true || isAdmin();
 
-      // Only admins can create, update, or delete announcements
-      allow create, update, delete: if isAdmin();
+      // Only admins can create or delete announcements
+      allow create, delete: if isAdmin();
+
+      // Admins can update any field
+      // Authenticated users can update only readBy and dismissedBy fields
+      allow update: if isAdmin() ||
+                      (isSignedIn() &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy', 'dismissedBy']));
     }
 
     // Broadcasts collection
@@ -119,8 +125,14 @@ service cloud.firestore {
       // Anyone can read active broadcasts
       allow read: if resource.data.isActive == true || isAdmin();
 
-      // Only admins can create, update, or delete broadcasts
-      allow create, update, delete: if isAdmin();
+      // Only admins can create or delete broadcasts
+      allow create, delete: if isAdmin();
+
+      // Admins can update any field
+      // Authenticated users can update only readBy and dismissedBy fields
+      allow update: if isAdmin() ||
+                      (isSignedIn() &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy', 'dismissedBy']));
     }
 
     // ============================================
