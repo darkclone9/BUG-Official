@@ -20,7 +20,14 @@ import {
     PointsMultiplier,
     ShopProduct,
     ShopOrder,
-    PickupQueueItem
+    PickupQueueItem,
+    UserProfile,
+    Achievement,
+    Sticker,
+    Conversation,
+    Message,
+    MessageNotification,
+    TournamentMessage
 } from '@/types/types';
 import { BracketMatch, TournamentBracket, BracketGenerationOptions } from '@/types/bracket';
 import { BracketGenerator } from './bracketGenerator';
@@ -42,7 +49,8 @@ import {
     writeBatch,
     WriteBatch,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, storage } from './firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // User Management
 export const createUser = async (user: User): Promise<void> => {
@@ -2735,4 +2743,601 @@ export const bulkAssignRoles = async (
   }
 
   return { success, failed, errors };
+};
+
+// ============================================================================
+// PROFILE & SOCIAL FUNCTIONS
+// ============================================================================
+
+/**
+ * Get user profile with all details
+ */
+export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+
+    if (!userDoc.exists()) {
+      return null;
+    }
+
+    const userData = userDoc.data();
+
+    // Convert Firestore timestamps to Dates
+    const profile: UserProfile = {
+      ...userData,
+      uid: userDoc.id,
+      joinDate: userData.joinDate?.toDate() || new Date(),
+      lastLoginDate: userData.lastLoginDate?.toDate(),
+      lastMonthlyReset: userData.lastMonthlyReset?.toDate(),
+      achievementsList: userData.achievementsList || [],
+      stickersList: userData.stickersList || [],
+      privacySettings: userData.privacySettings || {
+        showEmail: false,
+        showRoles: true,
+        showAchievements: true,
+        showStickers: true,
+        showPoints: true,
+        showEloRating: true,
+        showJoinDate: true,
+        showSocialMedia: true,
+        allowDirectMessages: true,
+      },
+      socialMediaAccounts: userData.socialMediaAccounts || [],
+    } as UserProfile;
+
+    return profile;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update user profile
+ */
+export const updateUserProfile = async (
+  userId: string,
+  updates: Partial<UserProfile>
+): Promise<void> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+
+    // Remove undefined values and convert Dates to Timestamps
+    const cleanUpdates: Record<string, unknown> = {};
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        if (value instanceof Date) {
+          cleanUpdates[key] = Timestamp.fromDate(value);
+        } else {
+          cleanUpdates[key] = value;
+        }
+      }
+    });
+
+    await updateDoc(userRef, cleanUpdates);
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload user avatar to Firebase Storage
+ */
+export const uploadUserAvatar = async (
+  userId: string,
+  file: File
+): Promise<string> => {
+  try {
+    const storageRef = ref(storage, `avatars/${userId}/${Date.now()}_${file.name}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+
+    // Update user profile with new avatar URL
+    await updateUserProfile(userId, { avatarUrl: downloadURL });
+
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading avatar:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add achievement to user
+ */
+export const addUserAchievement = async (
+  userId: string,
+  achievement: Omit<Achievement, 'unlockedAt'>
+): Promise<void> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
+    const currentAchievements = userDoc.data().achievementsList || [];
+
+    // Check if achievement already exists
+    if (currentAchievements.some((a: Achievement) => a.id === achievement.id)) {
+      return; // Achievement already unlocked
+    }
+
+    const newAchievement: Achievement = {
+      ...achievement,
+      unlockedAt: new Date(),
+    };
+
+    await updateDoc(userRef, {
+      achievementsList: arrayUnion(newAchievement),
+    });
+  } catch (error) {
+    console.error('Error adding achievement:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add sticker to user collection
+ */
+export const addUserSticker = async (
+  userId: string,
+  sticker: Omit<Sticker, 'obtainedAt' | 'isDisplayed'>
+): Promise<void> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
+    const currentStickers = userDoc.data().stickersList || [];
+
+    // Check if sticker already exists
+    if (currentStickers.some((s: Sticker) => s.id === sticker.id)) {
+      return; // Sticker already owned
+    }
+
+    const newSticker: Sticker = {
+      ...sticker,
+      obtainedAt: new Date(),
+      isDisplayed: false,
+    };
+
+    await updateDoc(userRef, {
+      stickersList: arrayUnion(newSticker),
+    });
+  } catch (error) {
+    console.error('Error adding sticker:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update user's displayed stickers
+ */
+export const updateDisplayedStickers = async (
+  userId: string,
+  stickerIds: string[]
+): Promise<void> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
+    const stickers: Sticker[] = userDoc.data().stickersList || [];
+
+    // Update isDisplayed and displayOrder for all stickers
+    const updatedStickers = stickers.map((sticker, index) => ({
+      ...sticker,
+      isDisplayed: stickerIds.includes(sticker.id),
+      displayOrder: stickerIds.indexOf(sticker.id),
+    }));
+
+    await updateDoc(userRef, {
+      stickersList: updatedStickers,
+    });
+  } catch (error) {
+    console.error('Error updating displayed stickers:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// MESSAGING FUNCTIONS
+// ============================================================================
+
+/**
+ * Create or get existing conversation between two users
+ */
+export const getOrCreateConversation = async (
+  user1Id: string,
+  user2Id: string
+): Promise<string> => {
+  try {
+    // Check if conversation already exists
+    const conversationsRef = collection(db, 'conversations');
+    const q = query(
+      conversationsRef,
+      where('participants', 'array-contains', user1Id)
+    );
+
+    const snapshot = await getDocs(q);
+    const existingConversation = snapshot.docs.find(doc => {
+      const participants = doc.data().participants as string[];
+      return participants.includes(user2Id);
+    });
+
+    if (existingConversation) {
+      return existingConversation.id;
+    }
+
+    // Get user details
+    const user1Doc = await getDoc(doc(db, 'users', user1Id));
+    const user2Doc = await getDoc(doc(db, 'users', user2Id));
+
+    if (!user1Doc.exists() || !user2Doc.exists()) {
+      throw new Error('One or both users not found');
+    }
+
+    const user1Data = user1Doc.data();
+    const user2Data = user2Doc.data();
+
+    // Create new conversation
+    const newConversation: Omit<Conversation, 'id'> = {
+      participants: [user1Id, user2Id],
+      participantNames: {
+        [user1Id]: user1Data.displayName || 'Unknown',
+        [user2Id]: user2Data.displayName || 'Unknown',
+      },
+      participantAvatars: {
+        [user1Id]: user1Data.avatarUrl || user1Data.avatar || '',
+        [user2Id]: user2Data.avatarUrl || user2Data.avatar || '',
+      },
+      unreadCount: {
+        [user1Id]: 0,
+        [user2Id]: 0,
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const docRef = await setDoc(doc(conversationsRef), newConversation);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating conversation:', error);
+    throw error;
+  }
+};
+
+/**
+ * Send a message in a conversation
+ */
+export const sendMessage = async (
+  conversationId: string,
+  senderId: string,
+  content: string
+): Promise<void> => {
+  try {
+    // Get sender details
+    const senderDoc = await getDoc(doc(db, 'users', senderId));
+    if (!senderDoc.exists()) {
+      throw new Error('Sender not found');
+    }
+
+    const senderData = senderDoc.data();
+
+    // Create message
+    const message: Omit<Message, 'id'> = {
+      conversationId,
+      senderId,
+      senderName: senderData.displayName || 'Unknown',
+      senderAvatar: senderData.avatarUrl || senderData.avatar,
+      content,
+      timestamp: new Date(),
+      isRead: false,
+      isEdited: false,
+      isDeleted: false,
+    };
+
+    const messagesRef = collection(db, 'messages');
+    await setDoc(doc(messagesRef), message);
+
+    // Update conversation
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+
+    if (conversationDoc.exists()) {
+      const conversationData = conversationDoc.data();
+      const participants = conversationData.participants as string[];
+      const recipientId = participants.find(id => id !== senderId);
+
+      if (recipientId) {
+        await updateDoc(conversationRef, {
+          lastMessage: content.substring(0, 100),
+          lastMessageAt: Timestamp.fromDate(new Date()),
+          lastMessageBy: senderId,
+          updatedAt: Timestamp.fromDate(new Date()),
+          [`unreadCount.${recipientId}`]: increment(1),
+        });
+
+        // Create notification for recipient
+        await createMessageNotification(recipientId, senderId, conversationId, content);
+      }
+    }
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get messages for a conversation
+ */
+export const getConversationMessages = async (
+  conversationId: string,
+  limitCount: number = 50
+): Promise<Message[]> => {
+  try {
+    const messagesRef = collection(db, 'messages');
+    const q = query(
+      messagesRef,
+      where('conversationId', '==', conversationId),
+      where('isDeleted', '==', false),
+      orderBy('timestamp', 'desc'),
+      limit(limitCount)
+    );
+
+    const snapshot = await getDocs(q);
+    const messages = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toDate() || new Date(),
+      readAt: doc.data().readAt?.toDate(),
+      editedAt: doc.data().editedAt?.toDate(),
+    })) as Message[];
+
+    return messages.reverse(); // Return in chronological order
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get user's conversations
+ */
+export const getUserConversations = async (userId: string): Promise<Conversation[]> => {
+  try {
+    const conversationsRef = collection(db, 'conversations');
+    const q = query(
+      conversationsRef,
+      where('participants', 'array-contains', userId),
+      orderBy('updatedAt', 'desc')
+    );
+
+    const snapshot = await getDocs(q);
+    const conversations = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate() || new Date(),
+      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+      lastMessageAt: doc.data().lastMessageAt?.toDate(),
+    })) as Conversation[];
+
+    return conversations;
+  } catch (error) {
+    console.error('Error fetching conversations:', error);
+    throw error;
+  }
+};
+
+/**
+ * Mark messages as read
+ */
+export const markMessagesAsRead = async (
+  conversationId: string,
+  userId: string
+): Promise<void> => {
+  try {
+    const messagesRef = collection(db, 'messages');
+    const q = query(
+      messagesRef,
+      where('conversationId', '==', conversationId),
+      where('isRead', '==', false)
+    );
+
+    const snapshot = await getDocs(q);
+    const batch = writeBatch(db);
+
+    snapshot.docs.forEach(doc => {
+      const messageData = doc.data();
+      if (messageData.senderId !== userId) {
+        batch.update(doc.ref, {
+          isRead: true,
+          readAt: Timestamp.fromDate(new Date()),
+        });
+      }
+    });
+
+    // Reset unread count in conversation
+    const conversationRef = doc(db, 'conversations', conversationId);
+    batch.update(conversationRef, {
+      [`unreadCount.${userId}`]: 0,
+    });
+
+    await batch.commit();
+  } catch (error) {
+    console.error('Error marking messages as read:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create message notification
+ */
+const createMessageNotification = async (
+  recipientId: string,
+  senderId: string,
+  conversationId: string,
+  messageContent: string
+): Promise<void> => {
+  try {
+    const senderDoc = await getDoc(doc(db, 'users', senderId));
+    if (!senderDoc.exists()) return;
+
+    const senderData = senderDoc.data();
+
+    const notification: Omit<MessageNotification, 'id'> = {
+      userId: recipientId,
+      senderId,
+      senderName: senderData.displayName || 'Unknown',
+      conversationId,
+      messagePreview: messageContent.substring(0, 100),
+      isRead: false,
+      createdAt: new Date(),
+    };
+
+    const notificationsRef = collection(db, 'message_notifications');
+    await setDoc(doc(notificationsRef), notification);
+  } catch (error) {
+    console.error('Error creating message notification:', error);
+  }
+};
+
+/**
+ * Get unread message notifications for user
+ */
+export const getUnreadMessageNotifications = async (
+  userId: string
+): Promise<MessageNotification[]> => {
+  try {
+    const notificationsRef = collection(db, 'message_notifications');
+    const q = query(
+      notificationsRef,
+      where('userId', '==', userId),
+      where('isRead', '==', false),
+      orderBy('createdAt', 'desc')
+    );
+
+    const snapshot = await getDocs(q);
+    const notifications = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate() || new Date(),
+    })) as MessageNotification[];
+
+    return notifications;
+  } catch (error) {
+    console.error('Error fetching message notifications:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// TOURNAMENT MESSAGING FUNCTIONS
+// ============================================================================
+
+/**
+ * Post message to tournament discussion
+ */
+export const postTournamentMessage = async (
+  tournamentId: string,
+  userId: string,
+  content: string
+): Promise<void> => {
+  try {
+    // Verify user is registered for tournament
+    const tournamentDoc = await getDoc(doc(db, 'tournaments', tournamentId));
+    if (!tournamentDoc.exists()) {
+      throw new Error('Tournament not found');
+    }
+
+    const tournamentData = tournamentDoc.data();
+    if (!tournamentData.participants.includes(userId)) {
+      throw new Error('Only registered participants can post messages');
+    }
+
+    // Get user details
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
+    const userData = userDoc.data();
+
+    const message: Omit<TournamentMessage, 'id'> = {
+      tournamentId,
+      userId,
+      userDisplayName: userData.displayName || 'Unknown',
+      userAvatar: userData.avatarUrl || userData.avatar,
+      content,
+      timestamp: new Date(),
+      isEdited: false,
+      isDeleted: false,
+    };
+
+    const messagesRef = collection(db, 'tournament_messages');
+    await setDoc(doc(messagesRef), message);
+  } catch (error) {
+    console.error('Error posting tournament message:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get tournament messages
+ */
+export const getTournamentMessages = async (
+  tournamentId: string,
+  limitCount: number = 100
+): Promise<TournamentMessage[]> => {
+  try {
+    const messagesRef = collection(db, 'tournament_messages');
+    const q = query(
+      messagesRef,
+      where('tournamentId', '==', tournamentId),
+      where('isDeleted', '==', false),
+      orderBy('timestamp', 'asc'),
+      limit(limitCount)
+    );
+
+    const snapshot = await getDocs(q);
+    const messages = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toDate() || new Date(),
+      editedAt: doc.data().editedAt?.toDate(),
+    })) as TournamentMessage[];
+
+    return messages;
+  } catch (error) {
+    console.error('Error fetching tournament messages:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete tournament message (admin only)
+ */
+export const deleteTournamentMessage = async (
+  messageId: string,
+  adminId: string
+): Promise<void> => {
+  try {
+    const messageRef = doc(db, 'tournament_messages', messageId);
+    await updateDoc(messageRef, {
+      isDeleted: true,
+      deletedBy: adminId,
+    });
+  } catch (error) {
+    console.error('Error deleting tournament message:', error);
+    throw error;
+  }
 };

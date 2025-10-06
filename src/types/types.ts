@@ -17,6 +17,8 @@ export interface User {
   email: string;
   displayName: string;
   avatar?: string;
+  avatarUrl?: string;              // New: Profile avatar URL
+  bio?: string;                    // New: User bio/description
   role: 'admin' | 'member' | 'guest'; // Primary role for backward compatibility
   roles: UserRole[]; // New: Array of roles for multi-role support
   points: number;
@@ -24,7 +26,9 @@ export interface User {
   monthlyPoints: number;
   eloRating: number; // New: ELO rating for competitive ranking
   joinDate: Date;
-  achievements?: string[];
+  achievements?: string[];         // Legacy: kept for backward compatibility
+  achievementsList?: Achievement[]; // New: Full achievement objects
+  stickersList?: Sticker[];        // New: User's sticker collection
   isActive: boolean;
   lastLoginDate?: Date;
   preferences?: {
@@ -41,6 +45,9 @@ export interface User {
   monthlyPointsEarned?: number;    // Points earned this month (for cap tracking)
   campusEmail?: string;            // Verified .edu email for eligibility
   isEmailVerified?: boolean;       // Email verification status
+  // Profile & Social fields
+  privacySettings?: ProfilePrivacySettings; // New: Privacy controls
+  socialMediaAccounts?: SocialMediaLink[];  // New: Linked social accounts
 }
 
 // Legacy GameType for backward compatibility
@@ -533,4 +540,142 @@ export interface PickupQueueItem {
   pickedUpBy?: string;              // Admin UID who marked as picked up
   notes?: string;
   createdAt: Date;
+}
+
+// ============================================================================
+// PROFILE, MESSAGING & SOCIAL TYPES
+// ============================================================================
+
+// Achievement System
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  iconUrl?: string;
+  category: 'tournament' | 'points' | 'participation' | 'special' | 'social';
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  unlockedAt: Date;
+  progress?: number;                // For progressive achievements (0-100)
+  maxProgress?: number;             // Max value for progress
+}
+
+// Sticker/Badge System
+export interface Sticker {
+  id: string;
+  name: string;
+  imageUrl: string;
+  description?: string;
+  category: 'event' | 'tournament' | 'seasonal' | 'special' | 'purchased';
+  obtainedAt: Date;
+  isDisplayed: boolean;             // Whether user chose to display it
+  displayOrder?: number;            // Order on profile
+}
+
+// Social Media Platform Types
+export type SocialPlatform = 'discord' | 'twitch' | 'youtube' | 'twitter' | 'instagram' | 'tiktok';
+
+// Social Media Account Link
+export interface SocialMediaLink {
+  platform: SocialPlatform;
+  username: string;
+  url: string;
+  isPublic: boolean;                // Privacy toggle per platform
+  verifiedAt?: Date;                // Optional verification timestamp
+}
+
+// Profile Privacy Settings
+export interface ProfilePrivacySettings {
+  showEmail: boolean;
+  showRoles: boolean;
+  showAchievements: boolean;
+  showStickers: boolean;
+  showPoints: boolean;
+  showEloRating: boolean;
+  showJoinDate: boolean;
+  showSocialMedia: boolean;         // Global social media toggle
+  allowDirectMessages: boolean;
+}
+
+// Extended User Profile (for profile pages)
+export interface UserProfile extends User {
+  bio?: string;
+  avatarUrl?: string;
+  achievements: Achievement[];
+  stickers: Sticker[];
+  privacySettings: ProfilePrivacySettings;
+  socialMediaAccounts: SocialMediaLink[];
+}
+
+// Direct Messaging Types
+export interface Conversation {
+  id: string;
+  participants: string[];           // Array of user UIDs (always 2 for DM)
+  participantNames: Record<string, string>; // UID -> displayName mapping
+  participantAvatars: Record<string, string>; // UID -> avatarUrl mapping
+  lastMessage?: string;
+  lastMessageAt?: Date;
+  lastMessageBy?: string;           // UID of last sender
+  unreadCount: Record<string, number>; // UID -> unread count mapping
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  content: string;
+  timestamp: Date;
+  isRead: boolean;
+  readAt?: Date;
+  isEdited: boolean;
+  editedAt?: Date;
+  isDeleted: boolean;
+}
+
+// Message Notification
+export interface MessageNotification {
+  id: string;
+  userId: string;                   // Recipient
+  senderId: string;
+  senderName: string;
+  conversationId: string;
+  messagePreview: string;
+  isRead: boolean;
+  createdAt: Date;
+}
+
+// Tournament Communication
+export interface TournamentMessage {
+  id: string;
+  tournamentId: string;
+  userId: string;
+  userDisplayName: string;
+  userAvatar?: string;
+  content: string;
+  timestamp: Date;
+  isEdited: boolean;
+  editedAt?: Date;
+  isDeleted: boolean;
+  deletedBy?: string;               // Admin UID if deleted by admin
+}
+
+// Social Media Feed Types
+export type SocialFeedPlatform = 'youtube' | 'twitch' | 'tiktok' | 'instagram';
+
+export interface SocialPost {
+  id: string;
+  platform: SocialFeedPlatform;
+  title?: string;
+  description?: string;
+  thumbnailUrl?: string;
+  url: string;
+  author: string;
+  publishedAt: Date;
+  viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
+  embedHtml?: string;               // For embedded content
 }
