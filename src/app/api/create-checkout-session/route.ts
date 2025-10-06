@@ -3,6 +3,9 @@ import Stripe from 'stripe';
 import { CartItem } from '@/contexts/CartContext';
 import { calculateCartDiscount } from '@/lib/points';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-09-30.clover',
 });
