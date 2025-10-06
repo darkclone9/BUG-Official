@@ -32,6 +32,7 @@ import {
 import { BracketMatch, TournamentBracket, BracketGenerationOptions } from '@/types/bracket';
 import { BracketGenerator } from './bracketGenerator';
 import {
+    addDoc,
     arrayRemove,
     arrayUnion,
     collection,
@@ -84,18 +85,6 @@ export const updateUser = async (uid: string, updates: Partial<User>): Promise<v
   }
 
   await updateDoc(docRef, updateData);
-};
-
-export const updateUserProfile = async (uid: string, profileData: {
-  displayName?: string;
-  email?: string;
-  avatar?: string;
-}): Promise<void> => {
-  const docRef = doc(db, 'users', uid);
-  await updateDoc(docRef, {
-    ...profileData,
-    updatedAt: Timestamp.now()
-  });
 };
 
 export const updateUserRoles = async (uid: string, roles: UserRole[]): Promise<void> => {
@@ -3008,7 +2997,7 @@ export const getOrCreateConversation = async (
       updatedAt: new Date(),
     };
 
-    const docRef = await setDoc(doc(conversationsRef), newConversation);
+    const docRef = await addDoc(conversationsRef, newConversation);
     return docRef.id;
   } catch (error) {
     console.error('Error creating conversation:', error);
@@ -3047,7 +3036,7 @@ export const sendMessage = async (
     };
 
     const messagesRef = collection(db, 'messages');
-    await setDoc(doc(messagesRef), message);
+    await addDoc(messagesRef, message);
 
     // Update conversation
     const conversationRef = doc(db, 'conversations', conversationId);
@@ -3205,7 +3194,7 @@ const createMessageNotification = async (
     };
 
     const notificationsRef = collection(db, 'message_notifications');
-    await setDoc(doc(notificationsRef), notification);
+    await addDoc(notificationsRef, notification);
   } catch (error) {
     console.error('Error creating message notification:', error);
   }
@@ -3284,7 +3273,7 @@ export const postTournamentMessage = async (
     };
 
     const messagesRef = collection(db, 'tournament_messages');
-    await setDoc(doc(messagesRef), message);
+    await addDoc(messagesRef, message);
   } catch (error) {
     console.error('Error posting tournament message:', error);
     throw error;

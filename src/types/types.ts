@@ -137,7 +137,7 @@ export interface Announcement {
   dismissedBy?: string[]; // User UIDs who have dismissed the announcement (for broadcast)
 }
 
-export interface Message {
+export interface LegacyTournamentMessage {
   id: string;
   tournamentId: string;
   userId: string;
@@ -175,7 +175,7 @@ export interface PointsTransaction {
   isEloCalculated?: boolean; // New: Whether this transaction used ELO calculations
 }
 
-export interface Achievement {
+export interface LegacyAchievement {
   id: string;
   name: string;
   description: string;
@@ -597,13 +597,14 @@ export interface ProfilePrivacySettings {
 }
 
 // Extended User Profile (for profile pages)
-export interface UserProfile extends User {
+export interface UserProfile extends Omit<User, 'achievements'> {
   bio?: string;
   avatarUrl?: string;
-  achievements: Achievement[];
-  stickers: Sticker[];
-  privacySettings: ProfilePrivacySettings;
-  socialMediaAccounts: SocialMediaLink[];
+  achievements?: string[];              // Legacy field
+  achievementsList?: Achievement[];     // New field
+  stickersList?: Sticker[];            // New field
+  privacySettings?: ProfilePrivacySettings;
+  socialMediaAccounts?: SocialMediaLink[];
 }
 
 // Direct Messaging Types

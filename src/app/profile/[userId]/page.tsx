@@ -4,29 +4,29 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserProfile } from '@/lib/database';
-import { UserProfile, Achievement, Sticker, SocialMediaLink } from '@/types/types';
+import { UserProfile, Achievement, ProfilePrivacySettings } from '@/types/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Mail, 
-  Calendar, 
-  Trophy, 
-  Star, 
-  MessageCircle, 
+import {
+  Mail,
+  Calendar,
+  Trophy,
+  Star,
+  MessageCircle,
   Edit,
   Shield,
   Award,
   Sparkles
 } from 'lucide-react';
-import { 
-  FaDiscord, 
-  FaTwitch, 
-  FaYoutube, 
-  FaTwitter, 
-  FaInstagram, 
-  FaTiktok 
+import {
+  FaDiscord,
+  FaTwitch,
+  FaYoutube,
+  FaTwitter,
+  FaInstagram,
+  FaTiktok
 } from 'react-icons/fa';
 import Link from 'next/link';
 
@@ -59,7 +59,7 @@ export default function UserProfilePage() {
       setLoading(true);
       setError(null);
       const profileData = await getUserProfile(userId);
-      
+
       if (!profileData) {
         setError('User not found');
         return;
@@ -74,7 +74,7 @@ export default function UserProfilePage() {
     }
   };
 
-  const canViewField = (field: keyof typeof profile.privacySettings): boolean => {
+  const canViewField = (field: keyof ProfilePrivacySettings): boolean => {
     if (isOwnProfile) return true;
     if (!profile?.privacySettings) return true;
     return profile.privacySettings[field];
@@ -154,7 +154,7 @@ export default function UserProfilePage() {
                       <p className="text-muted-foreground mb-4">{profile.bio}</p>
                     )}
                   </div>
-                  
+
                   {isOwnProfile && (
                     <Link href="/profile/edit">
                       <Button variant="outline" size="sm">
@@ -273,8 +273,8 @@ export default function UserProfilePage() {
                         className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         {achievement.iconUrl && (
-                          <img 
-                            src={achievement.iconUrl} 
+                          <img
+                            src={achievement.iconUrl}
                             alt={achievement.name}
                             className="h-12 w-12 rounded"
                           />
@@ -373,4 +373,3 @@ export default function UserProfilePage() {
     </div>
   );
 }
-
