@@ -12,7 +12,7 @@ import { ShopOrder, OrderItem } from '@/types/types';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-09-30.clover',
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -117,16 +117,19 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   }
 
   // If shipping was selected, use Stripe's shipping details
-  if (fulfillmentType === 'shipping' && session.shipping_details) {
-    shippingAddress = {
-      name: session.shipping_details.name || '',
-      line1: session.shipping_details.address?.line1 || '',
-      line2: session.shipping_details.address?.line2 || '',
-      city: session.shipping_details.address?.city || '',
-      state: session.shipping_details.address?.state || '',
-      postalCode: session.shipping_details.address?.postal_code || '',
-      country: session.shipping_details.address?.country || '',
-    };
+  if (fulfillmentType === 'shipping' && session.shipping_cost) {
+    const shippingDetails = session.customer_details;
+    if (shippingDetails) {
+      shippingAddress = {
+        name: shippingDetails.name || '',
+        line1: shippingDetails.address?.line1 || '',
+        line2: shippingDetails.address?.line2 || '',
+        city: shippingDetails.address?.city || '',
+        state: shippingDetails.address?.state || '',
+        postalCode: shippingDetails.address?.postal_code || '',
+        country: shippingDetails.address?.country || '',
+      };
+    }
   }
 
   // Calculate totals

@@ -1,9 +1,9 @@
 /**
  * Points System Business Logic
- * 
+ *
  * This module handles all calculations and validations for the participation points system.
  * Points can be used for discounts on shop purchases but have NO CASH VALUE.
- * 
+ *
  * Key Rules:
  * - 1,000 points = $1.00 USD discount
  * - Maximum 50% off any single item
@@ -95,7 +95,7 @@ export function calculateCartDiscount(
   // Calculate subtotal and eligible items
   const eligibleItems = items.filter(item => item.pointsEligible);
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  
+
   if (eligibleItems.length === 0 || pointsToUse <= 0) {
     return {
       discountCents: 0,
@@ -108,10 +108,10 @@ export function calculateCartDiscount(
 
   // Convert points to discount amount
   const requestedDiscount = pointsToDiscount(pointsToUse, settings);
-  
+
   // Apply per-order cap
   const maxOrderDiscount = calculateMaxOrderDiscount(settings);
-  let totalDiscount = Math.min(requestedDiscount, maxOrderDiscount);
+  const totalDiscount = Math.min(requestedDiscount, maxOrderDiscount);
   const cappedByOrderLimit = requestedDiscount > maxOrderDiscount;
 
   // Apply per-item caps
@@ -121,17 +121,17 @@ export function calculateCartDiscount(
 
   // Distribute discount across eligible items proportionally
   const eligibleSubtotal = eligibleItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  
+
   for (const item of eligibleItems) {
     const itemTotal = item.price * item.quantity;
     const maxItemDiscount = calculateMaxItemDiscount(itemTotal, settings);
-    
+
     // Calculate proportional discount for this item
     const proportionalDiscount = Math.floor((itemTotal / eligibleSubtotal) * totalDiscount);
-    
+
     // Apply per-item cap
     const actualItemDiscount = Math.min(proportionalDiscount, maxItemDiscount);
-    
+
     if (actualItemDiscount < proportionalDiscount) {
       cappedByItemLimit = true;
     }
@@ -186,14 +186,14 @@ export function isEmailEligible(
   settings: PointsSettings = DEFAULT_POINTS_SETTINGS as PointsSettings
 ): boolean {
   const lowerEmail = email.toLowerCase();
-  
+
   // Check approved email list
   if (settings.approvedEmails.some(approved => approved.toLowerCase() === lowerEmail)) {
     return true;
   }
-  
+
   // Check approved domains
-  return settings.approvedEmailDomains.some(domain => 
+  return settings.approvedEmailDomains.some(domain =>
     lowerEmail.endsWith(domain.toLowerCase())
   );
 }
@@ -291,4 +291,3 @@ export function calculateOrderBreakdown(
     total: Math.max(0, total), // Ensure total is never negative
   };
 }
-

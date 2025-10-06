@@ -38,7 +38,6 @@ import {
     Edit,
     Plus,
     Settings,
-    Shield,
     Trash2,
     Trophy,
     Users,

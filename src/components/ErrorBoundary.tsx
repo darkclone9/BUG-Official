@@ -18,10 +18,10 @@ interface State {
 
 /**
  * Error Boundary Component
- * 
+ *
  * Catches JavaScript errors anywhere in the child component tree,
  * logs those errors, and displays a fallback UI.
- * 
+ *
  * Usage:
  * <ErrorBoundary>
  *   <YourComponent />
@@ -165,7 +165,7 @@ export function ShopErrorBoundary({ children }: { children: ReactNode }) {
                 <div>
                   <CardTitle>Shop Error</CardTitle>
                   <CardDescription>
-                    We couldn't load the shop. Please try again.
+                    We couldn&apos;t load the shop. Please try again.
                   </CardDescription>
                 </div>
               </div>
@@ -236,4 +236,3 @@ export function CheckoutErrorBoundary({ children }: { children: ReactNode }) {
     </ErrorBoundary>
   );
 }
-

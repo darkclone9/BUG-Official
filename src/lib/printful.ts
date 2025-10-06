@@ -1,13 +1,13 @@
 /**
  * Printful API Integration
- * 
+ *
  * This module provides integration with Printful for print-on-demand fulfillment.
- * 
+ *
  * Setup:
  * 1. Create a Printful account at https://www.printful.com
  * 2. Get your API key from Settings → Stores → API
  * 3. Add PRINTFUL_API_KEY to .env.local
- * 
+ *
  * Features:
  * - Product catalog sync
  * - Automatic order fulfillment
@@ -101,8 +101,8 @@ export interface PrintfulOrder {
 async function printfulRequest(
   endpoint: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
-  data?: any
-): Promise<any> {
+  data?: Record<string, unknown>
+): Promise<Record<string, unknown>> {
   if (!PRINTFUL_API_KEY) {
     throw new Error('PRINTFUL_API_KEY is not configured');
   }
@@ -131,7 +131,7 @@ async function printfulRequest(
 export async function getPrintfulProducts(): Promise<PrintfulProduct[]> {
   try {
     const products = await printfulRequest('/products');
-    return products;
+    return products as unknown as PrintfulProduct[];
   } catch (error) {
     console.error('Error fetching Printful products:', error);
     throw error;
@@ -143,7 +143,7 @@ export async function getPrintfulProducts(): Promise<PrintfulProduct[]> {
  */
 export async function getPrintfulProductVariants(productId: number): Promise<PrintfulVariant[]> {
   try {
-    const product = await printfulRequest(`/products/${productId}`);
+    const product = await printfulRequest(`/products/${productId}`) as { variants?: PrintfulVariant[] };
     return product.variants || [];
   } catch (error) {
     console.error('Error fetching Printful product variants:', error);
@@ -168,7 +168,12 @@ export async function calculatePrintfulShipping(
       recipient,
       items,
     });
-    return result;
+    return result as unknown as {
+      id: string;
+      name: string;
+      rate: string;
+      currency: string;
+    }[];
   } catch (error) {
     console.error('Error calculating Printful shipping:', error);
     throw error;
@@ -187,8 +192,15 @@ export async function createPrintfulOrder(order: PrintfulOrder): Promise<{
   updated: number;
 }> {
   try {
-    const result = await printfulRequest('/orders', 'POST', order);
-    return result;
+    const result = await printfulRequest('/orders', 'POST', order as unknown as Record<string, unknown>);
+    return result as unknown as {
+      id: number;
+      external_id: string;
+      status: string;
+      shipping: string;
+      created: number;
+      updated: number;
+    };
   } catch (error) {
     console.error('Error creating Printful order:', error);
     throw error;
@@ -221,7 +233,27 @@ export async function getPrintfulOrderStatus(orderId: number): Promise<{
 }> {
   try {
     const result = await printfulRequest(`/orders/${orderId}`);
-    return result;
+    return result as unknown as {
+      id: number;
+      external_id: string;
+      status: string;
+      shipping: string;
+      shipments: Array<{
+        id: number;
+        carrier: string;
+        service: string;
+        tracking_number: string;
+        tracking_url: string;
+        created: number;
+        ship_date: string;
+        shipped_at: number;
+        reshipment: boolean;
+        items: Array<{
+          item_id: number;
+          quantity: number;
+        }>;
+      }>;
+    };
   } catch (error) {
     console.error('Error fetching Printful order status:', error);
     throw error;
@@ -237,7 +269,10 @@ export async function confirmPrintfulOrder(orderId: number): Promise<{
 }> {
   try {
     const result = await printfulRequest(`/orders/${orderId}/confirm`, 'POST');
-    return result;
+    return result as unknown as {
+      id: number;
+      status: string;
+    };
   } catch (error) {
     console.error('Error confirming Printful order:', error);
     throw error;
@@ -306,7 +341,7 @@ export async function fulfillOrderWithPrintful(shopOrder: ShopOrder): Promise<vo
   try {
     // Convert to Printful format
     const printfulOrder = convertToPrintfulOrder(shopOrder);
-    
+
     if (!printfulOrder) {
       console.log('Order does not require Printful fulfillment');
       return;
@@ -330,4 +365,3 @@ export async function fulfillOrderWithPrintful(shopOrder: ShopOrder): Promise<vo
     throw error;
   }
 }
-

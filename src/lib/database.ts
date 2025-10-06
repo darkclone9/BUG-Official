@@ -2636,7 +2636,14 @@ const logRoleChange = async (
 /**
  * Get role change history for a user
  */
-export const getUserRoleHistory = async (userId: string): Promise<any[]> => {
+export const getUserRoleHistory = async (userId: string): Promise<Array<{
+  userId: string;
+  changedBy: string;
+  oldRoles: string[];
+  newRoles: string[];
+  reason: string;
+  timestamp: Date;
+}>> => {
   const logsQuery = query(
     collection(db, 'role_change_logs'),
     where('userId', '==', userId),
@@ -2651,6 +2658,13 @@ export const getUserRoleHistory = async (userId: string): Promise<any[]> => {
     return {
       ...data,
       timestamp: data.timestamp.toDate(),
+    } as {
+      userId: string;
+      changedBy: string;
+      oldRoles: string[];
+      newRoles: string[];
+      reason: string;
+      timestamp: Date;
     };
   });
 };
@@ -2658,7 +2672,14 @@ export const getUserRoleHistory = async (userId: string): Promise<any[]> => {
 /**
  * Get all role change logs (admin only)
  */
-export const getAllRoleChangeLogs = async (limitCount: number = 100): Promise<any[]> => {
+export const getAllRoleChangeLogs = async (limitCount: number = 100): Promise<Array<{
+  userId: string;
+  changedBy: string;
+  oldRoles: string[];
+  newRoles: string[];
+  reason: string;
+  timestamp: Date;
+}>> => {
   const logsQuery = query(
     collection(db, 'role_change_logs'),
     orderBy('timestamp', 'desc'),
@@ -2672,6 +2693,13 @@ export const getAllRoleChangeLogs = async (limitCount: number = 100): Promise<an
     return {
       ...data,
       timestamp: data.timestamp.toDate(),
+    } as {
+      userId: string;
+      changedBy: string;
+      oldRoles: string[];
+      newRoles: string[];
+      reason: string;
+      timestamp: Date;
     };
   });
 };

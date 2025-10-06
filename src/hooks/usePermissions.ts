@@ -1,13 +1,13 @@
 /**
  * Custom hook for permission checking
- * 
+ *
  * This hook provides easy access to all permission checking functions
  * through the AuthContext.
- * 
+ *
  * Usage:
  * ```tsx
  * const { canEditPointsSettings, canManageShopProducts } = usePermissions();
- * 
+ *
  * if (canEditPointsSettings()) {
  *   // Show settings UI
  * }
@@ -16,6 +16,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/types';
+import { getHighestRole } from '@/lib/permissions';
 
 export function usePermissions() {
   const auth = useAuth();
@@ -84,9 +85,5 @@ export function useIsTopAdmin(): boolean {
  */
 export function useHighestRole(): UserRole {
   const { userRoles } = usePermissions();
-  
-  // Import permissions to use getHighestRole
-  const { getHighestRole } = require('@/lib/permissions');
   return getHighestRole(userRoles);
 }
-

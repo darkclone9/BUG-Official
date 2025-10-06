@@ -4,7 +4,7 @@ import { CartItem } from '@/contexts/CartContext';
 import { calculateCartDiscount } from '@/lib/points';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-09-30.clover',
 });
 
 export async function POST(request: NextRequest) {
@@ -21,7 +21,15 @@ export async function POST(request: NextRequest) {
       items: CartItem[];
       pointsToUse: number;
       fulfillmentType: 'campus_pickup' | 'shipping';
-      shippingAddress?: any;
+      shippingAddress?: {
+        name: string;
+        line1: string;
+        line2?: string;
+        city: string;
+        state: string;
+        postal_code: string;
+        country: string;
+      };
       userId: string;
       userEmail: string;
     } = body;
@@ -76,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     // Add shipping if needed
     const shippingOptions: Stripe.Checkout.SessionCreateParams.ShippingOption[] = [];
-    
+
     if (fulfillmentType === 'shipping') {
       shippingOptions.push({
         shipping_rate_data: {
@@ -135,4 +143,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

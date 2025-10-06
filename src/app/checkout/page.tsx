@@ -156,7 +156,7 @@ export default function CheckoutPage() {
                       <span className="text-sm text-primary">(Free)</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Pick up your order on campus. We'll notify you when it's ready.
+                      Pick up your order on campus. We&apos;ll notify you when it&apos;s ready.
                     </p>
                   </Label>
                 </div>
@@ -314,4 +314,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-

@@ -43,7 +43,6 @@ export default function ProductManagement() {
     tags: [],
     variants: [],
     isActive: true,
-    isFeatured: false,
     pointsEligible: true,
   });
 
@@ -76,7 +75,6 @@ export default function ProductManagement() {
       tags: [],
       variants: [],
       isActive: true,
-      isFeatured: false,
       pointsEligible: true,
     });
     setDialogOpen(true);
@@ -192,11 +190,6 @@ export default function ProductManagement() {
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-semibold text-foreground line-clamp-1">{product.name}</h3>
-                  <div className="flex gap-1">
-                    {product.isFeatured && (
-                      <Badge variant="default" className="text-xs">Featured</Badge>
-                    )}
-                  </div>
                 </div>
 
                 <p className="text-sm text-muted-foreground line-clamp-2 mb-3">

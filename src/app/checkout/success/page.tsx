@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Package, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { clearCart } = useCart();
@@ -54,11 +54,11 @@ export default function CheckoutSuccessPage() {
               <Package className="h-5 w-5 text-primary mt-0.5" />
               <div>
                 <p className="font-semibold text-foreground mb-1">
-                  What's next?
+                  What&apos;s next?
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  You'll receive an email confirmation shortly with your order details.
-                  We'll notify you when your order is ready for pickup or has shipped.
+                  You&apos;ll receive an email confirmation shortly with your order details.
+                  We&apos;ll notify you when your order is ready for pickup or has shipped.
                 </p>
               </div>
             </div>
@@ -102,3 +102,17 @@ export default function CheckoutSuccessPage() {
   );
 }
 
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <CheckoutSuccessContent />
+    </Suspense>
+  );
+}

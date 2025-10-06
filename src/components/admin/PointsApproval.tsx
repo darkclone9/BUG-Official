@@ -16,8 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import { Sparkles, Check, X, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function PointsApproval() {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState<PointsTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [denyDialogOpen, setDenyDialogOpen] = useState(false);
@@ -43,7 +45,8 @@ export default function PointsApproval() {
 
   const handleApprove = async (transactionId: string) => {
     try {
-      await approvePointsTransaction(transactionId);
+      const adminId = user?.uid || '';
+      await approvePointsTransaction(transactionId, adminId);
       toast.success('Points approved successfully');
       loadPendingTransactions();
     } catch (error) {
@@ -67,7 +70,8 @@ export default function PointsApproval() {
     }
 
     try {
-      await denyPointsTransaction(selectedTransaction.id, denyReason);
+      const adminId = user?.uid || '';
+      await denyPointsTransaction(selectedTransaction.id, adminId, denyReason);
       toast.success('Points denied');
       setDenyDialogOpen(false);
       setSelectedTransaction(null);
@@ -110,7 +114,7 @@ export default function PointsApproval() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-semibold text-foreground">
-                      {transaction.userDisplayName || 'Unknown User'}
+                      User ID: {transaction.userId}
                     </h3>
                     <Badge variant="secondary" className="gap-1">
                       <Sparkles className="h-3 w-3" />
@@ -118,7 +122,7 @@ export default function PointsApproval() {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mb-1">
-                    {transaction.description}
+                    {transaction.reason}
                   </p>
                   {transaction.eventId && (
                     <p className="text-xs text-muted-foreground">
@@ -126,20 +130,20 @@ export default function PointsApproval() {
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Requested: {new Date(transaction.createdAt).toLocaleString()}
+                    Requested: {new Date(transaction.timestamp).toLocaleString()}
                   </p>
-                  {transaction.multiplierApplied && transaction.multiplierApplied > 1 && (
+                  {transaction.eloChange && (
                     <Badge variant="outline" className="mt-2">
-                      {transaction.multiplierApplied}x multiplier applied
+                      ELO Change: {transaction.eloChange > 0 ? '+' : ''}{transaction.eloChange}
                     </Badge>
                   )}
                 </div>
               </div>
 
-              {transaction.notes && (
+              {transaction.tournamentId && (
                 <div className="mb-4 p-3 bg-muted rounded-lg">
                   <p className="text-sm text-foreground">
-                    <strong>Notes:</strong> {transaction.notes}
+                    <strong>Tournament ID:</strong> {transaction.tournamentId}
                   </p>
                 </div>
               )}
@@ -182,10 +186,10 @@ export default function PointsApproval() {
             {selectedTransaction && (
               <div className="p-3 bg-muted rounded-lg">
                 <p className="text-sm">
-                  <strong>{selectedTransaction.userDisplayName}</strong> - {selectedTransaction.amount.toLocaleString()} points
+                  <strong>User ID: {selectedTransaction.userId}</strong> - {selectedTransaction.amount.toLocaleString()} points
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {selectedTransaction.description}
+                  {selectedTransaction.reason}
                 </p>
               </div>
             )}
@@ -213,4 +217,3 @@ export default function PointsApproval() {
     </div>
   );
 }
-

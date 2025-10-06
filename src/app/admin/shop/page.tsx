@@ -24,7 +24,7 @@ import PointsSettings from '@/components/admin/PointsSettings';
 export default function ShopAdminPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { canManageShopProducts, canApprovePoints, canEditPointsSettings } = usePermissions();
+  const permissions = usePermissions();
   const [activeTab, setActiveTab] = useState('products');
 
   useEffect(() => {
@@ -34,13 +34,13 @@ export default function ShopAdminPage() {
     }
 
     // Check if user has any admin permissions
-    if (!canManageShopProducts && !canApprovePoints && !canEditPointsSettings) {
+    if (!permissions.canManageShopProducts() && !permissions.canApprovePoints() && !permissions.canEditPointsSettings()) {
       router.push('/');
       return;
     }
-  }, [user, canManageShopProducts, canApprovePoints, canEditPointsSettings, router]);
+  }, [user, permissions, router]);
 
-  if (!user || (!canManageShopProducts && !canApprovePoints && !canEditPointsSettings)) {
+  if (!user || (!permissions.canManageShopProducts() && !permissions.canApprovePoints() && !permissions.canEditPointsSettings())) {
     return null;
   }
 
@@ -73,7 +73,7 @@ export default function ShopAdminPage() {
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 mb-8">
-            {canManageShopProducts && (
+            {permissions.canManageShopProducts() && (
               <>
                 <TabsTrigger value="products" className="gap-2">
                   <Package className="h-4 w-4" />
@@ -89,13 +89,13 @@ export default function ShopAdminPage() {
                 </TabsTrigger>
               </>
             )}
-            {canApprovePoints && (
+            {permissions.canApprovePoints() && (
               <TabsTrigger value="points-approval" className="gap-2">
                 <Sparkles className="h-4 w-4" />
                 Points Approval
               </TabsTrigger>
             )}
-            {canEditPointsSettings && (
+            {permissions.canEditPointsSettings() && (
               <TabsTrigger value="points-settings" className="gap-2">
                 <Settings className="h-4 w-4" />
                 Points Settings
@@ -104,35 +104,35 @@ export default function ShopAdminPage() {
           </TabsList>
 
           {/* Products Tab */}
-          {canManageShopProducts && (
+          {permissions.canManageShopProducts() && (
             <TabsContent value="products">
               <ProductManagement />
             </TabsContent>
           )}
 
           {/* Orders Tab */}
-          {canManageShopProducts && (
+          {permissions.canManageShopProducts() && (
             <TabsContent value="orders">
               <OrderManagement />
             </TabsContent>
           )}
 
           {/* Pickup Queue Tab */}
-          {canManageShopProducts && (
+          {permissions.canManageShopProducts() && (
             <TabsContent value="pickup">
               <PickupQueueManagement />
             </TabsContent>
           )}
 
           {/* Points Approval Tab */}
-          {canApprovePoints && (
+          {permissions.canApprovePoints() && (
             <TabsContent value="points-approval">
               <PointsApproval />
             </TabsContent>
           )}
 
           {/* Points Settings Tab */}
-          {canEditPointsSettings && (
+          {permissions.canEditPointsSettings() && (
             <TabsContent value="points-settings">
               <PointsSettings />
             </TabsContent>
@@ -142,4 +142,3 @@ export default function ShopAdminPage() {
     </div>
   );
 }
-

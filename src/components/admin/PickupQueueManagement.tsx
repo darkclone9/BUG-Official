@@ -150,25 +150,25 @@ export default function PickupQueueManagement() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="font-semibold text-foreground">
-                        Order #{item.order.id.slice(-8)}
+                        Order #{item.orderId.slice(-8)}
                       </h3>
                       {getStatusBadge(item.status)}
                     </div>
                     <p className="text-sm text-muted-foreground mb-1">
-                      {item.order.userDisplayName} ({item.order.userEmail})
+                      {item.userDisplayName} ({item.userEmail})
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Placed: {new Date(item.order.createdAt).toLocaleString()}
+                      Placed: {new Date(item.createdAt).toLocaleString()}
                     </p>
-                    {item.readyAt && (
+                    {item.notifiedAt && (
                       <p className="text-sm text-primary">
-                        Ready since: {new Date(item.readyAt).toLocaleString()}
+                        Ready since: {new Date(item.notifiedAt).toLocaleString()}
                       </p>
                     )}
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-foreground">
-                      {formatCents(item.order.total)}
+                      {formatCents(item.items.reduce((sum, i) => sum + (i.price * i.quantity), 0))}
                     </p>
                   </div>
                 </div>
@@ -177,7 +177,7 @@ export default function PickupQueueManagement() {
                 <div className="mb-4 p-3 bg-muted rounded-lg">
                   <h4 className="text-sm font-semibold text-foreground mb-2">Items:</h4>
                   <div className="space-y-1">
-                    {item.order.items.map((orderItem, index) => (
+                    {item.items.map((orderItem, index) => (
                       <div key={index} className="text-sm text-muted-foreground flex justify-between">
                         <span>
                           {orderItem.quantity}x {orderItem.productName}
@@ -228,12 +228,12 @@ export default function PickupQueueManagement() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-semibold text-foreground">
-                        Order #{item.order.id.slice(-8)}
+                        Order #{item.orderId.slice(-8)}
                       </h4>
                       {getStatusBadge(item.status)}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {item.order.userDisplayName}
+                      {item.userDisplayName}
                     </p>
                     {item.pickedUpAt && (
                       <p className="text-xs text-muted-foreground">
@@ -247,7 +247,7 @@ export default function PickupQueueManagement() {
                     )}
                   </div>
                   <p className="font-semibold text-foreground">
-                    {formatCents(item.order.total)}
+                    {formatCents(item.items.reduce((sum, i) => sum + (i.price * i.quantity), 0))}
                   </p>
                 </div>
               </div>
@@ -270,10 +270,10 @@ export default function PickupQueueManagement() {
             {selectedItem && (
               <div className="p-3 bg-muted rounded-lg">
                 <p className="text-sm">
-                  <strong>Order #{selectedItem.order.id.slice(-8)}</strong>
+                  <strong>Order #{selectedItem.orderId.slice(-8)}</strong>
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {selectedItem.order.userDisplayName}
+                  {selectedItem.userDisplayName}
                 </p>
               </div>
             )}
@@ -313,4 +313,3 @@ export default function PickupQueueManagement() {
     </div>
   );
 }
-

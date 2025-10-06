@@ -9,8 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function PointsSettings() {
+  const { user } = useAuth();
   const [settings, setSettings] = useState<PointsSettingsType | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,7 +39,8 @@ export default function PointsSettings() {
 
     try {
       setSaving(true);
-      await updatePointsSettings(settings);
+      const adminId = user?.uid || '';
+      await updatePointsSettings(settings, adminId);
       toast.success('Settings saved successfully');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -83,15 +86,15 @@ export default function PointsSettings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="pointsPerDollar">Points per Dollar</Label>
+              <Label htmlFor="conversionRate">Points per Dollar (Conversion Rate)</Label>
               <Input
-                id="pointsPerDollar"
+                id="conversionRate"
                 type="number"
-                value={settings.pointsPerDollar}
-                onChange={(e) => setSettings({ ...settings, pointsPerDollar: parseInt(e.target.value) || 0 })}
+                value={settings.conversionRate}
+                onChange={(e) => setSettings({ ...settings, conversionRate: parseInt(e.target.value) || 0 })}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Currently: {settings.pointsPerDollar} points = $1.00
+                Currently: {settings.conversionRate} points = $1.00
               </p>
             </div>
           </CardContent>
@@ -105,28 +108,28 @@ export default function PointsSettings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="maxDiscountPerItem">Max Discount Per Item (%)</Label>
+              <Label htmlFor="perItemDiscountCap">Max Discount Per Item (%)</Label>
               <Input
-                id="maxDiscountPerItem"
+                id="perItemDiscountCap"
                 type="number"
-                value={settings.maxDiscountPerItem}
-                onChange={(e) => setSettings({ ...settings, maxDiscountPerItem: parseInt(e.target.value) || 0 })}
+                value={settings.perItemDiscountCap}
+                onChange={(e) => setSettings({ ...settings, perItemDiscountCap: parseInt(e.target.value) || 0 })}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Maximum {settings.maxDiscountPerItem}% off any single item
+                Maximum {settings.perItemDiscountCap}% off any single item
               </p>
             </div>
 
             <div>
-              <Label htmlFor="maxDiscountPerOrder">Max Discount Per Order (cents)</Label>
+              <Label htmlFor="perOrderDiscountCap">Max Discount Per Order (cents)</Label>
               <Input
-                id="maxDiscountPerOrder"
+                id="perOrderDiscountCap"
                 type="number"
-                value={settings.maxDiscountPerOrder}
-                onChange={(e) => setSettings({ ...settings, maxDiscountPerOrder: parseInt(e.target.value) || 0 })}
+                value={settings.perOrderDiscountCap}
+                onChange={(e) => setSettings({ ...settings, perOrderDiscountCap: parseInt(e.target.value) || 0 })}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Maximum ${(settings.maxDiscountPerOrder / 100).toFixed(2)} off per order
+                Maximum ${(settings.perOrderDiscountCap / 100).toFixed(2)} off per order
               </p>
             </div>
           </CardContent>
@@ -176,47 +179,48 @@ export default function PointsSettings() {
           </CardContent>
         </Card>
 
-        {/* Approval Settings */}
+        {/* Earning Values */}
         <Card>
           <CardHeader>
-            <CardTitle>Approval Workflow</CardTitle>
-            <CardDescription>Points approval requirements</CardDescription>
+            <CardTitle>Earning Values</CardTitle>
+            <CardDescription>Points awarded for different activities</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="autoApproveThreshold">Auto-Approve Threshold</Label>
+              <Label htmlFor="eventAttendance">Event Attendance Points</Label>
               <Input
-                id="autoApproveThreshold"
+                id="eventAttendance"
                 type="number"
-                value={settings.autoApproveThreshold}
-                onChange={(e) => setSettings({ ...settings, autoApproveThreshold: parseInt(e.target.value) || 0 })}
+                value={settings.earningValues.eventAttendance}
+                onChange={(e) => setSettings({
+                  ...settings,
+                  earningValues: { ...settings.earningValues, eventAttendance: parseInt(e.target.value) || 0 }
+                })}
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Points awards under {settings.autoApproveThreshold} are auto-approved
-              </p>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Multiplier Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Multipliers</CardTitle>
-            <CardDescription>Default multiplier values</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="defaultMultiplier">Default Multiplier</Label>
+              <Label htmlFor="volunteerWork">Volunteer Work Points</Label>
               <Input
-                id="defaultMultiplier"
+                id="volunteerWork"
                 type="number"
-                step="0.1"
-                value={settings.defaultMultiplier}
-                onChange={(e) => setSettings({ ...settings, defaultMultiplier: parseFloat(e.target.value) || 1 })}
+                value={settings.earningValues.volunteerWork}
+                onChange={(e) => setSettings({
+                  ...settings,
+                  earningValues: { ...settings.earningValues, volunteerWork: parseInt(e.target.value) || 0 }
+                })}
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Base multiplier: {settings.defaultMultiplier}x
-              </p>
+            </div>
+            <div>
+              <Label htmlFor="eventHosting">Event Hosting Points</Label>
+              <Input
+                id="eventHosting"
+                type="number"
+                value={settings.earningValues.eventHosting}
+                onChange={(e) => setSettings({
+                  ...settings,
+                  earningValues: { ...settings.earningValues, eventHosting: parseInt(e.target.value) || 0 }
+                })}
+              />
             </div>
           </CardContent>
         </Card>
@@ -228,16 +232,13 @@ export default function PointsSettings() {
           <CardTitle className="text-primary">Current Configuration Summary</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p>• {settings.pointsPerDollar} points = $1.00 discount</p>
-          <p>• Maximum {settings.maxDiscountPerItem}% off per item</p>
-          <p>• Maximum ${(settings.maxDiscountPerOrder / 100).toFixed(2)} off per order</p>
+          <p>• {settings.conversionRate} points = $1.00 discount</p>
+          <p>• Maximum {settings.perItemDiscountCap}% off per item</p>
+          <p>• Maximum ${(settings.perOrderDiscountCap / 100).toFixed(2)} off per order</p>
           <p>• Users can earn up to {settings.monthlyEarningCap.toLocaleString()} points/month</p>
           <p>• Points expire after {settings.expirationMonths} months</p>
-          <p>• Auto-approve awards under {settings.autoApproveThreshold} points</p>
-          <p>• Default multiplier: {settings.defaultMultiplier}x</p>
         </CardContent>
       </Card>
     </div>
   );
 }
-
