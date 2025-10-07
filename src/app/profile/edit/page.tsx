@@ -93,12 +93,14 @@ export default function ProfileEditPage() {
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('File size must be less than 5MB');
+      e.target.value = ''; // Reset input
       return;
     }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error('File must be an image');
+      e.target.value = ''; // Reset input
       return;
     }
 
@@ -107,9 +109,11 @@ export default function ProfileEditPage() {
       const avatarUrl = await uploadUserAvatar(user.uid, file);
       setProfile(prev => prev ? { ...prev, avatarUrl } : null);
       toast.success('Avatar uploaded successfully');
+      e.target.value = ''; // Reset input after successful upload
     } catch (err) {
       console.error('Error uploading avatar:', err);
-      toast.error('Failed to upload avatar');
+      toast.error(err instanceof Error ? err.message : 'Failed to upload avatar');
+      e.target.value = ''; // Reset input on error
     } finally {
       setUploading(false);
     }
