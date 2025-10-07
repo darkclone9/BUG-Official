@@ -3097,9 +3097,9 @@ export const getConversationMessages = async (
     const q = query(
       messagesRef,
       where('conversationId', '==', conversationId),
-      where('isDeleted', '==', false),
-      orderBy('timestamp', 'desc'),
-      limit(limitCount)
+      where('isDeleted', '==', false)
+      // Removed orderBy to avoid needing composite index
+      // Will sort on client side instead
     );
 
     const snapshot = await getDocs(q);
@@ -3111,7 +3111,15 @@ export const getConversationMessages = async (
       editedAt: doc.data().editedAt?.toDate(),
     })) as Message[];
 
-    return messages.reverse(); // Return in chronological order
+    // Sort by timestamp on the client side (ascending for chronological order)
+    messages.sort((a, b) => {
+      const aTime = a.timestamp?.getTime() || 0;
+      const bTime = b.timestamp?.getTime() || 0;
+      return aTime - bTime;
+    });
+
+    // Apply limit on client side
+    return messages.slice(0, limitCount);
   } catch (error) {
     console.error('Error fetching messages:', error);
     throw error;
@@ -3236,8 +3244,9 @@ export const getUnreadMessageNotifications = async (
     const q = query(
       notificationsRef,
       where('userId', '==', userId),
-      where('isRead', '==', false),
-      orderBy('createdAt', 'desc')
+      where('isRead', '==', false)
+      // Removed orderBy to avoid needing composite index
+      // Will sort on client side instead
     );
 
     const snapshot = await getDocs(q);
@@ -3246,6 +3255,13 @@ export const getUnreadMessageNotifications = async (
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate() || new Date(),
     })) as MessageNotification[];
+
+    // Sort by createdAt on the client side (descending for newest first)
+    notifications.sort((a, b) => {
+      const aTime = a.createdAt?.getTime() || 0;
+      const bTime = b.createdAt?.getTime() || 0;
+      return bTime - aTime;
+    });
 
     return notifications;
   } catch (error) {
@@ -3317,9 +3333,9 @@ export const getTournamentMessages = async (
     const q = query(
       messagesRef,
       where('tournamentId', '==', tournamentId),
-      where('isDeleted', '==', false),
-      orderBy('timestamp', 'asc'),
-      limit(limitCount)
+      where('isDeleted', '==', false)
+      // Removed orderBy to avoid needing composite index
+      // Will sort on client side instead
     );
 
     const snapshot = await getDocs(q);
@@ -3330,7 +3346,15 @@ export const getTournamentMessages = async (
       editedAt: doc.data().editedAt?.toDate(),
     })) as TournamentMessage[];
 
-    return messages;
+    // Sort by timestamp on the client side (ascending for chronological order)
+    messages.sort((a, b) => {
+      const aTime = a.timestamp?.getTime() || 0;
+      const bTime = b.timestamp?.getTime() || 0;
+      return aTime - bTime;
+    });
+
+    // Apply limit on client side
+    return messages.slice(0, limitCount);
   } catch (error) {
     console.error('Error fetching tournament messages:', error);
     throw error;

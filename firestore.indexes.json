@@ -161,8 +161,12 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "createdAt",
+          "fieldPath": "isDeleted",
           "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
         }
       ]
     },
@@ -189,7 +193,11 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "createdAt",
+          "fieldPath": "isDeleted",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
           "order": "ASCENDING"
         }
       ]
@@ -199,7 +207,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "recipientId",
+          "fieldPath": "userId",
           "order": "ASCENDING"
         },
         {
