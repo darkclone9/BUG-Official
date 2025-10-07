@@ -36,6 +36,7 @@ import {
     arrayRemove,
     arrayUnion,
     collection,
+    deleteDoc,
     doc,
     getDoc,
     getDocs,
@@ -3064,16 +3065,24 @@ export const cleanupDuplicateConversations = async (userId: string): Promise<num
     );
 
     const snapshot = await getDocs(q);
+
+    type ConversationData = {
+      id: string;
+      participants: string[];
+      createdAt?: { toDate?: () => Date };
+      [key: string]: unknown;
+    };
+
     const conversations = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    })) as ConversationData[];
 
     // Group conversations by participant pair
-    const conversationGroups = new Map<string, any[]>();
+    const conversationGroups = new Map<string, ConversationData[]>();
 
     conversations.forEach(conv => {
-      const participants = (conv.participants as string[]).sort().join('_');
+      const participants = conv.participants.sort().join('_');
       if (!conversationGroups.has(participants)) {
         conversationGroups.set(participants, []);
       }
@@ -3082,7 +3091,7 @@ export const cleanupDuplicateConversations = async (userId: string): Promise<num
 
     // Find and delete duplicates (keep the oldest one)
     let deletedCount = 0;
-    for (const [_, group] of conversationGroups) {
+    for (const [, group] of conversationGroups) {
       if (group.length > 1) {
         // Sort by createdAt, keep the oldest
         group.sort((a, b) => {
