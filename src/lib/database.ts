@@ -3126,8 +3126,7 @@ export const getUserConversations = async (userId: string): Promise<Conversation
     const conversationsRef = collection(db, 'conversations');
     const q = query(
       conversationsRef,
-      where('participants', 'array-contains', userId),
-      orderBy('updatedAt', 'desc')
+      where('participants', 'array-contains', userId)
     );
 
     const snapshot = await getDocs(q);
@@ -3138,6 +3137,13 @@ export const getUserConversations = async (userId: string): Promise<Conversation
       updatedAt: doc.data().updatedAt?.toDate() || new Date(),
       lastMessageAt: doc.data().lastMessageAt?.toDate(),
     })) as Conversation[];
+
+    // Sort by updatedAt on the client side to avoid needing a composite index
+    conversations.sort((a, b) => {
+      const aTime = a.updatedAt?.getTime() || 0;
+      const bTime = b.updatedAt?.getTime() || 0;
+      return bTime - aTime;
+    });
 
     return conversations;
   } catch (error) {
