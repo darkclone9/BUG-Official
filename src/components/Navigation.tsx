@@ -17,6 +17,7 @@ import { useState } from 'react';
 import AnnouncementBar from './AnnouncementBar';
 import BroadcastBar from './BroadcastBar';
 import NotificationDropdown from './NotificationDropdown';
+import MessageNotificationDropdown from './MessageNotificationDropdown';
 import { ThemeToggle } from './ThemeToggle';
 
 export default function Navigation() {
@@ -78,7 +79,10 @@ export default function Navigation() {
             <div className="hidden md:flex items-center space-x-2">
               {user ? (
                 <>
-                  {/* Notifications */}
+                  {/* Message Notifications */}
+                  <MessageNotificationDropdown />
+
+                  {/* Announcements Notifications */}
                   <NotificationDropdown />
 
                   <Link href="/dashboard">

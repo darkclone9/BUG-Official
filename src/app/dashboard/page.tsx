@@ -12,10 +12,11 @@ import {
   getUserAchievements,
   getUserRecentActivity,
   getUserStats,
-  getUserTournaments
+  getUserTournaments,
+  getUserConversations
 } from '@/lib/database';
-import { Announcement, Tournament, UserStats } from '@/types/types';
-import { Activity, Award, Bell, Calendar, Crown, Edit, Gamepad2, Settings, Star, TrendingUp, Trophy, Users } from 'lucide-react';
+import { Announcement, Tournament, UserStats, Conversation } from '@/types/types';
+import { Activity, Award, Bell, Calendar, Crown, Edit, Gamepad2, Settings, Star, TrendingUp, Trophy, Users, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -43,6 +44,7 @@ export default function DashboardPage() {
     earned: boolean;
   }[]>([]);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,12 +53,13 @@ export default function DashboardPage() {
 
       try {
         setLoading(true);
-        const [tournaments, announcementsData, activity, achievementsData, statsData] = await Promise.all([
+        const [tournaments, announcementsData, activity, achievementsData, statsData, conversationsData] = await Promise.all([
           getUserTournaments(user.uid),
           getAnnouncements(true),
           getUserRecentActivity(user.uid),
           getUserAchievements(user.uid),
-          getUserStats(user.uid)
+          getUserStats(user.uid),
+          getUserConversations(user.uid)
         ]);
 
         setUserTournaments(tournaments as UserTournament[]);
@@ -67,6 +70,7 @@ export default function DashboardPage() {
         setRecentActivity(activity);
         setAchievements(achievementsData);
         setUserStats(statsData);
+        setConversations(conversationsData.slice(0, 5)); // Get top 5 recent conversations
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
@@ -205,6 +209,84 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Messages */}
+          <Card className="glass hover:shadow-lg transition-all duration-300 mb-8">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center">
+                    <MessageCircle className="h-5 w-5 mr-2 text-primary" />
+                    Recent Messages
+                  </CardTitle>
+                  <CardDescription>
+                    Your latest conversations
+                  </CardDescription>
+                </div>
+                <Link href="/messages">
+                  <Button variant="outline" size="sm">
+                    View All
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {conversations.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No messages yet</p>
+                  <p className="text-sm mt-1">Start a conversation with other members!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {conversations.map((conversation) => {
+                    const otherParticipantId = conversation.participants.find(id => id !== user?.uid);
+                    const otherParticipantName = otherParticipantId ? conversation.participantNames[otherParticipantId] : 'Unknown';
+                    const otherParticipantAvatar = otherParticipantId ? conversation.participantAvatars[otherParticipantId] : '';
+                    const unreadCount = user ? conversation.unreadCount[user.uid] || 0 : 0;
+                    const lastMessagePreview = conversation.lastMessage ?
+                      (conversation.lastMessage.length > 50 ? conversation.lastMessage.substring(0, 50) + '...' : conversation.lastMessage)
+                      : 'No messages yet';
+
+                    return (
+                      <Link
+                        key={conversation.id}
+                        href={`/messages?conversationId=${conversation.id}`}
+                        className="block"
+                      >
+                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={otherParticipantAvatar} alt={otherParticipantName} />
+                            <AvatarFallback>
+                              {otherParticipantName.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <h3 className="font-semibold truncate">{otherParticipantName}</h3>
+                              {conversation.lastMessageAt && (
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(conversation.lastMessageAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {lastMessagePreview}
+                            </p>
+                          </div>
+                          {unreadCount > 0 && (
+                            <Badge variant="destructive" className="ml-2">
+                              {unreadCount}
+                            </Badge>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 

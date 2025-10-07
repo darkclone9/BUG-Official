@@ -2969,21 +2969,47 @@ export const getOrCreateConversation = async (
   user2Id: string
 ): Promise<string> => {
   try {
-    // Check if conversation already exists
+    // Normalize participant order to ensure consistent querying
+    const sortedParticipants = [user1Id, user2Id].sort();
+
+    // Check if conversation already exists - search for both users
     const conversationsRef = collection(db, 'conversations');
-    const q = query(
+
+    // Query for conversations containing user1
+    const q1 = query(
       conversationsRef,
       where('participants', 'array-contains', user1Id)
     );
 
-    const snapshot = await getDocs(q);
+    const snapshot = await getDocs(q1);
+
+    // Check if any conversation contains both users
     const existingConversation = snapshot.docs.find(doc => {
       const participants = doc.data().participants as string[];
-      return participants.includes(user2Id);
+      // Check if both users are in the participants array
+      return participants.includes(user1Id) && participants.includes(user2Id) && participants.length === 2;
     });
 
     if (existingConversation) {
+      console.log('Found existing conversation:', existingConversation.id);
       return existingConversation.id;
+    }
+
+    // Double-check by querying for user2 as well (extra safety)
+    const q2 = query(
+      conversationsRef,
+      where('participants', 'array-contains', user2Id)
+    );
+
+    const snapshot2 = await getDocs(q2);
+    const existingConversation2 = snapshot2.docs.find(doc => {
+      const participants = doc.data().participants as string[];
+      return participants.includes(user1Id) && participants.includes(user2Id) && participants.length === 2;
+    });
+
+    if (existingConversation2) {
+      console.log('Found existing conversation (second check):', existingConversation2.id);
+      return existingConversation2.id;
     }
 
     // Get user details
@@ -2997,9 +3023,9 @@ export const getOrCreateConversation = async (
     const user1Data = user1Doc.data();
     const user2Data = user2Doc.data();
 
-    // Create new conversation
+    // Create new conversation with sorted participants for consistency
     const newConversation: Omit<Conversation, 'id'> = {
-      participants: [user1Id, user2Id],
+      participants: sortedParticipants,
       participantNames: {
         [user1Id]: user1Data.displayName || 'Unknown',
         [user2Id]: user2Data.displayName || 'Unknown',
@@ -3016,10 +3042,67 @@ export const getOrCreateConversation = async (
       updatedAt: new Date(),
     };
 
+    console.log('Creating new conversation between', user1Id, 'and', user2Id);
     const docRef = await addDoc(conversationsRef, newConversation);
     return docRef.id;
   } catch (error) {
     console.error('Error creating conversation:', error);
+    throw error;
+  }
+};
+
+/**
+ * Clean up duplicate conversations for a user
+ * This function finds and removes duplicate conversations between the same two users
+ */
+export const cleanupDuplicateConversations = async (userId: string): Promise<number> => {
+  try {
+    const conversationsRef = collection(db, 'conversations');
+    const q = query(
+      conversationsRef,
+      where('participants', 'array-contains', userId)
+    );
+
+    const snapshot = await getDocs(q);
+    const conversations = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    // Group conversations by participant pair
+    const conversationGroups = new Map<string, any[]>();
+
+    conversations.forEach(conv => {
+      const participants = (conv.participants as string[]).sort().join('_');
+      if (!conversationGroups.has(participants)) {
+        conversationGroups.set(participants, []);
+      }
+      conversationGroups.get(participants)!.push(conv);
+    });
+
+    // Find and delete duplicates (keep the oldest one)
+    let deletedCount = 0;
+    for (const [_, group] of conversationGroups) {
+      if (group.length > 1) {
+        // Sort by createdAt, keep the oldest
+        group.sort((a, b) => {
+          const aTime = a.createdAt?.toDate?.()?.getTime() || 0;
+          const bTime = b.createdAt?.toDate?.()?.getTime() || 0;
+          return aTime - bTime;
+        });
+
+        // Delete all except the first (oldest)
+        for (let i = 1; i < group.length; i++) {
+          await deleteDoc(doc(db, 'conversations', group[i].id));
+          deletedCount++;
+          console.log('Deleted duplicate conversation:', group[i].id);
+        }
+      }
+    }
+
+    return deletedCount;
+  } catch (error) {
+    console.error('Error cleaning up duplicate conversations:', error);
     throw error;
   }
 };

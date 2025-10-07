@@ -3,12 +3,12 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  getUserConversations, 
-  getConversationMessages, 
-  sendMessage, 
+import {
+  getUserConversations,
+  getConversationMessages,
+  sendMessage,
   markMessagesAsRead,
-  getOrCreateConversation 
+  getOrCreateConversation
 } from '@/lib/database';
 import { Conversation, Message } from '@/types/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,7 +37,7 @@ function MessagesContent() {
       return;
     }
     loadConversations();
-    
+
     // Check if we need to start a new conversation
     const userId = searchParams.get('userId');
     if (userId) {
@@ -58,11 +58,20 @@ function MessagesContent() {
 
   const loadConversations = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       const convos = await getUserConversations(user.uid);
       setConversations(convos);
+
+      // After loading conversations, check if we need to open a specific one
+      const conversationId = searchParams.get('conversationId');
+      if (conversationId) {
+        const conversation = convos.find(c => c.id === conversationId);
+        if (conversation) {
+          setSelectedConversation(conversation);
+        }
+      }
     } catch (err) {
       console.error('Error loading conversations:', err);
       toast.error('Failed to load conversations');
@@ -73,7 +82,7 @@ function MessagesContent() {
 
   const startNewConversation = async (otherUserId: string) => {
     if (!user) return;
-    
+
     try {
       const conversationId = await getOrCreateConversation(user.uid, otherUserId);
       const convos = await getUserConversations(user.uid);
@@ -184,7 +193,7 @@ function MessagesContent() {
                     {conversations.map((conversation) => {
                       const other = getOtherParticipant(conversation);
                       const unreadCount = user ? conversation.unreadCount[user.uid] || 0 : 0;
-                      
+
                       return (
                         <button
                           key={conversation.id}
@@ -239,9 +248,9 @@ function MessagesContent() {
                 <CardHeader className="border-b">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage 
-                        src={getOtherParticipant(selectedConversation).avatar} 
-                        alt={getOtherParticipant(selectedConversation).name} 
+                      <AvatarImage
+                        src={getOtherParticipant(selectedConversation).avatar}
+                        alt={getOtherParticipant(selectedConversation).name}
                       />
                       <AvatarFallback>
                         {getOtherParticipant(selectedConversation).name.charAt(0).toUpperCase()}
@@ -256,7 +265,7 @@ function MessagesContent() {
                     <div className="space-y-4">
                       {messages.map((message) => {
                         const isOwn = message.senderId === user?.uid;
-                        
+
                         return (
                           <div
                             key={message.id}
@@ -345,4 +354,3 @@ export default function MessagesPage() {
     </Suspense>
   );
 }
-
