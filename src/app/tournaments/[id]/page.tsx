@@ -15,6 +15,7 @@ import { Tournament, User } from '@/types/types';
 import { TournamentBracket } from '@/types/bracket';
 import { useAuth } from '@/contexts/AuthContext';
 import { BracketVisualization } from '@/components/tournament/BracketVisualization';
+import TournamentChat from '@/components/tournaments/TournamentChat';
 
 export default function TournamentDetailPage() {
   const params = useParams();
@@ -453,6 +454,15 @@ export default function TournamentDetailPage() {
                 </CardContent>
               </Card>
             </div>
+          </div>
+
+          {/* Tournament Discussion */}
+          <div className="mt-8">
+            <TournamentChat
+              tournamentId={tournamentId}
+              isParticipant={isRegistered}
+              isAdmin={user?.roles?.includes('admin') || false}
+            />
           </div>
         </div>
       </div>
