@@ -2818,17 +2818,36 @@ export const uploadUserAvatar = async (
   file: File
 ): Promise<string> => {
   try {
-    const storageRef = ref(storage, `avatars/${userId}/${Date.now()}_${file.name}`);
-    const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
+    console.log('Starting avatar upload for user:', userId);
+    console.log('File details:', { name: file.name, size: file.size, type: file.type });
 
-    // Update user profile with new avatar URL
-    await updateUserProfile(userId, { avatarUrl: downloadURL });
+    const storageRef = ref(storage, `avatars/${userId}/${Date.now()}_${file.name}`);
+    console.log('Storage reference created:', storageRef.fullPath);
+
+    console.log('Uploading file to Firebase Storage...');
+    const snapshot = await uploadBytes(storageRef, file);
+    console.log('File uploaded successfully, getting download URL...');
+
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    console.log('Download URL obtained:', downloadURL);
+
+    // Update user document with new avatar URL
+    console.log('Updating user document with avatar URL...');
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      avatarUrl: downloadURL,
+      updatedAt: Timestamp.now()
+    });
+    console.log('User document updated successfully');
 
     return downloadURL;
   } catch (error) {
     console.error('Error uploading avatar:', error);
-    throw error;
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    throw new Error(`Failed to upload avatar: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 

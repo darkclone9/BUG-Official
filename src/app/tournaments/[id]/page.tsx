@@ -426,22 +426,28 @@ export default function TournamentDetailPage() {
                   <div className="space-y-3">
                     {participants.length > 0 ? (
                       participants.map((participant, index) => (
-                        <div key={participant.uid} className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
-                          <div className="flex-shrink-0">
-                            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-medium text-primary-foreground">
-                              {index + 1}
+                        <Link
+                          key={participant.uid}
+                          href={`/profile/${participant.uid}`}
+                          className="block"
+                        >
+                          <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer">
+                            <div className="flex-shrink-0">
+                              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-medium text-primary-foreground">
+                                {index + 1}
+                              </div>
+                            </div>
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="text-xs">
+                                {participant.displayName.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium hover:text-primary transition-colors">{participant.displayName}</p>
+                              <p className="text-xs text-muted-foreground">ELO: {participant.eloRating || 1200}</p>
                             </div>
                           </div>
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs">
-                              {participant.displayName.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{participant.displayName}</p>
-                            <p className="text-xs text-muted-foreground">ELO: {participant.eloRating || 1200}</p>
-                          </div>
-                        </div>
+                        </Link>
                       ))
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">

@@ -86,9 +86,13 @@ export default function ProfileEditPage() {
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user || !e.target.files || !e.target.files[0]) return;
+    if (!user || !e.target.files || !e.target.files[0]) {
+      console.log('No file selected or user not logged in');
+      return;
+    }
 
     const file = e.target.files[0];
+    console.log('File selected for upload:', file.name);
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
@@ -105,16 +109,29 @@ export default function ProfileEditPage() {
     }
 
     try {
+      console.log('Starting upload process...');
       setUploading(true);
+
       const avatarUrl = await uploadUserAvatar(user.uid, file);
+      console.log('Upload completed, avatar URL:', avatarUrl);
+
+      // Update local state
       setProfile(prev => prev ? { ...prev, avatarUrl } : null);
-      toast.success('Avatar uploaded successfully');
-      e.target.value = ''; // Reset input after successful upload
+
+      toast.success('Avatar uploaded successfully!');
+
+      // Reset input
+      e.target.value = '';
+
+      // Reload profile to ensure we have the latest data
+      await loadProfile();
+
     } catch (err) {
-      console.error('Error uploading avatar:', err);
+      console.error('Error in handleAvatarUpload:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to upload avatar');
       e.target.value = ''; // Reset input on error
     } finally {
+      console.log('Upload process finished, resetting uploading state');
       setUploading(false);
     }
   };

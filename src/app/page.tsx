@@ -308,27 +308,33 @@ export default function Home() {
                 ) : recentWinners.length > 0 ? (
                   <>
                     {recentWinners.slice(0, 3).map((winner, index) => (
-                      <Card key={winner.id || index} className="glass hover:shadow-lg transition-all duration-300">
-                        <CardHeader className="p-3">
-                          <div className="flex items-center space-x-2">
-                            <div className="flex-shrink-0">
-                              {index === 0 && <Trophy className="h-5 w-5 text-primary" />}
-                              {index === 1 && <Trophy className="h-5 w-5 text-muted-foreground" />}
-                              {index === 2 && <Trophy className="h-5 w-5 text-accent" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="text-sm line-clamp-1">{winner.displayName}</CardTitle>
-                              <CardDescription className="text-xs line-clamp-1">
-                                {winner.tournament || 'Top Player'}
-                              </CardDescription>
-                              <div className="flex items-center text-xs text-primary mt-1">
-                                <Star className="h-3 w-3 mr-1" />
-                                {winner.points || 0} pts
+                      <Link
+                        key={winner.id || index}
+                        href={`/profile/${winner.id}`}
+                        className="block"
+                      >
+                        <Card className="glass hover:shadow-lg transition-all duration-300 cursor-pointer">
+                          <CardHeader className="p-3">
+                            <div className="flex items-center space-x-2">
+                              <div className="flex-shrink-0">
+                                {index === 0 && <Trophy className="h-5 w-5 text-primary" />}
+                                {index === 1 && <Trophy className="h-5 w-5 text-muted-foreground" />}
+                                {index === 2 && <Trophy className="h-5 w-5 text-accent" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-sm line-clamp-1 hover:text-primary transition-colors">{winner.displayName}</CardTitle>
+                                <CardDescription className="text-xs line-clamp-1">
+                                  {winner.tournament || 'Top Player'}
+                                </CardDescription>
+                                <div className="flex items-center text-xs text-primary mt-1">
+                                  <Star className="h-3 w-3 mr-1" />
+                                  {winner.points || 0} pts
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </CardHeader>
-                      </Card>
+                          </CardHeader>
+                        </Card>
+                      </Link>
                     ))}
                   </>
                 ) : (
