@@ -482,7 +482,7 @@ export interface ShippingAddress {
 // Points Settings (configurable by President/Co-President/Head Admin)
 export interface PointsSettings {
   id: string;
-  conversionRate: number;           // Points per $1 (default: 1000)
+  conversionRate: number;           // Points per $1 (default: 200, meaning 1000 points = $5.00)
   perItemDiscountCap: number;       // Max discount % per item (default: 50)
   perOrderDiscountCap: number;      // Max discount $ per order in cents (default: 3000 = $30)
   monthlyEarningCap: number;        // Max points per month (default: 10000)
