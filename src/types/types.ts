@@ -48,6 +48,15 @@ export interface User {
   // Profile & Social fields
   privacySettings?: ProfilePrivacySettings; // New: Privacy controls
   socialMediaAccounts?: SocialMediaLink[];  // New: Linked social accounts
+  gamingInfo?: GamingInfo;                  // New: Gaming preferences
+  pronouns?: string;                        // New: User pronouns
+  location?: string;                        // New: Location
+  timezone?: string;                        // New: Timezone
+  customStatus?: string;                    // New: Custom status
+  themeColor?: string;                      // New: Profile theme color
+  bannerUrl?: string;                       // New: Profile banner
+  isOnline?: boolean;                       // New: Online status
+  lastSeen?: Date;                          // New: Last activity
 }
 
 // Legacy GameType for backward compatibility
@@ -571,8 +580,29 @@ export interface Sticker {
   displayOrder?: number;            // Order on profile
 }
 
+// Gaming Platform Types
+export type GamingPlatform = 'pc' | 'xbox' | 'playstation' | 'nintendo_switch' | 'mobile' | 'other';
+
+// Skill Level Types
+export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+
+// Profile Visibility Types
+export type ProfileVisibility = 'public' | 'members_only' | 'private';
+
+// Gaming Availability
+export interface GamingAvailability {
+  monday?: string[];      // e.g., ['morning', 'evening']
+  tuesday?: string[];
+  wednesday?: string[];
+  thursday?: string[];
+  friday?: string[];
+  saturday?: string[];
+  sunday?: string[];
+  timezone?: string;      // e.g., 'America/New_York'
+}
+
 // Social Media Platform Types
-export type SocialPlatform = 'discord' | 'twitch' | 'youtube' | 'twitter' | 'instagram' | 'tiktok';
+export type SocialPlatform = 'discord' | 'twitch' | 'youtube' | 'twitter' | 'instagram' | 'tiktok' | 'steam' | 'xbox' | 'playstation';
 
 // Social Media Account Link
 export interface SocialMediaLink {
@@ -583,8 +613,20 @@ export interface SocialMediaLink {
   verifiedAt?: Date;                // Optional verification timestamp
 }
 
+// Gaming Information
+export interface GamingInfo {
+  favoriteGames?: string[];         // Array of game names/tags
+  primaryPlatform?: GamingPlatform;
+  platforms?: GamingPlatform[];     // All platforms they use
+  skillLevel?: SkillLevel;
+  availability?: GamingAvailability;
+  lookingForTeam?: boolean;         // Looking for teammates
+  competitivePlayer?: boolean;      // Interested in competitive play
+}
+
 // Profile Privacy Settings
 export interface ProfilePrivacySettings {
+  profileVisibility: ProfileVisibility; // Overall profile visibility
   showEmail: boolean;
   showRoles: boolean;
   showAchievements: boolean;
@@ -593,18 +635,31 @@ export interface ProfilePrivacySettings {
   showEloRating: boolean;
   showJoinDate: boolean;
   showSocialMedia: boolean;         // Global social media toggle
+  showOnlineStatus: boolean;        // Show/hide online status
+  showGamingStats: boolean;         // Show/hide gaming statistics
+  showLocation: boolean;            // Show/hide location/timezone
   allowDirectMessages: boolean;
+  allowDirectMessagesFromNonFriends: boolean; // DMs from non-friends
 }
 
 // Extended User Profile (for profile pages)
 export interface UserProfile extends Omit<User, 'achievements'> {
   bio?: string;
   avatarUrl?: string;
+  bannerUrl?: string;                   // Profile banner/cover image
   achievements?: string[];              // Legacy field
   achievementsList?: Achievement[];     // New field
   stickersList?: Sticker[];            // New field
   privacySettings?: ProfilePrivacySettings;
   socialMediaAccounts?: SocialMediaLink[];
+  gamingInfo?: GamingInfo;             // Gaming preferences and info
+  pronouns?: string;                    // User pronouns (e.g., "he/him", "she/her", "they/them")
+  location?: string;                    // City/State/Country
+  timezone?: string;                    // Timezone (e.g., "America/New_York")
+  customStatus?: string;                // Custom status message
+  themeColor?: string;                  // Profile accent color (hex code)
+  isOnline?: boolean;                   // Online status
+  lastSeen?: Date;                      // Last activity timestamp
 }
 
 // Direct Messaging Types

@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserProfile, updateUserProfile, uploadUserAvatar, updateDisplayedStickers } from '@/lib/database';
-import { UserProfile, SocialMediaLink, ProfilePrivacySettings, SocialPlatform } from '@/types/types';
+import { getUserProfile, updateUserProfile, uploadUserAvatar, updateDisplayedStickers, uploadProfileBanner } from '@/lib/database';
+import { UserProfile, SocialMediaLink, ProfilePrivacySettings, SocialPlatform, GamingInfo, GamingPlatform, SkillLevel, ProfileVisibility } from '@/types/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,18 +12,42 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Upload, Save, Loader2 } from 'lucide-react';
-import { FaDiscord, FaTwitch, FaYoutube, FaTwitter, FaInstagram, FaTiktok } from 'react-icons/fa';
+import { ArrowLeft, Upload, Save, Loader2, X, Plus } from 'lucide-react';
+import { FaDiscord, FaTwitch, FaYoutube, FaTwitter, FaInstagram, FaTiktok, FaSteam, FaXbox, FaPlaystation } from 'react-icons/fa';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 const SOCIAL_PLATFORMS: Array<{ id: SocialPlatform; name: string; icon: React.ComponentType<{ className?: string }>; placeholder: string }> = [
   { id: 'discord', name: 'Discord', icon: FaDiscord, placeholder: 'username#1234' },
+  { id: 'steam', name: 'Steam', icon: FaSteam, placeholder: 'steamcommunity.com/id/username' },
+  { id: 'xbox', name: 'Xbox Live', icon: FaXbox, placeholder: 'Xbox Gamertag' },
+  { id: 'playstation', name: 'PlayStation', icon: FaPlaystation, placeholder: 'PSN ID' },
   { id: 'twitch', name: 'Twitch', icon: FaTwitch, placeholder: 'twitch.tv/username' },
   { id: 'youtube', name: 'YouTube', icon: FaYoutube, placeholder: 'youtube.com/@username' },
   { id: 'twitter', name: 'Twitter/X', icon: FaTwitter, placeholder: 'twitter.com/username' },
   { id: 'instagram', name: 'Instagram', icon: FaInstagram, placeholder: 'instagram.com/username' },
   { id: 'tiktok', name: 'TikTok', icon: FaTiktok, placeholder: 'tiktok.com/@username' },
 ];
+
+const GAMING_PLATFORMS: Array<{ id: GamingPlatform; name: string }> = [
+  { id: 'pc', name: 'PC' },
+  { id: 'xbox', name: 'Xbox' },
+  { id: 'playstation', name: 'PlayStation' },
+  { id: 'nintendo_switch', name: 'Nintendo Switch' },
+  { id: 'mobile', name: 'Mobile' },
+  { id: 'other', name: 'Other' },
+];
+
+const SKILL_LEVELS: Array<{ id: SkillLevel; name: string; description: string }> = [
+  { id: 'beginner', name: 'Beginner', description: 'Just starting out' },
+  { id: 'intermediate', name: 'Intermediate', description: 'Some experience' },
+  { id: 'advanced', name: 'Advanced', description: 'Experienced player' },
+  { id: 'expert', name: 'Expert', description: 'Highly skilled' },
+];
+
+const TIME_SLOTS = ['Morning', 'Afternoon', 'Evening', 'Night'];
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function ProfileEditPage() {
   const router = useRouter();
@@ -35,8 +59,14 @@ export default function ProfileEditPage() {
 
   // Form state
   const [bio, setBio] = useState('');
+  const [pronouns, setPronouns] = useState('');
+  const [location, setLocation] = useState('');
+  const [timezone, setTimezone] = useState('');
+  const [customStatus, setCustomStatus] = useState('');
+  const [themeColor, setThemeColor] = useState('#3b82f6');
   const [socialLinks, setSocialLinks] = useState<SocialMediaLink[]>([]);
   const [privacySettings, setPrivacySettings] = useState<ProfilePrivacySettings>({
+    profileVisibility: 'public',
     showEmail: false,
     showRoles: true,
     showAchievements: true,
@@ -45,9 +75,25 @@ export default function ProfileEditPage() {
     showEloRating: true,
     showJoinDate: true,
     showSocialMedia: true,
+    showOnlineStatus: true,
+    showGamingStats: true,
+    showLocation: true,
     allowDirectMessages: true,
+    allowDirectMessagesFromNonFriends: true,
   });
   const [selectedStickers, setSelectedStickers] = useState<string[]>([]);
+
+  // Gaming Info state
+  const [favoriteGames, setFavoriteGames] = useState<string[]>([]);
+  const [newGame, setNewGame] = useState('');
+  const [primaryPlatform, setPrimaryPlatform] = useState<GamingPlatform | ''>('');
+  const [platforms, setPlatforms] = useState<GamingPlatform[]>([]);
+  const [skillLevel, setSkillLevel] = useState<SkillLevel | ''>('');
+  const [lookingForTeam, setLookingForTeam] = useState(false);
+  const [competitivePlayer, setCompetitivePlayer] = useState(false);
+
+  // Banner upload state
+  const [uploadingBanner, setUploadingBanner] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -67,8 +113,23 @@ export default function ProfileEditPage() {
       if (profileData) {
         setProfile(profileData);
         setBio(profileData.bio || '');
+        setPronouns(profileData.pronouns || '');
+        setLocation(profileData.location || '');
+        setTimezone(profileData.timezone || '');
+        setCustomStatus(profileData.customStatus || '');
+        setThemeColor(profileData.themeColor || '#3b82f6');
         setSocialLinks(profileData.socialMediaAccounts || []);
         setPrivacySettings(profileData.privacySettings || privacySettings);
+
+        // Load gaming info
+        if (profileData.gamingInfo) {
+          setFavoriteGames(profileData.gamingInfo.favoriteGames || []);
+          setPrimaryPlatform(profileData.gamingInfo.primaryPlatform || '');
+          setPlatforms(profileData.gamingInfo.platforms || []);
+          setSkillLevel(profileData.gamingInfo.skillLevel || '');
+          setLookingForTeam(profileData.gamingInfo.lookingForTeam || false);
+          setCompetitivePlayer(profileData.gamingInfo.competitivePlayer || false);
+        }
 
         // Get displayed stickers
         const displayedStickers = profileData.stickersList
@@ -136,6 +197,43 @@ export default function ProfileEditPage() {
     }
   };
 
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !e.target.files || !e.target.files[0]) {
+      return;
+    }
+
+    const file = e.target.files[0];
+
+    // Validate file size (max 10MB for banner)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB');
+      e.target.value = '';
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      setUploadingBanner(true);
+      const bannerUrl = await uploadProfileBanner(user.uid, file);
+      setProfile(prev => prev ? { ...prev, bannerUrl } : null);
+      toast.success('Banner uploaded successfully!');
+      e.target.value = '';
+      await loadProfile();
+    } catch (err) {
+      console.error('Error uploading banner:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to upload banner');
+      e.target.value = '';
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
   const handleSocialLinkChange = (platform: SocialPlatform, url: string, isPublic: boolean) => {
     setSocialLinks(prev => {
       const existing = prev.find(link => link.platform === platform);
@@ -155,6 +253,25 @@ export default function ProfileEditPage() {
         return [...prev, { platform, url, username, isPublic }];
       }
     });
+  };
+
+  const addFavoriteGame = () => {
+    if (newGame.trim() && !favoriteGames.includes(newGame.trim())) {
+      setFavoriteGames([...favoriteGames, newGame.trim()]);
+      setNewGame('');
+    }
+  };
+
+  const removeFavoriteGame = (game: string) => {
+    setFavoriteGames(favoriteGames.filter(g => g !== game));
+  };
+
+  const togglePlatform = (platform: GamingPlatform) => {
+    setPlatforms(prev =>
+      prev.includes(platform)
+        ? prev.filter(p => p !== platform)
+        : [...prev, platform]
+    );
   };
 
   const handlePrivacyToggle = (field: keyof ProfilePrivacySettings) => {
@@ -184,11 +301,27 @@ export default function ProfileEditPage() {
     try {
       setSaving(true);
 
+      // Build gaming info object
+      const gamingInfo: GamingInfo = {
+        favoriteGames,
+        primaryPlatform: primaryPlatform || undefined,
+        platforms,
+        skillLevel: skillLevel || undefined,
+        lookingForTeam,
+        competitivePlayer,
+      };
+
       // Update profile
       await updateUserProfile(user.uid, {
         bio,
+        pronouns,
+        location,
+        timezone,
+        customStatus,
+        themeColor,
         socialMediaAccounts: socialLinks.filter(link => link.url.trim() !== ''),
         privacySettings,
+        gamingInfo,
       });
 
       // Update displayed stickers
@@ -274,6 +407,54 @@ export default function ProfileEditPage() {
             </CardContent>
           </Card>
 
+          {/* Profile Banner */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Banner</CardTitle>
+              <CardDescription>Upload a banner image for your profile (max 10MB, recommended: 1500x500px)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {profile?.bannerUrl && (
+                  <div className="w-full h-40 rounded-lg overflow-hidden bg-muted">
+                    <img
+                      src={profile.bannerUrl}
+                      alt="Profile banner"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBannerUpload}
+                    disabled={uploadingBanner}
+                    className="hidden"
+                    id="banner-upload"
+                  />
+                  <Label htmlFor="banner-upload">
+                    <Button asChild disabled={uploadingBanner}>
+                      <span className="cursor-pointer">
+                        {uploadingBanner ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload Banner
+                          </>
+                        )}
+                      </span>
+                    </Button>
+                  </Label>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Bio */}
           <Card>
             <CardHeader>
@@ -294,11 +475,202 @@ export default function ProfileEditPage() {
             </CardContent>
           </Card>
 
+          {/* Personal Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Personal Information</CardTitle>
+              <CardDescription>Share more about yourself</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="pronouns">Pronouns</Label>
+                <Input
+                  id="pronouns"
+                  value={pronouns}
+                  onChange={(e) => setPronouns(e.target.value)}
+                  placeholder="e.g., he/him, she/her, they/them"
+                  maxLength={50}
+                />
+              </div>
+              <div>
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="e.g., New York, NY"
+                  maxLength={100}
+                />
+              </div>
+              <div>
+                <Label htmlFor="timezone">Timezone</Label>
+                <Input
+                  id="timezone"
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  placeholder="e.g., America/New_York, EST"
+                  maxLength={50}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Helps others know when you're available to play
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="customStatus">Custom Status</Label>
+                <Input
+                  id="customStatus"
+                  value={customStatus}
+                  onChange={(e) => setCustomStatus(e.target.value)}
+                  placeholder="e.g., Looking for teammates, Streaming now"
+                  maxLength={100}
+                />
+              </div>
+              <div>
+                <Label htmlFor="themeColor">Profile Theme Color</Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    id="themeColor"
+                    type="color"
+                    value={themeColor}
+                    onChange={(e) => setThemeColor(e.target.value)}
+                    className="w-20 h-10 cursor-pointer"
+                  />
+                  <Input
+                    value={themeColor}
+                    onChange={(e) => setThemeColor(e.target.value)}
+                    placeholder="#3b82f6"
+                    maxLength={7}
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Choose an accent color for your profile
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Gaming Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Gaming Information</CardTitle>
+              <CardDescription>Share your gaming preferences and availability</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Favorite Games */}
+              <div>
+                <Label>Favorite Games</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    value={newGame}
+                    onChange={(e) => setNewGame(e.target.value)}
+                    placeholder="Add a game..."
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addFavoriteGame())}
+                  />
+                  <Button type="button" onClick={addFavoriteGame} size="sm">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {favoriteGames.map((game) => (
+                    <Badge key={game} variant="secondary" className="gap-1">
+                      {game}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
+                        onClick={() => removeFavoriteGame(game)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Primary Platform */}
+              <div>
+                <Label htmlFor="primaryPlatform">Primary Gaming Platform</Label>
+                <Select value={primaryPlatform} onValueChange={(value) => setPrimaryPlatform(value as GamingPlatform)}>
+                  <SelectTrigger id="primaryPlatform">
+                    <SelectValue placeholder="Select your main platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GAMING_PLATFORMS.map((platform) => (
+                      <SelectItem key={platform.id} value={platform.id}>
+                        {platform.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* All Platforms */}
+              <div>
+                <Label>All Platforms You Use</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                  {GAMING_PLATFORMS.map((platform) => (
+                    <Button
+                      key={platform.id}
+                      type="button"
+                      variant={platforms.includes(platform.id) ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => togglePlatform(platform.id)}
+                      className="justify-start"
+                    >
+                      {platform.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Skill Level */}
+              <div>
+                <Label htmlFor="skillLevel">Overall Skill Level</Label>
+                <Select value={skillLevel} onValueChange={(value) => setSkillLevel(value as SkillLevel)}>
+                  <SelectTrigger id="skillLevel">
+                    <SelectValue placeholder="Select your skill level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SKILL_LEVELS.map((level) => (
+                      <SelectItem key={level.id} value={level.id}>
+                        <div>
+                          <div className="font-medium">{level.name}</div>
+                          <div className="text-xs text-muted-foreground">{level.description}</div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Gaming Preferences */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Looking for Team</Label>
+                    <p className="text-xs text-muted-foreground">Show that you're looking for teammates</p>
+                  </div>
+                  <Switch
+                    checked={lookingForTeam}
+                    onCheckedChange={setLookingForTeam}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Competitive Player</Label>
+                    <p className="text-xs text-muted-foreground">Interested in competitive/ranked play</p>
+                  </div>
+                  <Switch
+                    checked={competitivePlayer}
+                    onCheckedChange={setCompetitivePlayer}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Social Media Links */}
           <Card>
             <CardHeader>
-              <CardTitle>Social Media Accounts</CardTitle>
-              <CardDescription>Link your social media profiles</CardDescription>
+              <CardTitle>Social Media & Gaming Accounts</CardTitle>
+              <CardDescription>Link your social media and gaming profiles</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {SOCIAL_PLATFORMS.map((platform) => {
@@ -340,17 +712,143 @@ export default function ProfileEditPage() {
               <CardDescription>Control what others can see on your profile</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {Object.entries(privacySettings).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <Label className="capitalize">
-                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                  </Label>
+              {/* Profile Visibility */}
+              <div>
+                <Label htmlFor="profileVisibility">Profile Visibility</Label>
+                <Select
+                  value={privacySettings.profileVisibility}
+                  onValueChange={(value) => setPrivacySettings(prev => ({ ...prev, profileVisibility: value as ProfileVisibility }))}
+                >
+                  <SelectTrigger id="profileVisibility" className="mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">
+                      <div>
+                        <div className="font-medium">Public</div>
+                        <div className="text-xs text-muted-foreground">Anyone can view your profile</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="members_only">
+                      <div>
+                        <div className="font-medium">Members Only</div>
+                        <div className="text-xs text-muted-foreground">Only BUG members can view</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="private">
+                      <div>
+                        <div className="font-medium">Private</div>
+                        <div className="text-xs text-muted-foreground">Only you can view your profile</div>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Other Privacy Toggles */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Show Email</Label>
+                    <p className="text-xs text-muted-foreground">Display your email on your profile</p>
+                  </div>
                   <Switch
-                    checked={value}
-                    onCheckedChange={() => handlePrivacyToggle(key as keyof ProfilePrivacySettings)}
+                    checked={privacySettings.showEmail}
+                    onCheckedChange={() => handlePrivacyToggle('showEmail')}
                   />
                 </div>
-              ))}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Show Roles</Label>
+                    <p className="text-xs text-muted-foreground">Display your club roles</p>
+                  </div>
+                  <Switch
+                    checked={privacySettings.showRoles}
+                    onCheckedChange={() => handlePrivacyToggle('showRoles')}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Show Achievements</Label>
+                    <p className="text-xs text-muted-foreground">Display your achievements</p>
+                  </div>
+                  <Switch
+                    checked={privacySettings.showAchievements}
+                    onCheckedChange={() => handlePrivacyToggle('showAchievements')}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Show Points</Label>
+                    <p className="text-xs text-muted-foreground">Display your points balance</p>
+                  </div>
+                  <Switch
+                    checked={privacySettings.showPoints}
+                    onCheckedChange={() => handlePrivacyToggle('showPoints')}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Show ELO Rating</Label>
+                    <p className="text-xs text-muted-foreground">Display your competitive rating</p>
+                  </div>
+                  <Switch
+                    checked={privacySettings.showEloRating}
+                    onCheckedChange={() => handlePrivacyToggle('showEloRating')}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Show Online Status</Label>
+                    <p className="text-xs text-muted-foreground">Let others see when you're online</p>
+                  </div>
+                  <Switch
+                    checked={privacySettings.showOnlineStatus}
+                    onCheckedChange={() => handlePrivacyToggle('showOnlineStatus')}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Show Gaming Stats</Label>
+                    <p className="text-xs text-muted-foreground">Display your gaming statistics</p>
+                  </div>
+                  <Switch
+                    checked={privacySettings.showGamingStats}
+                    onCheckedChange={() => handlePrivacyToggle('showGamingStats')}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Show Location</Label>
+                    <p className="text-xs text-muted-foreground">Display your location/timezone</p>
+                  </div>
+                  <Switch
+                    checked={privacySettings.showLocation}
+                    onCheckedChange={() => handlePrivacyToggle('showLocation')}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Allow Direct Messages</Label>
+                    <p className="text-xs text-muted-foreground">Let others send you messages</p>
+                  </div>
+                  <Switch
+                    checked={privacySettings.allowDirectMessages}
+                    onCheckedChange={() => handlePrivacyToggle('allowDirectMessages')}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Allow DMs from Non-Friends</Label>
+                    <p className="text-xs text-muted-foreground">Receive messages from anyone</p>
+                  </div>
+                  <Switch
+                    checked={privacySettings.allowDirectMessagesFromNonFriends}
+                    onCheckedChange={() => handlePrivacyToggle('allowDirectMessagesFromNonFriends')}
+                    disabled={!privacySettings.allowDirectMessages}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
 

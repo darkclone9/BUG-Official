@@ -2853,6 +2853,47 @@ export const uploadUserAvatar = async (
 };
 
 /**
+ * Upload profile banner to Firebase Storage
+ */
+export const uploadProfileBanner = async (
+  userId: string,
+  file: File
+): Promise<string> => {
+  try {
+    console.log('Starting banner upload for user:', userId);
+    console.log('File details:', { name: file.name, size: file.size, type: file.type });
+
+    const storageRef = ref(storage, `banners/${userId}/${Date.now()}_${file.name}`);
+    console.log('Storage reference created:', storageRef.fullPath);
+
+    console.log('Uploading file to Firebase Storage...');
+    const snapshot = await uploadBytes(storageRef, file);
+    console.log('File uploaded successfully, getting download URL...');
+
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    console.log('Download URL obtained:', downloadURL);
+
+    // Update user document with new banner URL
+    console.log('Updating user document with banner URL...');
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      bannerUrl: downloadURL,
+      updatedAt: Timestamp.now()
+    });
+    console.log('User document updated successfully');
+
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading banner:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    throw new Error(`Failed to upload banner: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+/**
  * Add achievement to user
  */
 export const addUserAchievement = async (
