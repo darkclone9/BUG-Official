@@ -244,7 +244,7 @@ export default function DashboardPage() {
                   {conversations.map((conversation) => {
                     const otherParticipantId = conversation.participants.find(id => id !== user?.uid);
                     const otherParticipantName = otherParticipantId ? conversation.participantNames[otherParticipantId] : 'Unknown';
-                    const otherParticipantAvatar = otherParticipantId ? conversation.participantAvatars[otherParticipantId] : '';
+                    const otherParticipantAvatar = otherParticipantId ? conversation.participantAvatars[otherParticipantId] : null;
                     const unreadCount = user ? conversation.unreadCount[user.uid] || 0 : 0;
                     const lastMessagePreview = conversation.lastMessage ?
                       (conversation.lastMessage.length > 50 ? conversation.lastMessage.substring(0, 50) + '...' : conversation.lastMessage)
@@ -258,7 +258,7 @@ export default function DashboardPage() {
                       >
                         <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                           <Avatar className="h-12 w-12">
-                            <AvatarImage src={otherParticipantAvatar} alt={otherParticipantName} />
+                            <AvatarImage src={otherParticipantAvatar || undefined} alt={otherParticipantName} />
                             <AvatarFallback>
                               {otherParticipantName.charAt(0).toUpperCase()}
                             </AvatarFallback>

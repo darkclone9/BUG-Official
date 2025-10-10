@@ -93,11 +93,11 @@ export default function MessageNotificationDropdown({ className }: MessageNotifi
   const getOtherParticipant = (conversation: Conversation) => {
     const otherParticipantId = conversation.participants.find(id => id !== user?.uid);
     if (!otherParticipantId) {
-      return { name: 'Unknown', avatar: '' };
+      return { name: 'Unknown', avatar: null };
     }
     return {
       name: conversation.participantNames[otherParticipantId] || 'Unknown',
-      avatar: conversation.participantAvatars[otherParticipantId] || ''
+      avatar: conversation.participantAvatars[otherParticipantId] || null
     };
   };
 
@@ -151,8 +151,8 @@ export default function MessageNotificationDropdown({ className }: MessageNotifi
                 {conversations.map((conversation) => {
                   const other = getOtherParticipant(conversation);
                   const unread = user ? conversation.unreadCount[user.uid] || 0 : 0;
-                  const lastMessagePreview = conversation.lastMessage ? 
-                    (conversation.lastMessage.length > 50 ? conversation.lastMessage.substring(0, 50) + '...' : conversation.lastMessage) 
+                  const lastMessagePreview = conversation.lastMessage ?
+                    (conversation.lastMessage.length > 50 ? conversation.lastMessage.substring(0, 50) + '...' : conversation.lastMessage)
                     : 'No messages yet';
 
                   return (
@@ -169,7 +169,7 @@ export default function MessageNotificationDropdown({ className }: MessageNotifi
                       >
                         <div className="flex items-start space-x-3">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={other.avatar} alt={other.name} />
+                            <AvatarImage src={other.avatar || undefined} alt={other.name} />
                             <AvatarFallback>
                               {other.name.charAt(0).toUpperCase()}
                             </AvatarFallback>
@@ -223,4 +223,3 @@ export default function MessageNotificationDropdown({ className }: MessageNotifi
     </div>
   );
 }
-

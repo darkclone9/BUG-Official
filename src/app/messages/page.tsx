@@ -133,7 +133,7 @@ function MessagesContent() {
     return {
       id: otherUserId || '',
       name: otherUserId ? conversation.participantNames[otherUserId] : 'Unknown',
-      avatar: otherUserId ? conversation.participantAvatars[otherUserId] : '',
+      avatar: otherUserId ? conversation.participantAvatars[otherUserId] || null : null,
     };
   };
 
@@ -204,7 +204,7 @@ function MessagesContent() {
                         >
                           <div className="flex items-start gap-3">
                             <Avatar className="h-12 w-12">
-                              <AvatarImage src={other.avatar} alt={other.name} />
+                              <AvatarImage src={other.avatar || undefined} alt={other.name} />
                               <AvatarFallback>
                                 {other.name.charAt(0).toUpperCase()}
                               </AvatarFallback>
@@ -249,7 +249,7 @@ function MessagesContent() {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       <AvatarImage
-                        src={getOtherParticipant(selectedConversation).avatar}
+                        src={getOtherParticipant(selectedConversation).avatar || undefined}
                         alt={getOtherParticipant(selectedConversation).name}
                       />
                       <AvatarFallback>
@@ -274,7 +274,7 @@ function MessagesContent() {
                             <div className={`flex gap-2 max-w-[70%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
                               {!isOwn && (
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={message.senderAvatar} alt={message.senderName} />
+                                  <AvatarImage src={message.senderAvatar || undefined} alt={message.senderName} />
                                   <AvatarFallback>
                                     {message.senderName.charAt(0).toUpperCase()}
                                   </AvatarFallback>
