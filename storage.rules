@@ -1,0 +1,75 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Helper function to validate image file
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    // Helper function to validate file size (max 10MB)
+    function isValidSize(maxSizeMB) {
+      return request.resource.size < maxSizeMB * 1024 * 1024;
+    }
+    
+    // User avatars - max 5MB
+    match /avatars/{userId}/{fileName} {
+      allow read: if true; // Anyone can read avatars
+      allow write: if isAuthenticated() 
+                   && isOwner(userId) 
+                   && isImage() 
+                   && isValidSize(5);
+    }
+    
+    // Profile banners - max 10MB
+    match /banners/{userId}/{fileName} {
+      allow read: if true; // Anyone can read banners
+      allow write: if isAuthenticated() 
+                   && isOwner(userId) 
+                   && isImage() 
+                   && isValidSize(10);
+    }
+    
+    // Shop product images - admin only
+    match /products/{productId}/{fileName} {
+      allow read: if true; // Anyone can read product images
+      allow write: if isAuthenticated(); // Any authenticated user can upload (will add admin check in app logic)
+    }
+    
+    // Tournament images - admin only
+    match /tournaments/{tournamentId}/{fileName} {
+      allow read: if true; // Anyone can read tournament images
+      allow write: if isAuthenticated(); // Any authenticated user can upload (will add admin check in app logic)
+    }
+    
+    // Event images - admin only
+    match /events/{eventId}/{fileName} {
+      allow read: if true; // Anyone can read event images
+      allow write: if isAuthenticated(); // Any authenticated user can upload (will add admin check in app logic)
+    }
+    
+    // Announcement images - admin only
+    match /announcements/{announcementId}/{fileName} {
+      allow read: if true; // Anyone can read announcement images
+      allow write: if isAuthenticated(); // Any authenticated user can upload (will add admin check in app logic)
+    }
+    
+    // Default deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

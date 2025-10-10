@@ -180,32 +180,32 @@ export default function ProfileEditPage() {
       setProfile(prev => prev ? { ...prev, avatarUrl } : null);
 
       toast.success('Avatar uploaded successfully!');
-
-      // Reset input
-      e.target.value = '';
-
-      // Reload profile to ensure we have the latest data
-      await loadProfile();
+      console.log('Avatar upload complete');
 
     } catch (err) {
       console.error('Error in handleAvatarUpload:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to upload avatar');
-      e.target.value = ''; // Reset input on error
     } finally {
       console.log('Upload process finished, resetting uploading state');
       setUploading(false);
+      e.target.value = '';
     }
   };
 
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('handleBannerUpload called');
+
     if (!user || !e.target.files || !e.target.files[0]) {
+      console.log('No user or file selected');
       return;
     }
 
     const file = e.target.files[0];
+    console.log('File selected:', file.name, file.size, file.type);
 
     // Validate file size (max 10MB for banner)
     if (file.size > 10 * 1024 * 1024) {
+      console.log('File too large');
       toast.error('File size must be less than 10MB');
       e.target.value = '';
       return;
@@ -213,24 +213,30 @@ export default function ProfileEditPage() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
+      console.log('Invalid file type');
       toast.error('Please upload an image file');
       e.target.value = '';
       return;
     }
 
+    console.log('Starting upload...');
+
     try {
       setUploadingBanner(true);
+      console.log('Calling uploadProfileBanner...');
       const bannerUrl = await uploadProfileBanner(user.uid, file);
+      console.log('Upload successful, URL:', bannerUrl);
+
       setProfile(prev => prev ? { ...prev, bannerUrl } : null);
       toast.success('Banner uploaded successfully!');
-      e.target.value = '';
-      await loadProfile();
+      console.log('Banner upload complete');
     } catch (err) {
       console.error('Error uploading banner:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to upload banner');
-      e.target.value = '';
     } finally {
+      console.log('Resetting uploadingBanner state');
       setUploadingBanner(false);
+      e.target.value = '';
     }
   };
 
