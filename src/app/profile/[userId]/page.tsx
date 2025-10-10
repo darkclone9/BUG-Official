@@ -18,7 +18,13 @@ import {
   Edit,
   Shield,
   Award,
-  Sparkles
+  Sparkles,
+  MapPin,
+  Clock,
+  Gamepad2,
+  Users,
+  Target,
+  Palette
 } from 'lucide-react';
 import {
   FaDiscord,
@@ -26,7 +32,10 @@ import {
   FaYoutube,
   FaTwitter,
   FaInstagram,
-  FaTiktok
+  FaTiktok,
+  FaSteam,
+  FaXbox,
+  FaPlaystation
 } from 'react-icons/fa';
 import Link from 'next/link';
 
@@ -37,6 +46,9 @@ const socialIcons = {
   twitter: FaTwitter,
   instagram: FaInstagram,
   tiktok: FaTiktok,
+  steam: FaSteam,
+  xbox: FaXbox,
+  playstation: FaPlaystation,
 };
 
 export default function UserProfilePage() {
@@ -132,26 +144,75 @@ export default function UserProfilePage() {
     <div className="min-h-screen bg-background py-8">
       <div className="container max-w-6xl mx-auto px-4">
         {/* Profile Header */}
-        <Card className="mb-6">
+        <Card className="mb-6 overflow-hidden" style={{ borderColor: profile.themeColor || undefined }}>
+          {/* Profile Banner */}
+          {profile.bannerUrl && (
+            <div className="w-full h-48 md:h-64 overflow-hidden bg-muted">
+              <img
+                src={profile.bannerUrl}
+                alt="Profile banner"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row gap-6 items-start">
               {/* Avatar */}
-              <Avatar className="h-32 w-32">
-                <AvatarImage src={profile.avatarUrl || profile.avatar} alt={profile.displayName} />
-                <AvatarFallback className="text-4xl">
-                  {profile.displayName.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-32 w-32 border-4 border-background" style={{ borderColor: profile.themeColor || undefined }}>
+                  <AvatarImage src={profile.avatarUrl || profile.avatar} alt={profile.displayName} />
+                  <AvatarFallback className="text-4xl" style={{ backgroundColor: profile.themeColor || undefined }}>
+                    {profile.displayName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {canViewField('showOnlineStatus') && profile.isOnline && (
+                  <div className="absolute bottom-2 right-2 h-6 w-6 bg-green-500 rounded-full border-4 border-background"></div>
+                )}
+              </div>
 
               {/* Profile Info */}
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h1 className="text-3xl font-bold text-foreground mb-2">
-                      {profile.displayName}
-                    </h1>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h1 className="text-3xl font-bold text-foreground" style={{ color: profile.themeColor || undefined }}>
+                        {profile.displayName}
+                      </h1>
+                      {profile.pronouns && (
+                        <span className="text-sm text-muted-foreground">({profile.pronouns})</span>
+                      )}
+                    </div>
+
+                    {profile.customStatus && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <Badge variant="secondary" className="gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          {profile.customStatus}
+                        </Badge>
+                      </div>
+                    )}
+
                     {profile.bio && (
                       <p className="text-muted-foreground mb-4">{profile.bio}</p>
+                    )}
+
+                    {/* Location & Timezone */}
+                    {canViewField('showLocation') && (profile.location || profile.timezone) && (
+                      <div className="flex flex-wrap gap-3 mb-3 text-sm text-muted-foreground">
+                        {profile.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {profile.location}
+                          </div>
+                        )}
+                        {profile.timezone && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {profile.timezone}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -249,6 +310,93 @@ export default function UserProfilePage() {
                       </Badge>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Gaming Information */}
+            {canViewField('showGamingStats') && profile.gamingInfo && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gamepad2 className="h-5 w-5" />
+                    Gaming Profile
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Favorite Games */}
+                  {profile.gamingInfo.favoriteGames && profile.gamingInfo.favoriteGames.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                        <Star className="h-4 w-4" />
+                        Favorite Games
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.gamingInfo.favoriteGames.map((game) => (
+                          <Badge key={game} variant="secondary">
+                            {game}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Platforms */}
+                  {(profile.gamingInfo.primaryPlatform || (profile.gamingInfo.platforms && profile.gamingInfo.platforms.length > 0)) && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">Platforms</h4>
+                      <div className="space-y-2">
+                        {profile.gamingInfo.primaryPlatform && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Primary:</span>{' '}
+                            <Badge variant="default" className="capitalize">
+                              {profile.gamingInfo.primaryPlatform.replace(/_/g, ' ')}
+                            </Badge>
+                          </div>
+                        )}
+                        {profile.gamingInfo.platforms && profile.gamingInfo.platforms.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {profile.gamingInfo.platforms.map((platform) => (
+                              <Badge key={platform} variant="outline" className="capitalize">
+                                {platform.replace(/_/g, ' ')}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Skill Level */}
+                  {profile.gamingInfo.skillLevel && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">Skill Level</h4>
+                      <Badge variant="secondary" className="capitalize">
+                        {profile.gamingInfo.skillLevel}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Gaming Preferences */}
+                  {(profile.gamingInfo.lookingForTeam || profile.gamingInfo.competitivePlayer) && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">Preferences</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.gamingInfo.lookingForTeam && (
+                          <Badge variant="default" className="gap-1">
+                            <Users className="h-3 w-3" />
+                            Looking for Team
+                          </Badge>
+                        )}
+                        {profile.gamingInfo.competitivePlayer && (
+                          <Badge variant="default" className="gap-1">
+                            <Target className="h-3 w-3" />
+                            Competitive Player
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
