@@ -394,7 +394,7 @@ export default function ProfileEditPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <Input
+                  <input
                     type="file"
                     accept="image/*"
                     onChange={handleAvatarUpload}
@@ -402,23 +402,23 @@ export default function ProfileEditPage() {
                     className="hidden"
                     id="avatar-upload"
                   />
-                  <Label htmlFor="avatar-upload">
-                    <Button asChild disabled={uploading}>
-                      <span className="cursor-pointer">
-                        {uploading ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-4 w-4 mr-2" />
-                            Upload Image
-                          </>
-                        )}
-                      </span>
-                    </Button>
-                  </Label>
+                  <Button
+                    type="button"
+                    onClick={() => document.getElementById('avatar-upload')?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Image
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -442,31 +442,36 @@ export default function ProfileEditPage() {
                   </div>
                 )}
                 <div>
-                  <Input
+                  <input
                     type="file"
                     accept="image/*"
                     onChange={handleBannerUpload}
                     disabled={uploadingBanner}
                     className="hidden"
                     id="banner-upload"
+                    ref={(input) => {
+                      if (input) {
+                        (window as any).bannerInput = input;
+                      }
+                    }}
                   />
-                  <Label htmlFor="banner-upload">
-                    <Button asChild disabled={uploadingBanner}>
-                      <span className="cursor-pointer">
-                        {uploadingBanner ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-4 w-4 mr-2" />
-                            Upload Banner
-                          </>
-                        )}
-                      </span>
-                    </Button>
-                  </Label>
+                  <Button
+                    type="button"
+                    onClick={() => document.getElementById('banner-upload')?.click()}
+                    disabled={uploadingBanner}
+                  >
+                    {uploadingBanner ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Banner
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
             </CardContent>
