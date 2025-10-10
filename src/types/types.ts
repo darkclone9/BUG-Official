@@ -535,6 +535,34 @@ export interface PointsMultiplier {
   createdBy: string;                // Admin UID
 }
 
+// Welcome Points Promotion
+export interface WelcomePointsPromotion {
+  id: string;
+  name: string;                     // e.g., "First 100 Users Bonus"
+  description: string;
+  pointsAmount: number;             // Points to award (e.g., 1500)
+  startDate: Date;                  // When promotion starts
+  endDate?: Date;                   // Optional end date
+  maxUsers: number;                 // Maximum users who can receive (e.g., 100)
+  currentCount: number;             // How many users have received so far
+  isActive: boolean;
+  createdAt: Date;
+  createdBy: string;                // Admin UID
+  updatedAt: Date;
+}
+
+// Welcome Points Recipient (tracks who received the bonus)
+export interface WelcomePointsRecipient {
+  id: string;
+  promotionId: string;              // Reference to WelcomePointsPromotion
+  userId: string;
+  userEmail: string;
+  userDisplayName: string;
+  pointsAwarded: number;
+  awardedAt: Date;
+  recipientNumber: number;          // e.g., 1st, 2nd, 3rd... 100th user
+}
+
 // Campus Pickup Queue Item
 export interface PickupQueueItem {
   id: string;

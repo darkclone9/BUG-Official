@@ -1,6 +1,6 @@
 'use client';
 
-import { createUser, createUserStats, getAdminUser, getUser, updateUser } from '@/lib/database';
+import { createUser, createUserStats, getAdminUser, getUser, updateUser, awardWelcomePoints } from '@/lib/database';
 import { auth, signInWithGoogle as firebaseSignInWithGoogle } from '@/lib/firebase';
 import { AdminUser, User, UserStats, UserRole } from '@/types/types';
 import {
@@ -103,6 +103,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             };
 
             await createUserStats(initialStats);
+
+            // Check for and award welcome points promotion
+            try {
+              const welcomeResult = await awardWelcomePoints(
+                firebaseUser.uid,
+                firebaseUser.email!,
+                firebaseUser.displayName || 'Anonymous'
+              );
+
+              if (welcomeResult.awarded) {
+                console.log(`Welcome points awarded: ${welcomeResult.points} points (recipient #${welcomeResult.recipientNumber})`);
+                // Update local user state with the awarded points
+                newUser.points = welcomeResult.points;
+              }
+            } catch (error) {
+              console.error('Error awarding welcome points:', error);
+              // Don't fail signup if welcome points fail
+            }
+
             userData = newUser;
           } else {
             // Update last login date
@@ -179,6 +198,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     await createUserStats(initialStats);
+
+    // Check for and award welcome points promotion
+    try {
+      const welcomeResult = await awardWelcomePoints(
+        firebaseUser.uid,
+        firebaseUser.email!,
+        displayName
+      );
+
+      if (welcomeResult.awarded) {
+        console.log(`Welcome points awarded: ${welcomeResult.points} points (recipient #${welcomeResult.recipientNumber})`);
+        // Update local user state with the awarded points
+        newUser.points = welcomeResult.points;
+      }
+    } catch (error) {
+      console.error('Error awarding welcome points:', error);
+      // Don't fail signup if welcome points fail
+    }
 
     // Update the local state immediately to ensure the user is authenticated
     setUser(newUser);

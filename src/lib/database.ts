@@ -27,7 +27,9 @@ import {
     Conversation,
     Message,
     MessageNotification,
-    TournamentMessage
+    TournamentMessage,
+    WelcomePointsPromotion,
+    WelcomePointsRecipient
 } from '@/types/types';
 import { BracketMatch, TournamentBracket, BracketGenerationOptions } from '@/types/bracket';
 import { BracketGenerator } from './bracketGenerator';
@@ -2141,6 +2143,230 @@ export const checkMonthlyEarningCap = async (
     remaining,
     exceeded,
   };
+};
+
+// ============================================================================
+// WELCOME POINTS PROMOTION MANAGEMENT
+// ============================================================================
+
+/**
+ * Create a new welcome points promotion
+ */
+export const createWelcomePointsPromotion = async (
+  promotion: Omit<WelcomePointsPromotion, 'id' | 'createdAt' | 'updatedAt' | 'currentCount'>
+): Promise<string> => {
+  const promotionId = `welcome_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  await setDoc(doc(db, 'welcome_points_promotions', promotionId), {
+    ...promotion,
+    id: promotionId,
+    currentCount: 0,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+    startDate: Timestamp.fromDate(promotion.startDate),
+    endDate: promotion.endDate ? Timestamp.fromDate(promotion.endDate) : null,
+  });
+
+  return promotionId;
+};
+
+/**
+ * Get active welcome points promotion
+ */
+export const getActiveWelcomePointsPromotion = async (): Promise<WelcomePointsPromotion | null> => {
+  const now = new Date();
+  const promotionsQuery = query(
+    collection(db, 'welcome_points_promotions'),
+    where('isActive', '==', true),
+    where('startDate', '<=', Timestamp.fromDate(now))
+  );
+
+  const snapshot = await getDocs(promotionsQuery);
+
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    const promotion: WelcomePointsPromotion = {
+      ...data,
+      id: doc.id,
+      startDate: data.startDate.toDate(),
+      endDate: data.endDate?.toDate(),
+      createdAt: data.createdAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+    } as WelcomePointsPromotion;
+
+    // Check if promotion is still valid
+    if (promotion.currentCount < promotion.maxUsers) {
+      if (!promotion.endDate || promotion.endDate > now) {
+        return promotion;
+      }
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Award welcome points to a new user
+ * Returns true if points were awarded, false if promotion is full or inactive
+ */
+export const awardWelcomePoints = async (
+  userId: string,
+  userEmail: string,
+  userDisplayName: string
+): Promise<{ awarded: boolean; points: number; promotionId?: string; recipientNumber?: number }> => {
+  // Check if user already received welcome points
+  const existingRecipientQuery = query(
+    collection(db, 'welcome_points_recipients'),
+    where('userId', '==', userId)
+  );
+  const existingSnapshot = await getDocs(existingRecipientQuery);
+
+  if (!existingSnapshot.empty) {
+    return { awarded: false, points: 0 };
+  }
+
+  // Get active promotion
+  const promotion = await getActiveWelcomePointsPromotion();
+
+  if (!promotion) {
+    return { awarded: false, points: 0 };
+  }
+
+  // Use transaction to ensure atomic update
+  const batch = writeBatch(db);
+
+  // Increment promotion count
+  const promotionRef = doc(db, 'welcome_points_promotions', promotion.id);
+  const recipientNumber = promotion.currentCount + 1;
+
+  batch.update(promotionRef, {
+    currentCount: increment(1),
+    updatedAt: Timestamp.now(),
+  });
+
+  // Create recipient record
+  const recipientId = `recipient_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const recipientRef = doc(db, 'welcome_points_recipients', recipientId);
+  batch.set(recipientRef, {
+    id: recipientId,
+    promotionId: promotion.id,
+    userId,
+    userEmail,
+    userDisplayName,
+    pointsAwarded: promotion.pointsAmount,
+    awardedAt: Timestamp.now(),
+    recipientNumber,
+  });
+
+  // Award points to user
+  const userRef = doc(db, 'users', userId);
+  batch.update(userRef, {
+    points: increment(promotion.pointsAmount),
+  });
+
+  // Create points transaction record
+  const transactionId = `pts_welcome_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const transactionRef = doc(db, 'points_transactions', transactionId);
+  batch.set(transactionRef, {
+    id: transactionId,
+    userId,
+    amount: promotion.pointsAmount,
+    reason: `Welcome bonus: ${promotion.name}`,
+    timestamp: Timestamp.now(),
+    awardedBy: 'system',
+    category: 'adjustment',
+    approvalStatus: 'approved',
+    approvedBy: 'system',
+    approvedAt: Timestamp.now(),
+  });
+
+  await batch.commit();
+
+  return {
+    awarded: true,
+    points: promotion.pointsAmount,
+    promotionId: promotion.id,
+    recipientNumber,
+  };
+};
+
+/**
+ * Get all welcome points promotions
+ */
+export const getAllWelcomePointsPromotions = async (): Promise<WelcomePointsPromotion[]> => {
+  const promotionsQuery = query(
+    collection(db, 'welcome_points_promotions'),
+    orderBy('createdAt', 'desc')
+  );
+
+  const snapshot = await getDocs(promotionsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      id: doc.id,
+      startDate: data.startDate.toDate(),
+      endDate: data.endDate?.toDate(),
+      createdAt: data.createdAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+    } as WelcomePointsPromotion;
+  });
+};
+
+/**
+ * Update welcome points promotion
+ */
+export const updateWelcomePointsPromotion = async (
+  promotionId: string,
+  updates: Partial<WelcomePointsPromotion>
+): Promise<void> => {
+  const updateData: Record<string, unknown> = { ...updates };
+
+  if (updates.startDate) {
+    updateData.startDate = Timestamp.fromDate(updates.startDate);
+  }
+  if (updates.endDate) {
+    updateData.endDate = Timestamp.fromDate(updates.endDate);
+  }
+
+  updateData.updatedAt = Timestamp.now();
+
+  await updateDoc(doc(db, 'welcome_points_promotions', promotionId), updateData);
+};
+
+/**
+ * Deactivate welcome points promotion
+ */
+export const deactivateWelcomePointsPromotion = async (promotionId: string): Promise<void> => {
+  await updateDoc(doc(db, 'welcome_points_promotions', promotionId), {
+    isActive: false,
+    updatedAt: Timestamp.now(),
+  });
+};
+
+/**
+ * Get recipients of a welcome points promotion
+ */
+export const getWelcomePointsRecipients = async (
+  promotionId: string
+): Promise<WelcomePointsRecipient[]> => {
+  const recipientsQuery = query(
+    collection(db, 'welcome_points_recipients'),
+    where('promotionId', '==', promotionId),
+    orderBy('awardedAt', 'asc')
+  );
+
+  const snapshot = await getDocs(recipientsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      id: doc.id,
+      awardedAt: data.awardedAt.toDate(),
+    } as WelcomePointsRecipient;
+  });
 };
 
 // ============================================================================
