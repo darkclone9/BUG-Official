@@ -301,28 +301,45 @@ export default function ProfileEditPage() {
     try {
       setSaving(true);
 
-      // Build gaming info object
-      const gamingInfo: GamingInfo = {
-        favoriteGames,
-        primaryPlatform: primaryPlatform || undefined,
-        platforms,
-        skillLevel: skillLevel || undefined,
-        lookingForTeam,
-        competitivePlayer,
+      // Build gaming info object - only include fields with values
+      const gamingInfo: GamingInfo = {};
+
+      if (favoriteGames.length > 0) {
+        gamingInfo.favoriteGames = favoriteGames;
+      }
+      if (primaryPlatform) {
+        gamingInfo.primaryPlatform = primaryPlatform;
+      }
+      if (platforms.length > 0) {
+        gamingInfo.platforms = platforms;
+      }
+      if (skillLevel) {
+        gamingInfo.skillLevel = skillLevel;
+      }
+      gamingInfo.lookingForTeam = lookingForTeam;
+      gamingInfo.competitivePlayer = competitivePlayer;
+
+      // Build update object - only include non-empty fields
+      const updateData: Partial<UserProfile> = {
+        privacySettings,
+        socialMediaAccounts: socialLinks.filter(link => link.url.trim() !== ''),
       };
 
+      // Only add fields if they have values
+      if (bio.trim()) updateData.bio = bio.trim();
+      if (pronouns.trim()) updateData.pronouns = pronouns.trim();
+      if (location.trim()) updateData.location = location.trim();
+      if (timezone.trim()) updateData.timezone = timezone.trim();
+      if (customStatus.trim()) updateData.customStatus = customStatus.trim();
+      if (themeColor) updateData.themeColor = themeColor;
+
+      // Only add gamingInfo if it has any data
+      if (Object.keys(gamingInfo).length > 0) {
+        updateData.gamingInfo = gamingInfo;
+      }
+
       // Update profile
-      await updateUserProfile(user.uid, {
-        bio,
-        pronouns,
-        location,
-        timezone,
-        customStatus,
-        themeColor,
-        socialMediaAccounts: socialLinks.filter(link => link.url.trim() !== ''),
-        privacySettings,
-        gamingInfo,
-      });
+      await updateUserProfile(user.uid, updateData);
 
       // Update displayed stickers
       if (selectedStickers.length > 0) {
