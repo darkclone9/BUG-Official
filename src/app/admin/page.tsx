@@ -41,7 +41,8 @@ import {
     Trash2,
     Trophy,
     Users,
-    Calendar
+    Calendar,
+    Gift
 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
@@ -316,13 +317,22 @@ export default function AdminPage() {
                   Manage tournaments, announcements, and community settings
                 </p>
               </div>
-              <Button
-                onClick={() => window.location.href = '/admin/events'}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Manage Events
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => window.location.href = '/admin/events'}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Manage Events
+                </Button>
+                <Button
+                  onClick={() => window.location.href = '/admin/promotions'}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                >
+                  <Gift className="h-4 w-4 mr-2" />
+                  Promotions
+                </Button>
+              </div>
             </div>
           </div>
 
