@@ -17,6 +17,18 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Check if user has a specific role in their roles array
+    function hasRole(role) {
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             (role in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles);
+    }
+
+    // Check if user is President or Co-President
+    function isPresidentOrCoPresident() {
+      return hasRole('president') || hasRole('co_president');
+    }
+
     // Users collection
     match /users/{userId} {
       // Anyone can read user profiles (for leaderboards, player lists, etc.)
@@ -54,11 +66,11 @@ service cloud.firestore {
 
     // Points transactions collection
     match /points_transactions/{transactionId} {
-      // Users can read their own transactions, admins can read all
-      allow read: if isOwner(resource.data.userId) || isAdmin();
+      // Users can read their own transactions, President/Co-President can read all
+      allow read: if isOwner(resource.data.userId) || isPresidentOrCoPresident();
 
-      // Only admins can create, update, or delete transactions
-      allow create, update, delete: if isAdmin();
+      // Only President and Co-President can create, update, or delete transactions
+      allow create, update, delete: if isPresidentOrCoPresident();
     }
 
     // Points settings collection
@@ -66,8 +78,52 @@ service cloud.firestore {
       // Anyone can read points settings
       allow read: if true;
 
-      // Only admins can modify settings
-      allow create, update, delete: if isAdmin();
+      // Only President and Co-President can modify settings
+      allow create, update, delete: if isPresidentOrCoPresident();
+    }
+
+    // ============================================
+    // PROMOTIONS & CAMPAIGNS
+    // ============================================
+
+    // Points multipliers collection
+    match /points_multipliers/{multiplierId} {
+      // President/Co-President can read all multipliers
+      // Non-admins can only read active multipliers
+      allow read: if isPresidentOrCoPresident() || resource.data.isActive == true;
+
+      // Only President and Co-President can create, update, or delete multipliers
+      allow create, update, delete: if isPresidentOrCoPresident();
+    }
+
+    // Welcome bonuses collection
+    match /welcome_bonuses/{bonusId} {
+      // President/Co-President can read all bonuses
+      // Non-admins can only read active bonuses
+      allow read: if isPresidentOrCoPresident() || resource.data.isActive == true;
+
+      // Only President and Co-President can create, update, or delete bonuses
+      allow create, update, delete: if isPresidentOrCoPresident();
+    }
+
+    // Sales promotions collection
+    match /sales_promotions/{promotionId} {
+      // President/Co-President can read all promotions
+      // Non-admins can only read active promotions
+      allow read: if isPresidentOrCoPresident() || resource.data.isActive == true;
+
+      // Only President and Co-President can create, update, or delete promotions
+      allow create, update, delete: if isPresidentOrCoPresident();
+    }
+
+    // Point giveaways collection
+    match /point_giveaways/{giveawayId} {
+      // President/Co-President can read all giveaways
+      // Non-admins can only read active giveaways
+      allow read: if isPresidentOrCoPresident() || resource.data.isActive == true;
+
+      // Only President and Co-President can create, update, or delete giveaways
+      allow create, update, delete: if isPresidentOrCoPresident();
     }
 
     // ============================================

@@ -1,8 +1,8 @@
 /**
  * Role-Based Permission System
- * 
+ *
  * This module handles all permission checks for the BUG Gaming Club website.
- * 
+ *
  * Role Hierarchy (highest to lowest):
  * 1. President - Can do everything, edit all roles
  * 2. Co-President - Can do everything, edit all roles except President
@@ -35,7 +35,7 @@ const ROLE_HIERARCHY: Record<string, number> = {
  */
 export function getHighestRoleLevel(roles: UserRole[]): number {
   if (!roles || roles.length === 0) return 0;
-  
+
   return Math.max(...roles.map(role => ROLE_HIERARCHY[role] || 0));
 }
 
@@ -44,10 +44,10 @@ export function getHighestRoleLevel(roles: UserRole[]): number {
  */
 export function getHighestRole(roles: UserRole[]): UserRole {
   if (!roles || roles.length === 0) return 'guest';
-  
+
   let highestRole: UserRole = 'guest';
   let highestLevel = 0;
-  
+
   for (const role of roles) {
     const level = ROLE_HIERARCHY[role] || 0;
     if (level > highestLevel) {
@@ -55,7 +55,7 @@ export function getHighestRole(roles: UserRole[]): UserRole {
       highestRole = role;
     }
   }
-  
+
   return highestRole;
 }
 
@@ -96,7 +96,7 @@ export function hasMinimumRoleLevel(userRoles: UserRole[], minimumLevel: number)
 
 /**
  * Check if user can edit another user's roles
- * 
+ *
  * Rules:
  * - President can edit all roles
  * - Co-President can edit all roles except President
@@ -109,29 +109,29 @@ export function canEditUserRoles(
 ): boolean {
   const editorLevel = getHighestRoleLevel(editorRoles);
   const targetLevel = getHighestRoleLevel(targetUserRoles);
-  
+
   // President can edit anyone
   if (hasRole(editorRoles, 'president')) {
     return true;
   }
-  
+
   // Co-President can edit anyone except President
   if (hasRole(editorRoles, 'co_president')) {
     return !hasRole(targetUserRoles, 'president');
   }
-  
+
   // Head Admin can edit Admin and below
   if (hasRole(editorRoles, 'head_admin')) {
     return targetLevel < ROLE_HIERARCHY.head_admin;
   }
-  
+
   // Others cannot edit roles
   return false;
 }
 
 /**
  * Check if user can assign a specific role
- * 
+ *
  * Rules:
  * - Can only assign roles at or below your level
  * - President can assign any role
@@ -144,22 +144,22 @@ export function canAssignRole(
 ): boolean {
   const assignerLevel = getHighestRoleLevel(assignerRoles);
   const roleLevel = ROLE_HIERARCHY[roleToAssign] || 0;
-  
+
   // President can assign any role
   if (hasRole(assignerRoles, 'president')) {
     return true;
   }
-  
+
   // Co-President can assign any role except President
   if (hasRole(assignerRoles, 'co_president')) {
     return roleToAssign !== 'president';
   }
-  
+
   // Head Admin can assign Admin and below
   if (hasRole(assignerRoles, 'head_admin')) {
     return roleLevel < ROLE_HIERARCHY.head_admin;
   }
-  
+
   // Others cannot assign roles
   return false;
 }
@@ -170,42 +170,42 @@ export function canAssignRole(
 
 /**
  * Check if user can edit points settings
- * Only President, Co-President, and Head Admin can edit settings
+ * Only President and Co-President can edit settings
  */
 export function canEditPointsSettings(userRoles: UserRole[]): boolean {
-  return hasAnyRole(userRoles, ['president', 'co_president', 'head_admin']);
+  return hasAnyRole(userRoles, ['president', 'co_president']);
 }
 
 /**
  * Check if user can approve points transactions
- * Admin and above can approve points
+ * Only President and Co-President can approve points
  */
 export function canApprovePoints(userRoles: UserRole[]): boolean {
-  return getHighestRoleLevel(userRoles) >= ROLE_HIERARCHY.admin;
+  return hasAnyRole(userRoles, ['president', 'co_president']);
 }
 
 /**
  * Check if user can award points
- * Admin and above can award points
+ * Only President and Co-President can award points
  */
 export function canAwardPoints(userRoles: UserRole[]): boolean {
-  return getHighestRoleLevel(userRoles) >= ROLE_HIERARCHY.admin;
+  return hasAnyRole(userRoles, ['president', 'co_president']);
 }
 
 /**
  * Check if user can approve volunteer points
- * Officer and above can approve volunteer points
+ * Only President and Co-President can approve volunteer points
  */
 export function canApproveVolunteerPoints(userRoles: UserRole[]): boolean {
-  return getHighestRoleLevel(userRoles) >= ROLE_HIERARCHY.officer;
+  return hasAnyRole(userRoles, ['president', 'co_president']);
 }
 
 /**
  * Check if user can create points multiplier campaigns
- * Head Admin and above can create multipliers
+ * Only President and Co-President can create multipliers
  */
 export function canCreateMultipliers(userRoles: UserRole[]): boolean {
-  return getHighestRoleLevel(userRoles) >= ROLE_HIERARCHY.head_admin;
+  return hasAnyRole(userRoles, ['president', 'co_president']);
 }
 
 /**
@@ -330,10 +330,10 @@ export function canAccessShopManagement(userRoles: UserRole[]): boolean {
 
 /**
  * Check if user can access points management panel
- * Admin and above can access points management
+ * Only President and Co-President can access points management
  */
 export function canAccessPointsManagement(userRoles: UserRole[]): boolean {
-  return getHighestRoleLevel(userRoles) >= ROLE_HIERARCHY.admin;
+  return hasAnyRole(userRoles, ['president', 'co_president']);
 }
 
 /**
@@ -343,4 +343,3 @@ export function canAccessPointsManagement(userRoles: UserRole[]): boolean {
 export function canAccessSettings(userRoles: UserRole[]): boolean {
   return getHighestRoleLevel(userRoles) >= ROLE_HIERARCHY.head_admin;
 }
-

@@ -57,7 +57,7 @@ type AnnouncementWithReadCount = Omit<Announcement, 'createdAt' | 'readBy'> & {
 };
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, canAccessPointsManagement } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [overviewStats, setOverviewStats] = useState<{
     totalUsers: number;
@@ -435,9 +435,11 @@ export default function AdminPage() {
               <TabsTrigger value="analytics">
                 Analytics
               </TabsTrigger>
-              <TabsTrigger value="points">
-                Points
-              </TabsTrigger>
+              {canAccessPointsManagement() && (
+                <TabsTrigger value="points">
+                  Points
+                </TabsTrigger>
+              )}
               <TabsTrigger value="elo">
                 ELO System
               </TabsTrigger>
@@ -890,10 +892,12 @@ export default function AdminPage() {
               <AnalyticsDashboard />
             </TabsContent>
 
-            {/* Points Tab */}
-            <TabsContent value="points" className="space-y-6">
-              <PointsManagement />
-            </TabsContent>
+            {/* Points Tab - Only accessible to President/Co-President */}
+            {canAccessPointsManagement() && (
+              <TabsContent value="points" className="space-y-6">
+                <PointsManagement />
+              </TabsContent>
+            )}
 
             {/* ELO System Tab */}
             <TabsContent value="elo" className="space-y-6">

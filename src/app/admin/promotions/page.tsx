@@ -14,7 +14,7 @@ export default function PromotionsPage() {
   const [activeTab, setActiveTab] = useState('multipliers');
 
   return (
-    <ProtectedRoute adminOnly>
+    <ProtectedRoute presidentOnly>
       <div className="min-h-screen bg-background">
         <Navigation />
         <main className="container mx-auto px-4 py-8">
@@ -25,7 +25,7 @@ export default function PromotionsPage() {
               Promotions & Campaigns
             </h1>
             <p className="text-muted-foreground text-lg">
-              Manage points multipliers, welcome bonuses, sales, and point giveaways
+              Manage points multipliers, welcome bonuses, sales, and point giveaways (President/Co-President Only)
             </p>
           </div>
 
@@ -71,4 +71,3 @@ export default function PromotionsPage() {
     </ProtectedRoute>
   );
 }
-
