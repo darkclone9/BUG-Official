@@ -11,12 +11,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Settings, 
-  User, 
-  Bell, 
-  Shield, 
-  Gamepad2, 
+import {
+  Settings,
+  User,
+  Bell,
+  Shield,
+  Gamepad2,
   Save,
   Upload,
   Eye,
@@ -89,7 +89,7 @@ export default function SettingsPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
         <Navigation />
-        
+
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
@@ -210,8 +210,8 @@ export default function SettingsPage() {
                           </Badge>
                         </div>
                         <div>
-                          <span className="text-gray-400">Total Points:</span>
-                          <span className="text-white ml-2">{user?.points || 0}</span>
+                          <span className="text-gray-400">Store Credit:</span>
+                          <span className="text-white ml-2">${((user?.storeCreditBalance || 0) / 100).toFixed(2)}</span>
                         </div>
                         <div>
                           <span className="text-gray-400">Last Login:</span>
@@ -464,7 +464,7 @@ export default function SettingsPage() {
                               type="checkbox"
                               checked={profileData.favoriteGames.includes('mario_kart')}
                               onChange={(e) => {
-                                const games = e.target.checked 
+                                const games = e.target.checked
                                   ? [...profileData.favoriteGames, 'mario_kart' as GameType]
                                   : profileData.favoriteGames.filter(g => g !== 'mario_kart');
                                 setProfileData({...profileData, favoriteGames: games});
@@ -486,7 +486,7 @@ export default function SettingsPage() {
                               type="checkbox"
                               checked={profileData.favoriteGames.includes('super_smash_bros')}
                               onChange={(e) => {
-                                const games = e.target.checked 
+                                const games = e.target.checked
                                   ? [...profileData.favoriteGames, 'super_smash_bros' as GameType]
                                   : profileData.favoriteGames.filter(g => g !== 'super_smash_bros');
                                 setProfileData({...profileData, favoriteGames: games});

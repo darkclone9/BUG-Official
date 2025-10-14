@@ -82,7 +82,7 @@ export default function DashboardPage() {
   }, [user?.uid]);
 
   const stats = [
-    { label: 'Total Points', value: user?.points || 0, icon: Star, color: 'text-yellow-400' },
+    { label: 'Store Credit', value: `$${((user?.storeCreditBalance || 0) / 100).toFixed(2)}`, icon: Star, color: 'text-yellow-400' },
     { label: 'Tournaments Played', value: userStats?.totalGamesPlayed || 0, icon: Trophy, color: 'text-purple-400' },
     { label: 'Wins', value: userStats?.totalWins || 0, icon: Award, color: 'text-green-400' },
     { label: 'Win Rate', value: userStats ? `${Math.round(userStats.winRate * 100)}%` : '0%', icon: TrendingUp, color: 'text-blue-400' },

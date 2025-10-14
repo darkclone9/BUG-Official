@@ -230,8 +230,10 @@ export default function UserProfilePage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   {canViewField('showPoints') && (
                     <div className="text-center p-3 bg-muted rounded-lg">
-                      <div className="text-2xl font-bold text-primary">{profile.points || 0}</div>
-                      <div className="text-xs text-muted-foreground">Points</div>
+                      <div className="text-2xl font-bold text-primary">
+                        ${((profile.storeCreditBalance || 0) / 100).toFixed(2)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Store Credit</div>
                     </div>
                   )}
                   {canViewField('showEloRating') && (
