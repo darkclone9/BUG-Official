@@ -5,7 +5,7 @@ import { ShopProduct, ProductCategory } from '@/types/types';
 import { getShopProducts } from '@/lib/database';
 import { useAuth } from '@/contexts/AuthContext';
 import ProductCard from '@/components/shop/ProductCard';
-import PointsBalanceWidget from '@/components/shop/PointsBalanceWidget';
+import StoreCreditBalanceWidget from '@/components/shop/StoreCreditBalanceWidget';
 import ShoppingCartButton from '@/components/shop/ShoppingCartButton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -104,7 +104,7 @@ export default function ShopPage() {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              {user && <PointsBalanceWidget />}
+              {user && <StoreCreditBalanceWidget />}
               <ShoppingCartButton />
             </div>
           </div>
@@ -212,4 +212,3 @@ export default function ShopPage() {
     </div>
   );
 }
-

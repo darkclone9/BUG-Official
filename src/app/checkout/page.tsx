@@ -4,14 +4,15 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
-import { getUserAvailablePoints } from '@/lib/database';
-import { calculateCartDiscount, formatCents } from '@/lib/points';
+import { getUserStoreCreditBalance, getStoreCreditSettings } from '@/lib/database';
+import { calculateStoreCreditDiscount, formatCentsToDollars } from '@/lib/storeCredit';
+import { StoreCreditSettings } from '@/types/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, CreditCard, Sparkles, Truck, MapPin } from 'lucide-react';
+import { ArrowLeft, CreditCard, DollarSign, Truck, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -22,8 +23,9 @@ export default function CheckoutPage() {
   const { items, subtotal, clearCart } = useCart();
 
   const [loading, setLoading] = useState(false);
-  const [availablePoints, setAvailablePoints] = useState(0);
-  const [pointsToUse, setPointsToUse] = useState(0);
+  const [availableCreditCents, setAvailableCreditCents] = useState(0);
+  const [creditToUseCents, setCreditToUseCents] = useState(0);
+  const [settings, setSettings] = useState<StoreCreditSettings | null>(null);
   const [fulfillmentType, setFulfillmentType] = useState<'campus_pickup' | 'shipping'>('campus_pickup');
 
   useEffect(() => {
@@ -39,18 +41,22 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Load user's available points
-    loadPoints();
+    // Load user's available store credit
+    loadCreditAndSettings();
   }, [user, items, router]);
 
-  const loadPoints = async () => {
+  const loadCreditAndSettings = async () => {
     if (!user) return;
 
     try {
-      const points = await getUserAvailablePoints(user.uid);
-      setAvailablePoints(points);
+      const [balanceCents, creditSettings] = await Promise.all([
+        getUserStoreCreditBalance(user.uid),
+        getStoreCreditSettings(),
+      ]);
+      setAvailableCreditCents(balanceCents);
+      setSettings(creditSettings);
     } catch (error) {
-      console.error('Error loading points:', error);
+      console.error('Error loading store credit:', error);
     }
   };
 
@@ -68,7 +74,7 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           items,
-          pointsToUse,
+          creditToUseCents,
           fulfillmentType,
           userId: user.uid,
           userEmail: user.email,
@@ -92,29 +98,33 @@ export default function CheckoutPage() {
     }
   };
 
-  if (!user || items.length === 0) {
+  if (!user || items.length === 0 || !settings) {
     return null;
   }
 
   // Calculate discount
   const orderItems = items.map(item => ({
-    productId: item.product.id,
-    productName: item.product.name,
-    productImage: item.product.images?.[0] || '',
+    priceCents: item.product.price,
     quantity: item.quantity,
-    price: item.product.price,
-    variant: item.selectedVariant,
     pointsEligible: item.product.pointsEligible,
   }));
 
-  const discountResult = calculateCartDiscount(orderItems, pointsToUse);
+  const discountResult = calculateStoreCreditDiscount(
+    orderItems,
+    creditToUseCents,
+    availableCreditCents,
+    settings
+  );
+
   const estimatedShipping = fulfillmentType === 'shipping' ? 500 : 0; // $5.00 flat rate
   const estimatedTotal = subtotal - discountResult.discountCents + estimatedShipping;
 
-  // Calculate max points that can be used
-  const maxPointsForDiscount = Math.min(
-    availablePoints,
-    discountResult.pointsUsed + 10000 // Allow some buffer for calculation
+  // Calculate max credit that can be used for this order
+  const totalItemPrice = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const maxCreditForOrder = Math.min(
+    availableCreditCents,
+    settings.perOrderDiscountCap,
+    Math.floor(totalItemPrice * (settings.perItemDiscountCap / 100))
   );
 
   return (
@@ -177,40 +187,56 @@ export default function CheckoutPage() {
               </RadioGroup>
             </div>
 
-            {/* Points Discount */}
-            {availablePoints > 0 && (
+            {/* Store Credit Discount */}
+            {availableCreditCents > 0 && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="h-5 w-5 text-primary" />
+                  <DollarSign className="h-5 w-5 text-primary" />
                   <h2 className="text-xl font-semibold text-foreground">
-                    Use Participation Points
+                    Use Store Credit
                   </h2>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Points to use:</span>
+                    <span className="text-muted-foreground">Credit to use:</span>
                     <span className="font-semibold text-foreground">
-                      {pointsToUse.toLocaleString()} / {availablePoints.toLocaleString()}
+                      {formatCentsToDollars(creditToUseCents)} / {formatCentsToDollars(availableCreditCents)}
                     </span>
                   </div>
 
                   <Slider
-                    value={[pointsToUse]}
-                    onValueChange={(value) => setPointsToUse(value[0])}
-                    max={maxPointsForDiscount}
-                    step={100}
+                    value={[creditToUseCents]}
+                    onValueChange={(value) => setCreditToUseCents(value[0])}
+                    max={maxCreditForOrder}
+                    step={50}
                     className="w-full"
                   />
 
-                  {pointsToUse > 0 && (
-                    <div className="bg-background rounded-lg p-3 text-sm">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>$0.00</span>
+                    <span>{formatCentsToDollars(maxCreditForOrder)} (max)</span>
+                  </div>
+
+                  {creditToUseCents > 0 && discountResult.isValid && (
+                    <div className="bg-background rounded-lg p-3 text-sm space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Discount:</span>
+                        <span className="text-muted-foreground">Credit Discount:</span>
                         <span className="text-primary font-semibold">
-                          -{formatCents(discountResult.discountCents)}
+                          -{formatCentsToDollars(discountResult.discountCents)}
                         </span>
                       </div>
+                      <div className="text-xs text-muted-foreground">
+                        Remaining credit: {formatCentsToDollars(availableCreditCents - creditToUseCents)}
+                      </div>
+                    </div>
+                  )}
+
+                  {creditToUseCents > 0 && !discountResult.isValid && (
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                      <p className="text-sm text-destructive">
+                        {discountResult.errorMessage}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -250,7 +276,7 @@ export default function CheckoutPage() {
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        Qty: {item.quantity} × {formatCents(item.product.price)}
+                        Qty: {item.quantity} × {formatCentsToDollars(item.product.price)}
                       </p>
                     </div>
                   </div>
@@ -261,14 +287,14 @@ export default function CheckoutPage() {
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span className="text-foreground">{formatCents(subtotal)}</span>
+                  <span className="text-foreground">{formatCentsToDollars(subtotal)}</span>
                 </div>
 
-                {discountResult.discountCents > 0 && (
+                {discountResult.isValid && discountResult.discountCents > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Points Discount</span>
+                    <span className="text-muted-foreground">Store Credit Discount</span>
                     <span className="text-primary font-semibold">
-                      -{formatCents(discountResult.discountCents)}
+                      -{formatCentsToDollars(discountResult.discountCents)}
                     </span>
                   </div>
                 )}
@@ -276,7 +302,7 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping</span>
                   <span className="text-foreground">
-                    {fulfillmentType === 'campus_pickup' ? 'Free' : formatCents(estimatedShipping)}
+                    {fulfillmentType === 'campus_pickup' ? 'Free' : formatCentsToDollars(estimatedShipping)}
                   </span>
                 </div>
 
@@ -288,7 +314,7 @@ export default function CheckoutPage() {
                 <div className="border-t pt-2 flex justify-between">
                   <span className="font-semibold text-foreground">Estimated Total</span>
                   <span className="text-xl font-bold text-foreground">
-                    {formatCents(estimatedTotal)}
+                    {formatCentsToDollars(estimatedTotal)}
                   </span>
                 </div>
               </div>
