@@ -435,8 +435,10 @@ export interface ShopOrder {
   userDisplayName: string;
   items: OrderItem[];
   subtotal: number;                 // Total before discounts (cents)
-  pointsDiscount: number;           // Discount from points (cents)
-  pointsUsed: number;               // Number of points redeemed
+  pointsDiscount: number;           // Discount from points (cents) - LEGACY
+  pointsUsed: number;               // Number of points redeemed - LEGACY
+  storeCreditDiscount?: number;     // Discount from store credit (cents) - NEW
+  storeCreditUsed?: number;         // Store credit used in cents - NEW
   shipping: number;                 // Shipping cost (cents)
   tax: number;                      // Tax amount (cents)
   total: number;                    // Final total paid (cents)

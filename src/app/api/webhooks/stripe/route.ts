@@ -7,6 +7,7 @@ import {
   updateProductStock,
   addToPickupQueue,
   getShopProduct,
+  createStoreCreditTransaction,
 } from '@/lib/database';
 import { ShopOrder, OrderItem } from '@/types/types';
 import { sendOrderConfirmationEmail } from '@/lib/email';
@@ -80,8 +81,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   // Extract metadata
   const userId = session.client_reference_id || session.metadata?.userId;
-  const pointsUsed = parseInt(session.metadata?.pointsUsed || '0');
-  const pointsDiscount = parseInt(session.metadata?.pointsDiscount || '0');
+  const creditUsedCents = parseInt(session.metadata?.creditUsedCents || '0');
+  const creditDiscount = parseInt(session.metadata?.creditDiscount || '0');
   const fulfillmentType = session.metadata?.fulfillmentType as 'campus_pickup' | 'shipping';
   const shippingAddressStr = session.metadata?.shippingAddress;
 
@@ -148,8 +149,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     userDisplayName: session.customer_details?.name || 'Unknown',
     items: orderItems,
     subtotal,
-    pointsDiscount,
-    pointsUsed,
+    pointsDiscount: creditDiscount, // Store credit discount (for backward compatibility)
+    pointsUsed: 0, // No longer using points
+    storeCreditDiscount: creditDiscount, // New field for store credit
+    storeCreditUsed: creditUsedCents, // New field for store credit
     shipping,
     tax,
     total,
@@ -165,15 +168,17 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     const orderId = await createShopOrder(order);
     console.log('Order created:', orderId);
 
-    // Deduct points if used
-    if (pointsUsed > 0) {
-      await spendPoints(
+    // Deduct store credit if used
+    if (creditUsedCents > 0) {
+      await createStoreCreditTransaction({
         userId,
-        pointsUsed,
+        amountCents: -creditUsedCents, // Negative for spending
+        reason: `Store credit used for order ${orderId}`,
+        category: 'purchase',
+        approvalStatus: 'approved',
         orderId,
-        `Points used for order ${orderId}`
-      );
-      console.log(`Deducted ${pointsUsed} points from user ${userId}`);
+      });
+      console.log(`Deducted $${(creditUsedCents / 100).toFixed(2)} store credit from user ${userId}`);
     }
 
     // Update product stock

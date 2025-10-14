@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { CartItem } from '@/contexts/CartContext';
-import { calculateCartDiscount } from '@/lib/points';
+import { calculateStoreCreditDiscount } from '@/lib/storeCredit';
+import { getStoreCreditSettings, getUserStoreCreditBalance } from '@/lib/database';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -15,14 +16,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       items,
-      pointsToUse,
+      creditToUseCents,
       fulfillmentType,
       shippingAddress,
       userId,
       userEmail,
     }: {
       items: CartItem[];
-      pointsToUse: number;
+      creditToUseCents: number;
       fulfillmentType: 'campus_pickup' | 'shipping';
       shippingAddress?: {
         name: string;
@@ -45,24 +46,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate points discount
+    // Get store credit settings and user balance
+    const settings = await getStoreCreditSettings();
+    const availableCreditCents = await getUserStoreCreditBalance(userId);
+
+    // Calculate store credit discount
     const orderItems = items.map(item => ({
-      productId: item.product.id,
-      productName: item.product.name,
-      productImage: item.product.images?.[0] || '',
+      priceCents: item.product.price,
       quantity: item.quantity,
-      price: item.product.price,
-      variant: item.selectedVariant,
       pointsEligible: item.product.pointsEligible,
     }));
 
-    const discountResult = calculateCartDiscount(orderItems, pointsToUse);
+    const discountResult = calculateStoreCreditDiscount(
+      orderItems,
+      creditToUseCents || 0,
+      availableCreditCents,
+      settings
+    );
+
+    // Validate discount calculation
+    if (!discountResult.isValid) {
+      return NextResponse.json(
+        { error: discountResult.errorMessage || 'Invalid store credit discount' },
+        { status: 400 }
+      );
+    }
 
     // Create Stripe line items
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item) => {
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item, index) => {
       // Find discount for this item
       const itemDiscount = discountResult.itemDiscounts.find(
-        d => d.productId === item.product.id
+        d => d.itemIndex === index
       );
       const discountAmount = itemDiscount?.discountCents || 0;
       const finalPrice = Math.max(0, item.product.price - Math.floor(discountAmount / item.quantity));
@@ -122,8 +136,8 @@ export async function POST(request: NextRequest) {
       client_reference_id: userId,
       metadata: {
         userId,
-        pointsUsed: discountResult.pointsUsed.toString(),
-        pointsDiscount: discountResult.discountCents.toString(),
+        creditUsedCents: discountResult.discountCents.toString(),
+        creditDiscount: discountResult.discountCents.toString(),
         fulfillmentType,
         shippingAddress: shippingAddress ? JSON.stringify(shippingAddress) : '',
       },
