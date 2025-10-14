@@ -4,8 +4,8 @@ import { useState } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navigation from '@/components/Navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Gift, Zap, Users, TrendingUp } from 'lucide-react';
-import PointsMultiplierManagement from '@/components/admin/PointsMultiplierManagement';
+import { Gift, Zap, Users, TrendingUp, DollarSign } from 'lucide-react';
+import StoreCreditMultiplierManagement from '@/components/admin/StoreCreditMultiplierManagement';
 import WelcomePointsPromotions from '@/components/admin/WelcomePointsPromotions';
 import SalesPromotions from '@/components/admin/SalesPromotions';
 import PointGiveaways from '@/components/admin/PointGiveaways';
@@ -25,7 +25,7 @@ export default function PromotionsPage() {
               Promotions & Campaigns
             </h1>
             <p className="text-muted-foreground text-lg">
-              Manage points multipliers, welcome bonuses, sales, and point giveaways (President/Co-President Only)
+              Manage store credit multipliers, welcome bonuses, sales, and credit giveaways (President/Co-President Only)
             </p>
           </div>
 
@@ -33,8 +33,8 @@ export default function PromotionsPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="multipliers" className="gap-2">
-                <Zap className="h-4 w-4" />
-                Points Multipliers
+                <DollarSign className="h-4 w-4" />
+                Credit Multipliers
               </TabsTrigger>
               <TabsTrigger value="welcome" className="gap-2">
                 <Users className="h-4 w-4" />
@@ -46,12 +46,12 @@ export default function PromotionsPage() {
               </TabsTrigger>
               <TabsTrigger value="giveaways" className="gap-2">
                 <Gift className="h-4 w-4" />
-                Point Giveaways
+                Credit Giveaways
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="multipliers" className="space-y-4">
-              <PointsMultiplierManagement />
+              <StoreCreditMultiplierManagement />
             </TabsContent>
 
             <TabsContent value="welcome" className="space-y-4">
