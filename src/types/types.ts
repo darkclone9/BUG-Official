@@ -36,13 +36,19 @@ export interface User {
     emailUpdates: boolean;
     favoriteGames: GameType[];
   };
-  // Shop & Points System fields
+  // Shop & Points System fields (LEGACY - being replaced by store credit)
   pointsBalance?: number;          // Current available points for redemption
   pointsEarned?: number;           // Total points earned all-time
   pointsSpent?: number;            // Total points spent all-time
   pointsExpired?: number;          // Total points that have expired
   lastMonthlyReset?: Date;         // Last time monthly cap was reset
   monthlyPointsEarned?: number;    // Points earned this month (for cap tracking)
+  // Store Credit System fields (NEW)
+  storeCreditBalance?: number;     // Current available store credit in cents
+  storeCreditEarned?: number;      // Total store credit earned all-time in cents
+  storeCreditSpent?: number;       // Total store credit spent all-time in cents
+  monthlyStoreCreditEarned?: number; // Store credit earned this month in cents (for cap tracking)
+  lastStoreCreditMonthlyReset?: Date; // Last time monthly credit cap was reset
   campusEmail?: string;            // Verified .edu email for eligibility
   isEmailVerified?: boolean;       // Email verification status
   // Profile & Social fields
@@ -577,6 +583,101 @@ export interface PickupQueueItem {
   pickedUpBy?: string;              // Admin UID who marked as picked up
   notes?: string;
   createdAt: Date;
+}
+
+// ============================================================================
+// STORE CREDIT SYSTEM TYPES
+// ============================================================================
+
+// Store Credit Category (similar to PointsCategory)
+export type StoreCreditCategory =
+  | 'event_attendance'
+  | 'volunteer_work'
+  | 'event_hosting'
+  | 'contribution'
+  | 'purchase'              // Credit spent on shop purchase
+  | 'adjustment'            // Manual admin adjustment
+  | 'migration'             // One-time migration from points system
+  | 'welcome_bonus';        // Welcome credit for new users
+
+// Store Credit Settings (replaces PointsSettings)
+export interface StoreCreditSettings {
+  id: 'default';
+  perItemDiscountCap: number;       // Percentage cap per item (e.g., 50 = 50%)
+  perOrderDiscountCap: number;      // Max discount per order in cents (e.g., 3000 = $30.00)
+  monthlyEarningCap: number;        // Max credit earnable per month in cents (e.g., 5000 = $50.00)
+  earningValues: {
+    eventAttendance: number;        // Credit for QR check-in in cents (e.g., 100 = $1.00)
+    volunteerWork: number;          // Credit for volunteering in cents (e.g., 250 = $2.50)
+    eventHosting: number;           // Credit for hosting event in cents (e.g., 500 = $5.00)
+    contributionMin: number;        // Min contribution credit in cents (e.g., 50 = $0.50)
+    contributionMax: number;        // Max contribution credit in cents (e.g., 150 = $1.50)
+  };
+  approvedEmailDomains: string[];   // e.g., [".edu", "belhaven.edu"]
+  approvedEmails: string[];         // Manually approved emails
+  updatedAt: Date;
+  updatedBy: string;                // Admin UID
+}
+
+// Store Credit Transaction
+export interface StoreCreditTransaction {
+  id: string;
+  userId: string;
+  amountCents: number;              // Amount in cents (positive = earned, negative = spent)
+  reason: string;                   // Description of transaction
+  category: StoreCreditCategory;
+  timestamp: Date;
+  adminId?: string;                 // Admin who created transaction (if manual)
+  multiplierApplied?: number;       // Multiplier applied (e.g., 1.5, 2.0)
+  multiplierCampaignId?: string;    // Which campaign applied the multiplier
+  approvalStatus: 'pending' | 'approved' | 'denied';
+  approvedBy?: string;              // Admin UID who approved
+  approvedAt?: Date;
+  deniedReason?: string;
+  orderId?: string;                 // For purchase transactions
+  eventId?: string;                 // For event-related transactions
+}
+
+// Store Credit Multiplier Campaign (replaces PointsMultiplier)
+export interface StoreCreditMultiplier {
+  id: string;
+  name: string;                     // e.g., "Double Credit Weekend"
+  description: string;
+  multiplier: number;               // e.g., 1.5, 2.0, 3.0
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  applicableCategories: StoreCreditCategory[]; // Which earning types get multiplier
+  createdAt: Date;
+  createdBy: string;                // Admin UID
+}
+
+// Welcome Credit Promotion (replaces WelcomePointsPromotion)
+export interface WelcomeCreditPromotion {
+  id: string;
+  name: string;                     // e.g., "First 100 Users Bonus"
+  description: string;
+  creditAmountCents: number;        // Credit to award in cents (e.g., 750 = $7.50)
+  startDate: Date;                  // When promotion starts
+  endDate?: Date;                   // Optional end date
+  maxUsers: number;                 // Maximum users who can receive (e.g., 100)
+  currentCount: number;             // How many users have received so far
+  isActive: boolean;
+  createdAt: Date;
+  createdBy: string;                // Admin UID
+  updatedAt: Date;
+}
+
+// Welcome Credit Recipient (tracks who received the bonus)
+export interface WelcomeCreditRecipient {
+  id: string;
+  promotionId: string;              // Reference to WelcomeCreditPromotion
+  userId: string;
+  userEmail: string;
+  userDisplayName: string;
+  creditAwarded: number;            // Amount in cents
+  awardedAt: Date;
+  recipientNumber: number;          // e.g., 1st, 2nd, 3rd... 100th user
 }
 
 // ============================================================================

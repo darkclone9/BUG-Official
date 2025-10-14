@@ -29,7 +29,12 @@ import {
     MessageNotification,
     TournamentMessage,
     WelcomePointsPromotion,
-    WelcomePointsRecipient
+    WelcomePointsRecipient,
+    StoreCreditSettings,
+    StoreCreditTransaction,
+    StoreCreditMultiplier,
+    WelcomeCreditPromotion,
+    WelcomeCreditRecipient
 } from '@/types/types';
 import { BracketMatch, TournamentBracket, BracketGenerationOptions } from '@/types/bracket';
 import { BracketGenerator } from './bracketGenerator';
@@ -43,7 +48,7 @@ import {
     getDoc,
     getDocs,
     increment,
-    limit,
+    limit as limitQuery,
     orderBy,
     query,
     setDoc,
@@ -2367,6 +2372,245 @@ export const getWelcomePointsRecipients = async (
       awardedAt: data.awardedAt.toDate(),
     } as WelcomePointsRecipient;
   });
+};
+
+// ============================================================================
+// STORE CREDIT SYSTEM
+// ============================================================================
+
+/**
+ * Get or create store credit settings
+ * Returns default settings if none exist
+ */
+export const getStoreCreditSettings = async (): Promise<StoreCreditSettings> => {
+  const settingsDoc = await getDoc(doc(db, 'store_credit_settings', 'default'));
+
+  if (!settingsDoc.exists()) {
+    // Create default settings
+    const defaultSettings: StoreCreditSettings = {
+      id: 'default',
+      perItemDiscountCap: 50,           // 50% max per item
+      perOrderDiscountCap: 3000,        // $30.00 max per order
+      monthlyEarningCap: 5000,          // $50.00 max per month
+      earningValues: {
+        eventAttendance: 100,           // $1.00 for event attendance
+        volunteerWork: 250,             // $2.50 for volunteer work
+        eventHosting: 500,              // $5.00 for event hosting
+        contributionMin: 50,            // $0.50 minimum
+        contributionMax: 150,           // $1.50 maximum
+      },
+      approvedEmailDomains: ['.edu', 'belhaven.edu'],
+      approvedEmails: [],
+      updatedAt: new Date(),
+      updatedBy: 'system',
+    };
+
+    await setDoc(doc(db, 'store_credit_settings', 'default'), {
+      ...defaultSettings,
+      updatedAt: Timestamp.now(),
+    });
+
+    return defaultSettings;
+  }
+
+  const data = settingsDoc.data();
+  return {
+    ...data,
+    updatedAt: data.updatedAt.toDate(),
+  } as StoreCreditSettings;
+};
+
+/**
+ * Update store credit settings
+ */
+export const updateStoreCreditSettings = async (
+  settings: Partial<StoreCreditSettings>,
+  updatedBy: string
+): Promise<void> => {
+  await updateDoc(doc(db, 'store_credit_settings', 'default'), {
+    ...settings,
+    updatedAt: Timestamp.now(),
+    updatedBy,
+  });
+};
+
+/**
+ * Create a store credit transaction
+ */
+export const createStoreCreditTransaction = async (
+  transaction: Omit<StoreCreditTransaction, 'id' | 'timestamp'>
+): Promise<string> => {
+  const transactionId = `credit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  await setDoc(doc(db, 'store_credit_transactions', transactionId), {
+    ...transaction,
+    id: transactionId,
+    timestamp: Timestamp.now(),
+  });
+
+  // Update user's store credit balance
+  const userRef = doc(db, 'users', transaction.userId);
+  const userDoc = await getDoc(userRef);
+
+  if (userDoc.exists()) {
+    const userData = userDoc.data();
+    const currentBalance = userData.storeCreditBalance || 0;
+    const currentEarned = userData.storeCreditEarned || 0;
+    const currentSpent = userData.storeCreditSpent || 0;
+    const monthlyEarned = userData.monthlyStoreCreditEarned || 0;
+
+    const updates: any = {
+      storeCreditBalance: currentBalance + transaction.amountCents,
+    };
+
+    // Track earned vs spent
+    if (transaction.amountCents > 0) {
+      updates.storeCreditEarned = currentEarned + transaction.amountCents;
+      updates.monthlyStoreCreditEarned = monthlyEarned + transaction.amountCents;
+    } else {
+      updates.storeCreditSpent = currentSpent + Math.abs(transaction.amountCents);
+    }
+
+    await updateDoc(userRef, updates);
+  }
+
+  return transactionId;
+};
+
+/**
+ * Get user's store credit transactions
+ */
+export const getStoreCreditTransactions = async (
+  userId: string,
+  limit: number = 50
+): Promise<StoreCreditTransaction[]> => {
+  const transactionsQuery = query(
+    collection(db, 'store_credit_transactions'),
+    where('userId', '==', userId),
+    orderBy('timestamp', 'desc'),
+    limitQuery(limit)
+  );
+
+  const snapshot = await getDocs(transactionsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      id: doc.id,
+      timestamp: data.timestamp.toDate(),
+      approvedAt: data.approvedAt ? data.approvedAt.toDate() : undefined,
+    } as StoreCreditTransaction;
+  });
+};
+
+/**
+ * Get user's current store credit balance
+ */
+export const getUserStoreCreditBalance = async (userId: string): Promise<number> => {
+  const userDoc = await getDoc(doc(db, 'users', userId));
+
+  if (!userDoc.exists()) {
+    return 0;
+  }
+
+  const userData = userDoc.data();
+  return userData.storeCreditBalance || 0;
+};
+
+/**
+ * Create a store credit multiplier campaign
+ */
+export const createStoreCreditMultiplier = async (
+  multiplier: Omit<StoreCreditMultiplier, 'id' | 'createdAt'>
+): Promise<string> => {
+  const multiplierId = `multiplier_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  await setDoc(doc(db, 'store_credit_multipliers', multiplierId), {
+    ...multiplier,
+    id: multiplierId,
+    createdAt: Timestamp.now(),
+    startDate: Timestamp.fromDate(multiplier.startDate),
+    endDate: Timestamp.fromDate(multiplier.endDate),
+  });
+
+  return multiplierId;
+};
+
+/**
+ * Get active store credit multipliers
+ */
+export const getActiveStoreCreditMultipliers = async (): Promise<StoreCreditMultiplier[]> => {
+  const now = Timestamp.now();
+
+  const multipliersQuery = query(
+    collection(db, 'store_credit_multipliers'),
+    where('isActive', '==', true),
+    where('startDate', '<=', now),
+    where('endDate', '>=', now)
+  );
+
+  const snapshot = await getDocs(multipliersQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      id: doc.id,
+      createdAt: data.createdAt.toDate(),
+      startDate: data.startDate.toDate(),
+      endDate: data.endDate.toDate(),
+    } as StoreCreditMultiplier;
+  });
+};
+
+/**
+ * Get all store credit multipliers (for admin)
+ */
+export const getAllStoreCreditMultipliers = async (): Promise<StoreCreditMultiplier[]> => {
+  const multipliersQuery = query(
+    collection(db, 'store_credit_multipliers'),
+    orderBy('createdAt', 'desc')
+  );
+
+  const snapshot = await getDocs(multipliersQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      id: doc.id,
+      createdAt: data.createdAt.toDate(),
+      startDate: data.startDate.toDate(),
+      endDate: data.endDate.toDate(),
+    } as StoreCreditMultiplier;
+  });
+};
+
+/**
+ * Update store credit multiplier
+ */
+export const updateStoreCreditMultiplier = async (
+  id: string,
+  updates: Partial<StoreCreditMultiplier>
+): Promise<void> => {
+  const updateData: any = { ...updates };
+
+  if (updates.startDate) {
+    updateData.startDate = Timestamp.fromDate(updates.startDate);
+  }
+  if (updates.endDate) {
+    updateData.endDate = Timestamp.fromDate(updates.endDate);
+  }
+
+  await updateDoc(doc(db, 'store_credit_multipliers', id), updateData);
+};
+
+/**
+ * Delete store credit multiplier
+ */
+export const deleteStoreCreditMultiplier = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, 'store_credit_multipliers', id));
 };
 
 // ============================================================================
