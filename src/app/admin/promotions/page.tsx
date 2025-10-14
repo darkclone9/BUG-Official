@@ -6,9 +6,9 @@ import Navigation from '@/components/Navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Gift, Zap, Users, TrendingUp, DollarSign } from 'lucide-react';
 import StoreCreditMultiplierManagement from '@/components/admin/StoreCreditMultiplierManagement';
+import StoreCreditGiveaways from '@/components/admin/StoreCreditGiveaways';
 import WelcomePointsPromotions from '@/components/admin/WelcomePointsPromotions';
 import SalesPromotions from '@/components/admin/SalesPromotions';
-import PointGiveaways from '@/components/admin/PointGiveaways';
 
 export default function PromotionsPage() {
   const [activeTab, setActiveTab] = useState('multipliers');
@@ -63,7 +63,7 @@ export default function PromotionsPage() {
             </TabsContent>
 
             <TabsContent value="giveaways" className="space-y-4">
-              <PointGiveaways />
+              <StoreCreditGiveaways />
             </TabsContent>
           </Tabs>
         </main>
