@@ -83,7 +83,67 @@ service cloud.firestore {
     }
 
     // ============================================
-    // PROMOTIONS & CAMPAIGNS
+    // STORE CREDIT SYSTEM
+    // ============================================
+
+    // Store credit settings collection
+    match /store_credit_settings/{settingId} {
+      // Authenticated users can read store credit settings
+      allow read: if isSignedIn();
+
+      // Only President and Co-President can modify settings
+      allow create, update, delete: if isPresidentOrCoPresident();
+    }
+
+    // Store credit transactions collection
+    match /store_credit_transactions/{transactionId} {
+      // Users can read their own transactions, admins can read all
+      allow read: if isSignedIn() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Only server can write transactions (via Cloud Functions or API routes)
+      // No direct client writes allowed for security
+      allow create, update, delete: if false;
+    }
+
+    // Store credit multipliers collection
+    match /store_credit_multipliers/{multiplierId} {
+      // Authenticated users can read multipliers
+      allow read: if isSignedIn();
+
+      // Only President and Co-President can create, update, or delete multipliers
+      allow create, update, delete: if isPresidentOrCoPresident();
+    }
+
+    // Welcome credit promotions collection
+    match /welcome_credit_promotions/{promotionId} {
+      // Authenticated users can read promotions
+      allow read: if isSignedIn();
+
+      // Only President and Co-President can create, update, or delete promotions
+      allow create, update, delete: if isPresidentOrCoPresident();
+    }
+
+    // Welcome credit recipients collection
+    match /welcome_credit_recipients/{recipientId} {
+      // Authenticated users can read recipients
+      allow read: if isSignedIn();
+
+      // Only server can write recipients (via Cloud Functions or API routes)
+      allow create, update, delete: if false;
+    }
+
+    // Store credit giveaways collection
+    match /store_credit_giveaways/{giveawayId} {
+      // President/Co-President can read all giveaways
+      allow read: if isPresidentOrCoPresident();
+
+      // Only President and Co-President can create, update, or delete giveaways
+      allow create, update, delete: if isPresidentOrCoPresident();
+    }
+
+    // ============================================
+    // PROMOTIONS & CAMPAIGNS (LEGACY POINTS)
     // ============================================
 
     // Points multipliers collection
