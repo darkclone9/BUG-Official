@@ -319,7 +319,7 @@ export const getLeaderboard = async (gameType?: GameType, timeframe: 'all' | 'we
   const usersQuery = query(
     collection(db, 'users'),
     orderBy(pointsField, 'desc'),
-    limit(100)
+    limitQuery(100)
   );
 
   const snapshot = await getDocs(usersQuery);
@@ -547,7 +547,7 @@ export const searchUsers = async (searchTerm: string, limit_count: number = 10):
   const usersQuery = query(
     collection(db, 'users'),
     orderBy('displayName'),
-    limit(limit_count)
+    limitQuery(limit_count)
   );
 
   const snapshot = await getDocs(usersQuery);
@@ -575,7 +575,7 @@ export const searchTournaments = async (searchTerm: string, limit_count: number 
   const tournamentsQuery = query(
     collection(db, 'tournaments'),
     orderBy('name'),
-    limit(limit_count)
+    limitQuery(limit_count)
   );
 
   const snapshot = await getDocs(tournamentsQuery);
@@ -721,7 +721,7 @@ export const getUserRecentActivity = async (userId: string): Promise<{
     collection(db, 'points_transactions'),
     where('userId', '==', userId),
     orderBy('timestamp', 'desc'),
-    limit(10)
+    limitQuery(10)
   );
   const snapshot = await getDocs(transactionsQuery);
 
@@ -744,7 +744,7 @@ export const getLatestPointsReason = async (userId: string): Promise<string | nu
     collection(db, 'points_transactions'),
     where('userId', '==', userId),
     orderBy('timestamp', 'desc'),
-    limit(1)
+    limitQuery(1)
   );
   const snapshot = await getDocs(transactionsQuery);
 
@@ -835,7 +835,7 @@ export const getEloLeaderboard = async (gameType?: GameType): Promise<Leaderboar
     const statsQuery = query(
       collection(db, 'user_stats'),
       orderBy(`gameStats.${gameType}.eloRating`, 'desc'),
-      limit(100)
+      limitQuery(100)
     );
 
     const statsSnapshot = await getDocs(statsQuery);
@@ -875,7 +875,7 @@ export const getEloLeaderboard = async (gameType?: GameType): Promise<Leaderboar
     usersQuery = query(
       collection(db, 'users'),
       orderBy('eloRating', 'desc'),
-      limit(100)
+      limitQuery(100)
     );
 
     const snapshot = await getDocs(usersQuery);
@@ -1422,7 +1422,7 @@ export const getUpcomingPublishedEvents = async (limitCount?: number): Promise<C
     where('status', '==', 'published'),
     where('date', '>=', Timestamp.fromDate(now)),
     orderBy('date', 'asc'),
-    ...(limitCount ? [limit(limitCount)] : [])
+    ...(limitCount ? [limitQuery(limitCount)] : [])
   );
   const snapshot = await getDocs(eventsQuery);
 
@@ -1593,7 +1593,7 @@ export const getAllEventNotifications = async (): Promise<ClubEventNotification[
   const notificationsQuery = query(
     collection(db, 'event_notifications'),
     orderBy('sentAt', 'desc'),
-    limit(100)
+    limitQuery(100)
   );
   const snapshot = await getDocs(notificationsQuery);
 
@@ -1883,7 +1883,7 @@ export const getUserPointsHistory = async (
     collection(db, 'points_transactions'),
     where('userId', '==', userId),
     orderBy('timestamp', 'desc'),
-    limit(limitCount)
+    limitQuery(limitCount)
   );
 
   const snapshot = await getDocs(transactionsQuery);
@@ -2839,7 +2839,7 @@ export const getShopOrderByStripeSession = async (
   const ordersQuery = query(
     collection(db, 'shop_orders'),
     where('stripeSessionId', '==', stripeSessionId),
-    limit(1)
+    limitQuery(1)
   );
 
   const snapshot = await getDocs(ordersQuery);
@@ -3116,7 +3116,7 @@ export const getUserRoleHistory = async (userId: string): Promise<Array<{
     collection(db, 'role_change_logs'),
     where('userId', '==', userId),
     orderBy('timestamp', 'desc'),
-    limit(50)
+    limitQuery(50)
   );
 
   const snapshot = await getDocs(logsQuery);
@@ -3151,7 +3151,7 @@ export const getAllRoleChangeLogs = async (limitCount: number = 100): Promise<Ar
   const logsQuery = query(
     collection(db, 'role_change_logs'),
     orderBy('timestamp', 'desc'),
-    limit(limitCount)
+    limitQuery(limitCount)
   );
 
   const snapshot = await getDocs(logsQuery);
