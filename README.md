@@ -16,18 +16,31 @@ A modern, responsive web application for managing gaming tournaments, user profi
 - **Component Architecture**: Reusable UI components with proper TypeScript types
 - **Mock Data System**: Development-friendly mock data for testing
 
-#### 🛍️ Shop System (NEW!)
+#### 🛍️ Shop System
 
 - **Product Browsing**: Full-featured shop with filtering, search, and sorting
 - **Shopping Cart**: Persistent cart with localStorage
-- **Points System**: Participation points for discounts (1,000 points = $1.00)
+- **Store Credit System**: Earn credit through participation, spend on shop items
 - **Stripe Integration**: Secure checkout with Stripe Checkout
 - **Order Management**: Complete order tracking and history
 - **Campus Pickup**: Pickup queue management for on-campus orders
-- **Admin Dashboard**: Product CRUD, points approval, pickup queue, settings
+- **Admin Dashboard**: Product CRUD, credit approval, pickup queue, settings
 - **Role-Based Permissions**: Hierarchical permission system (10 levels)
 - **Email Notifications**: Order confirmations and pickup notifications
 - **Print-on-Demand Ready**: Framework for Printful/Printify integration
+
+#### 💰 Store Credit System (NEW!)
+
+- **Earn Credit**: Participate in events, volunteer, host events, contribute
+- **Spend Credit**: Use credit for discounts on shop purchases (1:1 dollar value)
+- **No Expiration**: Credit never expires, unlike the old points system
+- **Multiplier Campaigns**: Admins can run 2x, 3x credit promotions
+- **Monthly Earning Cap**: $50/month to keep system sustainable
+- **Discount Caps**: 50% per item, $30 per order maximum
+- **Transaction History**: Full audit trail of all credit earned and spent
+- **Approval Workflow**: President/Co-President approve manual credit awards
+- **Migration Script**: Automated conversion from old points system (200 points = $1.00)
+- **Comprehensive Documentation**: User guide and admin guide included
 
 ### 🔧 Current Implementation Status
 
@@ -148,9 +161,12 @@ src/
 │   ├── email.ts           # Email templates
 │   ├── firebase.ts        # Firebase configuration
 │   ├── permissions.ts     # Permission checking
-│   ├── points.ts          # Points calculations
+│   ├── storeCredit.ts     # Store credit calculations
 │   ├── printful.ts        # Print-on-demand integration
 │   └── utils.ts           # Utility functions
+├── scripts/
+│   ├── migratePointsToStoreCredit.ts  # Migration script
+│   └── README.md          # Migration documentation
 └── types/
     └── types.ts           # TypeScript type definitions
 ```
@@ -187,6 +203,15 @@ Copy `.env.example` to `.env.local` and fill in your Firebase configuration.
 4. Deploy automatically on push
 
 ## 📚 Documentation
+
+### Shop & Store Credit System
+
+- **[Store Credit User Guide](docs/STORE_CREDIT_USER_GUIDE.md)**: How to earn and spend store credit
+- **[Store Credit Admin Guide](docs/STORE_CREDIT_ADMIN_GUIDE.md)**: Admin procedures for managing store credit
+- **[Store Credit Implementation Plan](docs/STORE_CREDIT_IMPLEMENTATION_PLAN.md)**: Technical implementation details
+- **[Migration Script Documentation](scripts/README.md)**: Points to store credit migration guide
+
+### Legacy Documentation
 
 - **[Shop Setup Guide](SHOP_SETUP_GUIDE.md)**: Complete setup instructions for the shop system
 - **[Shop API Reference](SHOP_API_REFERENCE.md)**: API documentation for all shop functions
