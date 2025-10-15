@@ -699,6 +699,75 @@ export interface Achievement {
   maxProgress?: number;             // Max value for progress
 }
 
+// Quest System
+export type QuestCategory =
+  | 'profile_setup'
+  | 'club_participation'
+  | 'gaming_achievements'
+  | 'social'
+  | 'special';
+
+export type QuestType =
+  | 'one_time'          // Complete once
+  | 'repeatable'        // Can be completed multiple times
+  | 'daily'             // Resets daily
+  | 'weekly'            // Resets weekly
+  | 'progressive';      // Track progress over time
+
+export interface Quest {
+  id: string;
+  name: string;
+  description: string;
+  category: QuestCategory;
+  type: QuestType;
+  rewardCents: number;              // Store credit reward in cents
+  iconUrl?: string;
+  isActive: boolean;
+
+  // Requirements
+  requirementType: 'count' | 'boolean' | 'value';
+  requirementTarget: number;        // Target value (e.g., 5 for "attend 5 events")
+
+  // Tracking
+  trackingKey: string;              // What to track (e.g., 'events_attended', 'profile_completed')
+
+  // Metadata
+  createdAt: Date;
+  createdBy: string;                // Admin UID
+  updatedAt?: Date;
+
+  // Optional constraints
+  expiresAt?: Date;                 // Quest expiration
+  minLevel?: number;                // Minimum user level required
+  prerequisiteQuestIds?: string[];  // Must complete these quests first
+}
+
+export interface UserQuest {
+  id: string;
+  userId: string;
+  questId: string;
+
+  // Progress
+  currentProgress: number;
+  targetProgress: number;
+  isCompleted: boolean;
+  completedAt?: Date;
+
+  // Rewards
+  rewardClaimed: boolean;
+  rewardClaimedAt?: Date;
+  rewardCents: number;
+
+  // Tracking
+  startedAt: Date;
+  lastUpdatedAt: Date;
+
+  // For repeatable quests
+  completionCount?: number;         // How many times completed
+  lastCompletedAt?: Date;           // Last completion date
+  resetAt?: Date;                   // When progress resets (for daily/weekly)
+}
+
 // Sticker/Badge System
 export interface Sticker {
   id: string;

@@ -17,7 +17,8 @@ import {
   ChevronLeft,
   Gamepad2,
   Search,
-  Calendar
+  Calendar,
+  Target
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +37,7 @@ const navItems: NavItem[] = [
   { name: 'Profile', href: '/profile', icon: User, requiresAuth: true },
   { name: 'Tournaments', href: '/tournaments', icon: Gamepad2 },
   { name: 'Events', href: '/events', icon: Calendar },
+  { name: 'Quests', href: '/quests', icon: Target, requiresAuth: true },
   { name: 'Leaderboard', href: '/leaderboard', icon: BarChart3 },
   { name: 'Players', href: '/players', icon: Users },
   { name: 'Shop', href: '/shop', icon: ShoppingBag },
@@ -103,7 +105,7 @@ export default function CollapsibleSidebar() {
         <nav className="py-4 space-y-1">
           {processedNavItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || 
+            const isActive = pathname === item.href ||
                            (item.href !== '/' && pathname.startsWith(item.href));
 
             return (
@@ -146,4 +148,3 @@ export default function CollapsibleSidebar() {
     </>
   );
 }
-
