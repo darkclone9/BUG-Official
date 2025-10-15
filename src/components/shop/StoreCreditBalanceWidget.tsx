@@ -52,12 +52,12 @@ export default function StoreCreditBalanceWidget() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2 hover:bg-primary/10 transition-colors cursor-pointer">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
               <DollarSign className="h-4 w-4 text-primary" />
               <div className="flex flex-col items-start">
-                <span className="text-xs text-muted-foreground">Store Credit</span>
+                <span className="text-xs text-muted-foreground">Store Credit (click for info)</span>
                 <span className="font-semibold">
                   {loading ? '...' : creditDisplay}
                 </span>
