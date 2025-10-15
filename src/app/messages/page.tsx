@@ -16,8 +16,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, ArrowLeft, MessageCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Send, ArrowLeft, MessageCircle, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { searchUsers } from '@/lib/database';
 
 function MessagesContent() {
   const router = useRouter();
@@ -30,6 +32,12 @@ function MessagesContent() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // New DM dialog state
+  const [isNewDMDialogOpen, setIsNewDMDialogOpen] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -128,6 +136,42 @@ function MessagesContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleUserSearch = async (query: string) => {
+    setUserSearchQuery(query);
+
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setSearching(true);
+      const results = await searchUsers(query, 10);
+      // Filter out current user
+      setSearchResults(results.filter(u => u.id !== user?.uid));
+    } catch (error) {
+      console.error('Error searching users:', error);
+      toast.error('Failed to search users');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleStartConversationWithUser = async (otherUserId: string) => {
+    if (!user) return;
+
+    try {
+      setIsNewDMDialogOpen(false);
+      setUserSearchQuery('');
+      setSearchResults([]);
+      await startNewConversation(otherUserId);
+      toast.success('Conversation started!');
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+      toast.error('Failed to start conversation');
+    }
+  };
+
   const getOtherParticipant = (conversation: Conversation) => {
     const otherUserId = conversation.participants.find(id => id !== user?.uid);
     return {
@@ -177,10 +221,80 @@ function MessagesContent() {
           {/* Conversations List */}
           <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5" />
-                Conversations
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5" />
+                  Conversations
+                </CardTitle>
+
+                {/* New DM Button */}
+                <Dialog open={isNewDMDialogOpen} onOpenChange={setIsNewDMDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      <Plus className="h-4 w-4 mr-2" />
+                      New
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Start New Conversation</DialogTitle>
+                      <DialogDescription>
+                        Search for a user to start messaging
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      {/* Search Input */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          placeholder="Search users..."
+                          value={userSearchQuery}
+                          onChange={(e) => handleUserSearch(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+
+                      {/* Search Results */}
+                      <ScrollArea className="h-[300px]">
+                        {searching ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            Searching...
+                          </div>
+                        ) : searchResults.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            {userSearchQuery.trim().length < 2
+                              ? 'Type at least 2 characters to search'
+                              : 'No users found'}
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {searchResults.map((searchUser) => (
+                              <button
+                                key={searchUser.id}
+                                onClick={() => handleStartConversationWithUser(searchUser.id)}
+                                className="w-full p-3 rounded-lg hover:bg-muted transition-colors text-left"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarImage src={searchUser.avatar} alt={searchUser.displayName} />
+                                    <AvatarFallback>
+                                      {searchUser.displayName.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1">
+                                    <p className="font-medium">{searchUser.displayName}</p>
+                                    <p className="text-sm text-muted-foreground">{searchUser.email}</p>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </ScrollArea>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[calc(100vh-300px)]">
