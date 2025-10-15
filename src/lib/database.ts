@@ -2519,6 +2519,81 @@ export const getUserStoreCreditBalance = async (userId: string): Promise<number>
 };
 
 /**
+ * Convert user's points to store credit
+ * Conversion rate: 200 points = $1.00 store credit (100 cents)
+ */
+export const convertPointsToStoreCredit = async (userId: string): Promise<{
+  success: boolean;
+  pointsConverted: number;
+  creditEarned: number;
+  message: string;
+}> => {
+  const userRef = doc(db, 'users', userId);
+  const userDoc = await getDoc(userRef);
+
+  if (!userDoc.exists()) {
+    return {
+      success: false,
+      pointsConverted: 0,
+      creditEarned: 0,
+      message: 'User not found',
+    };
+  }
+
+  const userData = userDoc.data();
+  const pointsBalance = userData.pointsBalance || 0;
+
+  // Check if user has already converted
+  if (userData.pointsConverted === true) {
+    return {
+      success: false,
+      pointsConverted: 0,
+      creditEarned: 0,
+      message: 'Points have already been converted to store credit',
+    };
+  }
+
+  // Check if user has any points to convert
+  if (pointsBalance === 0) {
+    return {
+      success: false,
+      pointsConverted: 0,
+      creditEarned: 0,
+      message: 'No points available to convert',
+    };
+  }
+
+  // Calculate store credit (200 points = $1.00 = 100 cents)
+  const creditEarnedCents = Math.floor((pointsBalance / 200) * 100);
+
+  // Update user document
+  await updateDoc(userRef, {
+    storeCreditBalance: increment(creditEarnedCents),
+    storeCreditEarned: increment(creditEarnedCents),
+    pointsBalance: 0, // Zero out points
+    pointsConverted: true, // Mark as converted
+    pointsBalance_legacy: pointsBalance, // Save original points for reference
+  });
+
+  // Create transaction record
+  await addDoc(collection(db, 'store_credit_transactions'), {
+    userId,
+    amountCents: creditEarnedCents,
+    reason: `Converted ${pointsBalance} points to store credit`,
+    category: 'migration',
+    timestamp: Timestamp.now(),
+    approvalStatus: 'approved',
+  });
+
+  return {
+    success: true,
+    pointsConverted: pointsBalance,
+    creditEarned: creditEarnedCents,
+    message: `Successfully converted ${pointsBalance} points to $${(creditEarnedCents / 100).toFixed(2)} store credit`,
+  };
+};
+
+/**
  * Create a store credit multiplier campaign
  */
 export const createStoreCreditMultiplier = async (
