@@ -16,7 +16,7 @@ import {
   getUserConversations
 } from '@/lib/database';
 import { Announcement, Tournament, UserStats, Conversation } from '@/types/types';
-import { Activity, Award, Bell, Calendar, Crown, Edit, Gamepad2, Settings, Star, TrendingUp, Trophy, Users, MessageCircle } from 'lucide-react';
+import { Activity, Award, Bell, Calendar, Crown, Edit, Gamepad2, Settings, Star, TrendingUp, Trophy, Users, MessageCircle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -149,6 +149,33 @@ export default function DashboardPage() {
               </Link>
             </div>
           </div>
+
+          {/* Convert Points Banner */}
+          {user && (user.pointsBalance || 0) > 0 && !user.pointsConverted && (
+            <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded-full">
+                    <Star className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">
+                      You have {user.pointsBalance.toLocaleString()} legacy points!
+                    </h3>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                      Convert them to ${((user.pointsBalance / 200) * 1).toFixed(2)} store credit
+                    </p>
+                  </div>
+                </div>
+                <Link href="/convert-points">
+                  <Button variant="outline" className="border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100 dark:hover:bg-yellow-900/30">
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                    Convert Now
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

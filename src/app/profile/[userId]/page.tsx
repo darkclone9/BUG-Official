@@ -24,7 +24,8 @@ import {
   Gamepad2,
   Users,
   Target,
-  Palette
+  Palette,
+  ArrowRight
 } from 'lucide-react';
 import {
   FaDiscord,
@@ -217,12 +218,22 @@ export default function UserProfilePage() {
                   </div>
 
                   {isOwnProfile && (
-                    <Link href="/profile/edit">
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Profile
-                      </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                      <Link href="/profile/edit">
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Profile
+                        </Button>
+                      </Link>
+                      {(profile.pointsBalance || 0) > 0 && !profile.pointsConverted && (
+                        <Link href="/convert-points">
+                          <Button variant="outline" size="sm" className="border-yellow-300 dark:border-yellow-700">
+                            <ArrowRight className="h-4 w-4 mr-2" />
+                            Convert Points
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
                   )}
                 </div>
 
