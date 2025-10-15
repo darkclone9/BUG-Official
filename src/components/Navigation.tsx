@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { BarChart3, Bell, Edit, Gamepad2, LogOut, Menu, Search, Settings, ShoppingBag, Trophy, User, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import AnnouncementBar from './AnnouncementBar';
 import BroadcastBar from './BroadcastBar';
 import NotificationDropdown from './NotificationDropdown';
@@ -23,6 +24,12 @@ import { ThemeToggle } from './ThemeToggle';
 export default function Navigation() {
   const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Only show navigation on the landing page (/)
+  if (pathname !== '/') {
+    return null;
+  }
 
   return (
     <>
