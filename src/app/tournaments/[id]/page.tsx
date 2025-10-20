@@ -7,7 +7,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trophy, Calendar, Users, Clock, Target } from 'lucide-react';
 import Link from 'next/link';
 import { getTournament, registerForTournament, unregisterFromTournament, getUser, getTournamentBracket, createTournamentBracket, updateMatchResult } from '@/lib/database';
@@ -15,6 +15,9 @@ import { Tournament, User } from '@/types/types';
 import { TournamentBracket } from '@/types/bracket';
 import { useAuth } from '@/contexts/AuthContext';
 import { BracketVisualization } from '@/components/tournament/BracketVisualization';
+import PublicBracketDisplay from '@/components/tournament/PublicBracketDisplay';
+import BracketEditor from '@/components/admin/BracketEditor';
+import TournamentChat from '@/components/tournaments/TournamentChat';
 
 export default function TournamentDetailPage() {
   const params = useParams();
@@ -238,6 +241,17 @@ export default function TournamentDetailPage() {
         <Navigation />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Tournament Banner Image */}
+          {tournament.imageUrl && (
+            <div className="mb-8 rounded-lg overflow-hidden shadow-lg">
+              <img
+                src={tournament.imageUrl}
+                alt={tournament.name}
+                className="w-full h-64 md:h-96 object-cover"
+              />
+            </div>
+          )}
+
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -372,12 +386,32 @@ export default function TournamentDetailPage() {
                 </CardHeader>
                 <CardContent>
                   {bracket ? (
-                    <BracketVisualization
-                      bracket={bracket}
-                      participants={participants}
-                      isAdmin={user?.role === 'admin'}
-                      onMatchUpdate={handleMatchUpdate}
-                    />
+                    user?.role === 'admin' ? (
+                      <BracketEditor
+                        bracket={bracket}
+                        participants={participants}
+                        onMatchUpdate={async (matchId, updates) => {
+                          // Adapter: Convert BracketEditor updates to Firebase function signature
+                          if (updates.winnerId) {
+                            await handleMatchUpdate(matchId, updates.winnerId, updates.score);
+                          }
+                          // Refresh bracket after update
+                          const updatedBracket = await getTournamentBracket(tournamentId);
+                          if (updatedBracket) setBracket(updatedBracket);
+                        }}
+                        onBracketSave={async () => {
+                          const updatedBracket = await getTournamentBracket(tournamentId);
+                          if (updatedBracket) setBracket(updatedBracket);
+                        }}
+                      />
+                    ) : (
+                      <PublicBracketDisplay
+                        bracket={bracket}
+                        participants={participants}
+                        tournamentName={tournament.name}
+                        showLegend={true}
+                      />
+                    )
                   ) : (
                     <div className="space-y-4">
                       <div className="text-center py-8 text-muted-foreground">
@@ -425,22 +459,29 @@ export default function TournamentDetailPage() {
                   <div className="space-y-3">
                     {participants.length > 0 ? (
                       participants.map((participant, index) => (
-                        <div key={participant.uid} className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
-                          <div className="flex-shrink-0">
-                            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-medium text-primary-foreground">
-                              {index + 1}
+                        <Link
+                          key={participant.uid}
+                          href={`/profile/${participant.uid}`}
+                          className="block"
+                        >
+                          <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer">
+                            <div className="flex-shrink-0">
+                              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-medium text-primary-foreground">
+                                {index + 1}
+                              </div>
+                            </div>
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={participant.avatarUrl || participant.avatar} alt={participant.displayName} />
+                              <AvatarFallback className="text-xs">
+                                {participant.displayName.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium hover:text-primary transition-colors">{participant.displayName}</p>
+                              <p className="text-xs text-muted-foreground">ELO: {participant.eloRating || 1200}</p>
                             </div>
                           </div>
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs">
-                              {participant.displayName.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{participant.displayName}</p>
-                            <p className="text-xs text-muted-foreground">ELO: {participant.eloRating || 1200}</p>
-                          </div>
-                        </div>
+                        </Link>
                       ))
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
@@ -453,6 +494,15 @@ export default function TournamentDetailPage() {
                 </CardContent>
               </Card>
             </div>
+          </div>
+
+          {/* Tournament Discussion */}
+          <div className="mt-8">
+            <TournamentChat
+              tournamentId={tournamentId}
+              isParticipant={isRegistered}
+              isAdmin={user?.roles?.includes('admin') || false}
+            />
           </div>
         </div>
       </div>

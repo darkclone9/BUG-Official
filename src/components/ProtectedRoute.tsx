@@ -9,10 +9,11 @@ import { Gamepad2 } from 'lucide-react';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   adminOnly?: boolean;
+  presidentOnly?: boolean;
 }
 
-export default function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+export default function ProtectedRoute({ children, adminOnly = false, presidentOnly = false }: ProtectedRouteProps) {
+  const { user, loading, hasAnyRole } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -21,13 +22,18 @@ export default function ProtectedRoute({ children, adminOnly = false }: Protecte
         router.push('/login');
         return;
       }
-      
+
+      if (presidentOnly && !hasAnyRole(['president', 'co_president'])) {
+        router.push('/dashboard');
+        return;
+      }
+
       if (adminOnly && user.role !== 'admin') {
         router.push('/dashboard');
         return;
       }
     }
-  }, [user, loading, adminOnly, router]);
+  }, [user, loading, adminOnly, presidentOnly, hasAnyRole, router]);
 
   if (loading) {
     return (
@@ -47,10 +53,13 @@ export default function ProtectedRoute({ children, adminOnly = false }: Protecte
     return null;
   }
 
+  if (presidentOnly && !hasAnyRole(['president', 'co_president'])) {
+    return null;
+  }
+
   if (adminOnly && user.role !== 'admin') {
     return null;
   }
 
   return <>{children}</>;
 }
-

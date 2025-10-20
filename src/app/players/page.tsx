@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Users, Search, Trophy, Crown, Medal, Award, Gamepad2, Target, TrendingUp } from 'lucide-react';
 import { getAllUsers, getUserStats } from '@/lib/database';
 import { User, GameStats } from '@/types/types';
+import Link from 'next/link';
 
 type PlayerWithStats = User & {
   rank: number;
@@ -35,7 +36,7 @@ export default function PlayersPage() {
       try {
         setLoading(true);
         const users = await getAllUsers();
-        
+
         // Enhance users with stats
         const playersWithStats = await Promise.all(
           users.map(async (user, index) => {
@@ -51,7 +52,7 @@ export default function PlayersPage() {
             };
           })
         );
-        
+
         setPlayers(playersWithStats as unknown as PlayerWithStats[]);
       } catch (error) {
         console.error('Error loading players:', error);
@@ -65,20 +66,20 @@ export default function PlayersPage() {
 
   const getFilteredAndSortedPlayers = () => {
     let filtered = players;
-    
+
     if (searchTerm) {
-      filtered = filtered.filter(player => 
+      filtered = filtered.filter(player =>
         player.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         player.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
+
     if (gameFilter !== 'all') {
-      filtered = filtered.filter(player => 
+      filtered = filtered.filter(player =>
         player.gameStats && player.gameStats[gameFilter as keyof typeof player.gameStats]
       );
     }
-    
+
     return filtered.sort((a, b) => {
       switch (sortBy) {
         case 'points':
@@ -133,7 +134,7 @@ export default function PlayersPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -160,7 +161,7 @@ export default function PlayersPage() {
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Top Players</CardTitle>
@@ -173,7 +174,7 @@ export default function PlayersPage() {
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Players</CardTitle>
@@ -186,7 +187,7 @@ export default function PlayersPage() {
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">New This Month</CardTitle>
@@ -219,7 +220,7 @@ export default function PlayersPage() {
               className="pl-10"
             />
           </div>
-          
+
           <Select value={gameFilter} onValueChange={setGameFilter}>
             <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Filter by game" />
@@ -230,7 +231,7 @@ export default function PlayersPage() {
               <SelectItem value="super_smash_bros">Super Smash Bros</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Sort by" />
@@ -270,7 +271,7 @@ export default function PlayersPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredPlayers.map((player) => (
-                    <TableRow key={player.uid}>
+                    <TableRow key={player.uid} className="cursor-pointer hover:bg-muted/50">
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           {getRankIcon(player.rank)}
@@ -278,18 +279,20 @@ export default function PlayersPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center space-x-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={player.avatar} alt={player.displayName} />
-                            <AvatarFallback>
-                              {player.displayName.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">{player.displayName}</div>
-                            <div className="text-sm text-muted-foreground">{player.email}</div>
+                        <Link href={`/profile/${player.uid}`} className="block">
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={player.avatarUrl || player.avatar} alt={player.displayName} />
+                              <AvatarFallback>
+                                {player.displayName.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium hover:text-primary transition-colors">{player.displayName}</div>
+                              <div className="text-sm text-muted-foreground">{player.email}</div>
+                            </div>
                           </div>
-                        </div>
+                        </Link>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-1">
@@ -331,7 +334,7 @@ export default function PlayersPage() {
                 </TableBody>
               </Table>
             </div>
-            
+
             {filteredPlayers.length === 0 && (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

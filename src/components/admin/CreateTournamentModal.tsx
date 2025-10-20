@@ -10,12 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useGameGenreOptions } from '@/hooks/useGameGenres';
 import { createTournament } from '@/lib/database';
+import { uploadImage, deleteImageByURL } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { GameType, Tournament } from '@/types/types';
 import { format } from 'date-fns';
-import { CalendarIcon, Plus, X } from 'lucide-react';
+import { CalendarIcon, Plus, X, Upload, Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
 import AiAssistantButton from '@/components/admin/AiAssistantButton';
+import { Progress } from '@/components/ui/progress';
 
 interface CreateTournamentModalProps {
   isOpen: boolean;
@@ -25,6 +27,11 @@ interface CreateTournamentModalProps {
 
 export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: CreateTournamentModalProps) {
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const { options: gameOptions, loading: genresLoading } = useGameGenreOptions(true);
   const [formData, setFormData] = useState({
     name: '',
@@ -45,6 +52,72 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
     rules: [''],
     status: 'upcoming' as 'upcoming' | 'ongoing' | 'completed',
   });
+
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setSelectedImage(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageUpload = async () => {
+    if (!selectedImage) return;
+
+    try {
+      setUploading(true);
+      setUploadProgress(0);
+
+      const url = await uploadImage(selectedImage, {
+        category: 'tournament-images',
+        fileName: `tournament_${Date.now()}_${selectedImage.name}`,
+        onProgress: (progress) => {
+          setUploadProgress(progress.progress);
+        },
+      });
+
+      setUploadedImageUrl(url);
+      setSelectedImage(null);
+      setImagePreview(null);
+    } catch (error) {
+      console.error('Image upload error:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    if (uploadedImageUrl) {
+      try {
+        await deleteImageByURL(uploadedImageUrl);
+      } catch (error) {
+        console.error('Error deleting image:', error);
+      }
+    }
+    setUploadedImageUrl(null);
+    setImagePreview(null);
+    setSelectedImage(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +142,11 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
         createdAt: new Date(),
         createdBy: 'current-admin-id', // This should be the current admin's ID
       };
+
+      // Add image URL if uploaded
+      if (uploadedImageUrl) {
+        tournamentData.imageUrl = uploadedImageUrl;
+      }
 
       // Only add entryFee and prizePool if they have values
       if (formData.entryFee && formData.entryFee > 0) {
@@ -103,6 +181,9 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
         rules: [''],
         status: 'upcoming',
       });
+      setUploadedImageUrl(null);
+      setImagePreview(null);
+      setSelectedImage(null);
     } catch (error) {
       console.error('Error creating tournament:', error);
     } finally {
@@ -197,6 +278,90 @@ export default function CreateTournamentModal({ isOpen, onClose, onSuccess }: Cr
               onAccept={(improvedText) => setFormData(prev => ({ ...prev, description: improvedText }))}
               disabled={loading}
             />
+          </div>
+
+          {/* Tournament Banner Image Upload */}
+          <div className="space-y-2">
+            <Label>Tournament Banner Image (Optional)</Label>
+            <div className="space-y-4">
+              {!uploadedImageUrl && !imagePreview && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    disabled={uploading || loading}
+                    className="flex-1"
+                  />
+                  {selectedImage && (
+                    <Button
+                      type="button"
+                      onClick={handleImageUpload}
+                      disabled={uploading || loading}
+                      size="sm"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {uploading && (
+                <div className="space-y-2">
+                  <Progress value={uploadProgress} />
+                  <p className="text-sm text-center text-muted-foreground">
+                    Uploading: {uploadProgress}%
+                  </p>
+                </div>
+              )}
+
+              {imagePreview && !uploadedImageUrl && (
+                <div className="relative">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-48 object-cover rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={() => {
+                      setImagePreview(null);
+                      setSelectedImage(null);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+
+              {uploadedImageUrl && (
+                <div className="relative">
+                  <img
+                    src={uploadedImageUrl}
+                    alt="Tournament banner"
+                    className="w-full h-48 object-cover rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={handleRemoveImage}
+                    disabled={loading}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <div className="absolute bottom-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center">
+                    <ImageIcon className="h-3 w-3 mr-1" />
+                    Image uploaded
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

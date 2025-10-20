@@ -7,11 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Search, 
-  Users, 
-  Trophy, 
-  Gamepad2, 
+import {
+  Search,
+  Users,
+  Trophy,
+  Gamepad2,
   Calendar,
   Star,
   Crown,
@@ -107,7 +107,7 @@ export default function SearchPage() {
         searchUsers(term, 10),
         searchTournaments(term, 10)
       ]);
-      
+
       setSearchResults({
         players: players.map(player => ({
           id: player.id,
@@ -126,9 +126,9 @@ export default function SearchPage() {
           id: tournament.id,
           name: tournament.title,
           game: tournament.subtitle || 'unknown',
-          date: tournament.metadata?.date ? 
-            (tournament.metadata.date instanceof Date ? 
-              tournament.metadata.date.toISOString().split('T')[0] : 
+          date: tournament.metadata?.date ?
+            (tournament.metadata.date instanceof Date ?
+              tournament.metadata.date.toISOString().split('T')[0] :
               String(tournament.metadata.date)) : '',
           participants: (tournament.metadata?.participants as number) || 0,
           maxParticipants: (tournament.metadata?.maxParticipants as number) || 0,
@@ -180,7 +180,7 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -240,7 +240,7 @@ export default function SearchPage() {
                           {getRankIcon(player.rank)}
                         </div>
                         <Avatar className="h-12 w-12">
-                          <AvatarImage src={player.avatar} alt={player.name} />
+                          <AvatarImage src={(player as any).avatarUrl || player.avatar} alt={player.name} />
                           <AvatarFallback>
                             {player.name.charAt(0).toUpperCase()}
                           </AvatarFallback>

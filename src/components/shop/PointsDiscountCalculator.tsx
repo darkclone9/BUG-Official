@@ -53,7 +53,7 @@ export default function PointsDiscountCalculator({ productPrice, quantity }: Poi
 
   // Calculate maximum discount allowed for this item
   const maxItemDiscount = calculateMaxItemDiscount(productPrice);
-  
+
   // Calculate maximum points that can be used
   const maxPointsForDiscount = discountToPoints(maxItemDiscount);
   const maxPointsToUse = Math.min(availablePoints, maxPointsForDiscount);
@@ -97,7 +97,7 @@ export default function PointsDiscountCalculator({ productPrice, quantity }: Poi
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">
               <p className="text-sm">
-                Use your points to get up to 50% off this item. 1,000 points = $1.00 discount.
+                Use your points to get up to 50% off this item. 1,000 points = $5.00 discount.
                 Shipping and taxes are always paid in full.
               </p>
             </TooltipContent>
@@ -157,4 +157,3 @@ export default function PointsDiscountCalculator({ productPrice, quantity }: Poi
     </div>
   );
 }
-

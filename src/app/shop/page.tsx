@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { ShopProduct, ProductCategory } from '@/types/types';
-import { getShopProducts } from '@/lib/database';
+import { getShopProducts, getUser } from '@/lib/database';
 import { useAuth } from '@/contexts/AuthContext';
 import ProductCard from '@/components/shop/ProductCard';
-import PointsBalanceWidget from '@/components/shop/PointsBalanceWidget';
+import StoreCreditBalanceWidget from '@/components/shop/StoreCreditBalanceWidget';
 import ShoppingCartButton from '@/components/shop/ShoppingCartButton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, ArrowRight, Target, Gift } from 'lucide-react';
+import Link from 'next/link';
 
 const CATEGORIES: { value: ProductCategory | 'all'; label: string }[] = [
   { value: 'all', label: 'All Products' },
@@ -36,11 +37,26 @@ export default function ShopPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'all'>('all');
   const [sortBy, setSortBy] = useState('newest');
+  const [hasLegacyPoints, setHasLegacyPoints] = useState(false);
 
-  // Load products
+  // Load products and check for legacy points
   useEffect(() => {
     loadProducts();
-  }, []);
+    if (user) {
+      checkLegacyPoints();
+    }
+  }, [user]);
+
+  const checkLegacyPoints = async () => {
+    if (!user) return;
+    try {
+      const userData = await getUser(user.uid);
+      // Use 'points' field (same as Leaderboard) for legacy points check
+      setHasLegacyPoints((userData?.points || 0) > 0 && !(userData as any)?.pointsConverted);
+    } catch (error) {
+      console.error('Error checking legacy points:', error);
+    }
+  };
 
   // Filter and sort products
   useEffect(() => {
@@ -104,10 +120,72 @@ export default function ShopPage() {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              {user && <PointsBalanceWidget />}
+              {user && <StoreCreditBalanceWidget />}
+              {hasLegacyPoints && (
+                <Link href="/convert-points">
+                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium gap-2">
+                    <ArrowRight className="h-4 w-4" />
+                    Convert Points
+                  </Button>
+                </Link>
+              )}
               <ShoppingCartButton />
             </div>
           </div>
+
+          {/* Convert Points Banner */}
+          {hasLegacyPoints && (
+            <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded-full">
+                    <ArrowRight className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">
+                      You have legacy points!
+                    </h3>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                      Convert your points to store credit for easier shopping
+                    </p>
+                  </div>
+                </div>
+                <Link href="/convert-points">
+                  <Button variant="outline" className="border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100 dark:hover:bg-yellow-900/30">
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                    Convert Now
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Earn Store Credit Banner */}
+          {user && (
+            <div className="bg-gradient-to-r from-primary/10 to-purple-500/10 border border-primary/20 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/20 p-2 rounded-full">
+                    <Gift className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">
+                      Earn Free Store Credit!
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Complete quests to earn store credit for your purchases
+                    </p>
+                  </div>
+                </div>
+                <Link href="/quests">
+                  <Button className="gap-2">
+                    <Target className="h-4 w-4" />
+                    View Quests
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-4">
@@ -203,7 +281,7 @@ export default function ShopPage() {
                 </p>
               </div>
               <Button variant="outline" asChild>
-                <a href="/leaderboard">View Points</a>
+                <Link href="/convert-points">Earn More</Link>
               </Button>
             </div>
           </div>
@@ -212,4 +290,3 @@ export default function ShopPage() {
     </div>
   );
 }
-

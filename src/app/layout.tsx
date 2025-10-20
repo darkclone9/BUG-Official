@@ -5,6 +5,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
+import CollapsibleSidebar from "@/components/CollapsibleSidebar";
+import FeedbackButton from "@/components/FeedbackButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,7 +41,9 @@ export default function RootLayout({
         >
           <AuthProvider>
             <CartProvider>
+              <CollapsibleSidebar />
               {children}
+              <FeedbackButton variant="floating" showBubble={false} />
               <Toaster />
             </CartProvider>
           </AuthProvider>

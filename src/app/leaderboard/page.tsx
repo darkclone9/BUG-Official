@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trophy, Search, Crown, Medal, Award, TrendingUp, Users, Star } from 'lucide-react';
 import { getLeaderboard, getUserStats, getEloLeaderboard, getLatestPointsReason } from '@/lib/database';
 import { LeaderboardEntry, GameType } from '@/types/types';
+import Link from 'next/link';
 
 export default function LeaderboardPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -113,7 +113,6 @@ export default function LeaderboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -128,8 +127,6 @@ export default function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -264,47 +261,53 @@ export default function LeaderboardPage() {
           <CardContent>
             <div className="space-y-4">
               {filteredData.map((player) => (
-                <div key={player.uid} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center justify-center w-12 h-12">
-                      {getRankIcon(player.rank)}
-                    </div>
-
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={player.avatar} alt={player.displayName} />
-                      <AvatarFallback>
-                        {player.displayName.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-
-                    <div>
-                      <h3 className="font-semibold text-lg">{player.displayName}</h3>
-                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                        <span className="flex items-center">
-                          <Trophy className="h-4 w-4 mr-1" />
-                          {rankingType === 'elo' ? `${player.eloRating || 1200} ELO` : `${getPointsForTimeFilter(player)} points`}
-                        </span>
+                <Link
+                  key={player.uid}
+                  href={`/profile/${player.uid}`}
+                  className="block"
+                >
+                  <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center justify-center w-12 h-12">
+                        {getRankIcon(player.rank)}
                       </div>
-                      {player.latestPointsReason && (
-                        <div className="mt-1 text-xs text-muted-foreground italic">
-                          Latest: {player.latestPointsReason}
-                        </div>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">
-                      {rankingType === 'elo' ? (player.eloRating || 1200) : getPointsForTimeFilter(player).toLocaleString()}
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={(player as any).avatarUrl || player.avatar} alt={player.displayName} />
+                        <AvatarFallback>
+                          {player.displayName.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div>
+                        <h3 className="font-semibold text-lg hover:text-primary transition-colors">{player.displayName}</h3>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <span className="flex items-center">
+                            <Trophy className="h-4 w-4 mr-1" />
+                            {rankingType === 'elo' ? `${player.eloRating || 1200} ELO` : `${getPointsForTimeFilter(player)} points`}
+                          </span>
+                        </div>
+                        {player.latestPointsReason && (
+                          <div className="mt-1 text-xs text-muted-foreground italic">
+                            Latest: {player.latestPointsReason}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {rankingType === 'elo' ? 'ELO rating' : `${timeFilter === 'all' ? 'total' : timeFilter === 'weekly' ? 'this week' : 'this month'} points`}
-                    </div>
-                    <div className="mt-2">
-                      {getRankBadge(player.rank)}
+
+                    <div className="text-right">
+                      <div className="text-2xl font-bold">
+                        {rankingType === 'elo' ? (player.eloRating || 1200) : getPointsForTimeFilter(player).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {rankingType === 'elo' ? 'ELO rating' : `${timeFilter === 'all' ? 'total' : timeFilter === 'weekly' ? 'this week' : 'this month'} points`}
+                      </div>
+                      <div className="mt-2">
+                        {getRankBadge(player.rank)}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
 

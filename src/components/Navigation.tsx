@@ -14,14 +14,22 @@ import { useAuth } from '@/contexts/AuthContext';
 import { BarChart3, Bell, Edit, Gamepad2, LogOut, Menu, Search, Settings, ShoppingBag, Trophy, User, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import AnnouncementBar from './AnnouncementBar';
 import BroadcastBar from './BroadcastBar';
 import NotificationDropdown from './NotificationDropdown';
+import MessageNotificationDropdown from './MessageNotificationDropdown';
 import { ThemeToggle } from './ThemeToggle';
 
 export default function Navigation() {
   const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Only show navigation on the landing page (/)
+  if (pathname !== '/') {
+    return null;
+  }
 
   return (
     <>
@@ -78,7 +86,10 @@ export default function Navigation() {
             <div className="hidden md:flex items-center space-x-2">
               {user ? (
                 <>
-                  {/* Notifications */}
+                  {/* Message Notifications */}
+                  <MessageNotificationDropdown />
+
+                  {/* Announcements Notifications */}
                   <NotificationDropdown />
 
                   <Link href="/dashboard">
@@ -101,7 +112,7 @@ export default function Navigation() {
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.avatar} alt={user.displayName} />
+                          <AvatarImage src={user.avatarUrl || user.avatar} alt={user.displayName} />
                           <AvatarFallback>
                             {user.displayName.charAt(0).toUpperCase()}
                           </AvatarFallback>

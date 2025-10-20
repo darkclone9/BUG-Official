@@ -20,19 +20,37 @@ import {
     PointsMultiplier,
     ShopProduct,
     ShopOrder,
-    PickupQueueItem
+    PickupQueueItem,
+    UserProfile,
+    Achievement,
+    Sticker,
+    Conversation,
+    Message,
+    MessageNotification,
+    TournamentMessage,
+    WelcomePointsPromotion,
+    WelcomePointsRecipient,
+    StoreCreditSettings,
+    StoreCreditTransaction,
+    StoreCreditMultiplier,
+    WelcomeCreditPromotion,
+    WelcomeCreditRecipient,
+    Quest,
+    UserQuest
 } from '@/types/types';
 import { BracketMatch, TournamentBracket, BracketGenerationOptions } from '@/types/bracket';
 import { BracketGenerator } from './bracketGenerator';
 import {
+    addDoc,
     arrayRemove,
     arrayUnion,
     collection,
+    deleteDoc,
     doc,
     getDoc,
     getDocs,
     increment,
-    limit,
+    limit as limitQuery,
     orderBy,
     query,
     setDoc,
@@ -76,18 +94,6 @@ export const updateUser = async (uid: string, updates: Partial<User>): Promise<v
   }
 
   await updateDoc(docRef, updateData);
-};
-
-export const updateUserProfile = async (uid: string, profileData: {
-  displayName?: string;
-  email?: string;
-  avatar?: string;
-}): Promise<void> => {
-  const docRef = doc(db, 'users', uid);
-  await updateDoc(docRef, {
-    ...profileData,
-    updatedAt: Timestamp.now()
-  });
 };
 
 export const updateUserRoles = async (uid: string, roles: UserRole[]): Promise<void> => {
@@ -314,7 +320,7 @@ export const getLeaderboard = async (gameType?: GameType, timeframe: 'all' | 'we
   const usersQuery = query(
     collection(db, 'users'),
     orderBy(pointsField, 'desc'),
-    limit(100)
+    limitQuery(100)
   );
 
   const snapshot = await getDocs(usersQuery);
@@ -322,7 +328,7 @@ export const getLeaderboard = async (gameType?: GameType, timeframe: 'all' | 'we
   return snapshot.docs.map((doc, index) => ({
     uid: doc.id,
     displayName: doc.data().displayName,
-    avatar: doc.data().avatar,
+    avatar: doc.data().avatarUrl || doc.data().avatar,
     points: doc.data().points,
     weeklyPoints: doc.data().weeklyPoints,
     monthlyPoints: doc.data().monthlyPoints,
@@ -542,7 +548,7 @@ export const searchUsers = async (searchTerm: string, limit_count: number = 10):
   const usersQuery = query(
     collection(db, 'users'),
     orderBy('displayName'),
-    limit(limit_count)
+    limitQuery(limit_count)
   );
 
   const snapshot = await getDocs(usersQuery);
@@ -558,7 +564,7 @@ export const searchUsers = async (searchTerm: string, limit_count: number = 10):
       title: doc.data().displayName,
       subtitle: doc.data().email,
       description: `${doc.data().points} points`,
-      avatar: doc.data().avatar,
+      avatar: doc.data().avatarUrl || doc.data().avatar,
       metadata: {
         points: doc.data().points,
         role: doc.data().role,
@@ -570,7 +576,7 @@ export const searchTournaments = async (searchTerm: string, limit_count: number 
   const tournamentsQuery = query(
     collection(db, 'tournaments'),
     orderBy('name'),
-    limit(limit_count)
+    limitQuery(limit_count)
   );
 
   const snapshot = await getDocs(tournamentsQuery);
@@ -716,7 +722,7 @@ export const getUserRecentActivity = async (userId: string): Promise<{
     collection(db, 'points_transactions'),
     where('userId', '==', userId),
     orderBy('timestamp', 'desc'),
-    limit(10)
+    limitQuery(10)
   );
   const snapshot = await getDocs(transactionsQuery);
 
@@ -739,7 +745,7 @@ export const getLatestPointsReason = async (userId: string): Promise<string | nu
     collection(db, 'points_transactions'),
     where('userId', '==', userId),
     orderBy('timestamp', 'desc'),
-    limit(1)
+    limitQuery(1)
   );
   const snapshot = await getDocs(transactionsQuery);
 
@@ -830,7 +836,7 @@ export const getEloLeaderboard = async (gameType?: GameType): Promise<Leaderboar
     const statsQuery = query(
       collection(db, 'user_stats'),
       orderBy(`gameStats.${gameType}.eloRating`, 'desc'),
-      limit(100)
+      limitQuery(100)
     );
 
     const statsSnapshot = await getDocs(statsQuery);
@@ -847,7 +853,7 @@ export const getEloLeaderboard = async (gameType?: GameType): Promise<Leaderboar
           leaderboard.push({
             uid: statDoc.id,
             displayName: userData.displayName,
-            avatar: userData.avatar,
+            avatar: userData.avatarUrl || userData.avatar,
             points: userData.points,
             weeklyPoints: userData.weeklyPoints,
             monthlyPoints: userData.monthlyPoints,
@@ -870,7 +876,7 @@ export const getEloLeaderboard = async (gameType?: GameType): Promise<Leaderboar
     usersQuery = query(
       collection(db, 'users'),
       orderBy('eloRating', 'desc'),
-      limit(100)
+      limitQuery(100)
     );
 
     const snapshot = await getDocs(usersQuery);
@@ -878,7 +884,7 @@ export const getEloLeaderboard = async (gameType?: GameType): Promise<Leaderboar
     return snapshot.docs.map((doc, index) => ({
       uid: doc.id,
       displayName: doc.data().displayName,
-      avatar: doc.data().avatar,
+      avatar: doc.data().avatarUrl || doc.data().avatar,
       points: doc.data().points,
       weeklyPoints: doc.data().weeklyPoints,
       monthlyPoints: doc.data().monthlyPoints,
@@ -1096,31 +1102,24 @@ export const createGameGenre = async (genre: Omit<GameGenre, 'id' | 'createdAt' 
 };
 
 export const getGameGenres = async (activeOnly: boolean = false): Promise<GameGenre[]> => {
-  let genresQuery;
-
-  if (activeOnly) {
-    genresQuery = query(
-      collection(db, 'game_genres'),
-      where('isActive', '==', true),
-      orderBy('displayOrder')
-    );
-  } else {
-    // For all genres, just get all documents and sort on client side
-    genresQuery = query(collection(db, 'game_genres'));
-  }
+  // Always get all documents and filter/sort on client side to avoid composite index requirement
+  const genresQuery = query(collection(db, 'game_genres'));
 
   const snapshot = await getDocs(genresQuery);
 
-  const genres = snapshot.docs.map(doc => ({
+  let genres = snapshot.docs.map(doc => ({
     ...doc.data(),
     createdAt: doc.data().createdAt.toDate(),
     updatedAt: doc.data().updatedAt.toDate(),
   })) as GameGenre[];
 
-  // Sort on client side if not using server-side ordering
-  if (!activeOnly) {
-    genres.sort((a, b) => a.displayOrder - b.displayOrder);
+  // Filter active genres if requested
+  if (activeOnly) {
+    genres = genres.filter(g => g.isActive === true);
   }
+
+  // Sort by displayOrder
+  genres.sort((a, b) => a.displayOrder - b.displayOrder);
 
   return genres;
 };
@@ -1228,18 +1227,84 @@ export const createTournamentBracket = async (
     updatedAt: new Date(),
   };
 
-  // Save bracket to Firestore
-  await setDoc(doc(db, 'tournament_brackets', bracket.id), {
-    ...bracket,
-    createdAt: Timestamp.fromDate(bracket.createdAt),
-    updatedAt: Timestamp.fromDate(bracket.updatedAt),
+  // Prepare data for Firestore (remove undefined values)
+  const firestoreData: Record<string, unknown> = {
+    id: bracket.id,
+    tournamentId: bracket.tournamentId,
+    format: bracket.format,
     matches: bracket.matches.map(match => ({
       ...match,
       createdAt: Timestamp.fromDate(match.createdAt),
       completedAt: match.completedAt ? Timestamp.fromDate(match.completedAt) : null,
       scheduledTime: match.scheduledTime ? Timestamp.fromDate(match.scheduledTime) : null,
+      // Remove undefined fields from matches
+      winnerId: match.winnerId || null,
+      loserId: match.loserId || null,
+      score: match.score || null,
+      nextMatchId: match.nextMatchId || null,
+      nextLoserMatchId: match.nextLoserMatchId || null,
+      player1Name: match.player1Name || null,
+      player2Name: match.player2Name || null,
+      location: match.location || null,
     })),
-  });
+    winnersMatches: bracket.winnersMatches.map(match => ({
+      ...match,
+      createdAt: Timestamp.fromDate(match.createdAt),
+      completedAt: match.completedAt ? Timestamp.fromDate(match.completedAt) : null,
+      scheduledTime: match.scheduledTime ? Timestamp.fromDate(match.scheduledTime) : null,
+      winnerId: match.winnerId || null,
+      loserId: match.loserId || null,
+      score: match.score || null,
+      nextMatchId: match.nextMatchId || null,
+      nextLoserMatchId: match.nextLoserMatchId || null,
+      player1Name: match.player1Name || null,
+      player2Name: match.player2Name || null,
+      location: match.location || null,
+    })),
+    totalRounds: bracket.totalRounds,
+    currentRound: bracket.currentRound,
+    isComplete: bracket.isComplete,
+    createdAt: Timestamp.fromDate(bracket.createdAt),
+    updatedAt: Timestamp.fromDate(bracket.updatedAt),
+  };
+
+  // Only add losersMatches and grandFinalMatch for double elimination
+  if (format === 'double_elimination' && bracket.losersMatches) {
+    firestoreData.losersMatches = bracket.losersMatches.map(match => ({
+      ...match,
+      createdAt: Timestamp.fromDate(match.createdAt),
+      completedAt: match.completedAt ? Timestamp.fromDate(match.completedAt) : null,
+      scheduledTime: match.scheduledTime ? Timestamp.fromDate(match.scheduledTime) : null,
+      winnerId: match.winnerId || null,
+      loserId: match.loserId || null,
+      score: match.score || null,
+      nextMatchId: match.nextMatchId || null,
+      nextLoserMatchId: match.nextLoserMatchId || null,
+      player1Name: match.player1Name || null,
+      player2Name: match.player2Name || null,
+      location: match.location || null,
+    }));
+  }
+
+  if (format === 'double_elimination' && bracket.grandFinalMatch) {
+    firestoreData.grandFinalMatch = {
+      ...bracket.grandFinalMatch,
+      createdAt: Timestamp.fromDate(bracket.grandFinalMatch.createdAt),
+      completedAt: bracket.grandFinalMatch.completedAt ? Timestamp.fromDate(bracket.grandFinalMatch.completedAt) : null,
+      scheduledTime: bracket.grandFinalMatch.scheduledTime ? Timestamp.fromDate(bracket.grandFinalMatch.scheduledTime) : null,
+      winnerId: bracket.grandFinalMatch.winnerId || null,
+      loserId: bracket.grandFinalMatch.loserId || null,
+      score: bracket.grandFinalMatch.score || null,
+      nextMatchId: bracket.grandFinalMatch.nextMatchId || null,
+      nextLoserMatchId: bracket.grandFinalMatch.nextLoserMatchId || null,
+      player1Name: bracket.grandFinalMatch.player1Name || null,
+      player2Name: bracket.grandFinalMatch.player2Name || null,
+      location: bracket.grandFinalMatch.location || null,
+    };
+  }
+
+  // Save bracket to Firestore
+  await setDoc(doc(db, 'tournament_brackets', bracket.id), firestoreData);
 
   return bracket;
 };
@@ -1250,16 +1315,32 @@ export const getTournamentBracket = async (tournamentId: string): Promise<Tourna
   if (!bracketDoc.exists()) return null;
 
   const data = bracketDoc.data();
+
+  // Helper function to convert match timestamps
+  const convertMatchTimestamps = (match: Record<string, unknown>) => ({
+    ...match,
+    createdAt: (match.createdAt as Timestamp).toDate(),
+    completedAt: match.completedAt ? (match.completedAt as Timestamp).toDate() : undefined,
+    scheduledTime: match.scheduledTime ? (match.scheduledTime as Timestamp).toDate() : undefined,
+  });
+
+  // Convert all matches
+  const convertedMatches = data.matches.map(convertMatchTimestamps);
+
+  // If winnersMatches is not set, derive it from matches array
+  const winnersMatches = data.winnersMatches?.map(convertMatchTimestamps) ||
+                         convertedMatches.filter((m: any) => m.bracket === 'winners');
+
   return {
     ...data,
     createdAt: data.createdAt.toDate(),
     updatedAt: data.updatedAt.toDate(),
-    matches: data.matches.map((match: Record<string, unknown>) => ({
-      ...match,
-      createdAt: (match.createdAt as Timestamp).toDate(),
-      completedAt: match.completedAt ? (match.completedAt as Timestamp).toDate() : undefined,
-      scheduledTime: match.scheduledTime ? (match.scheduledTime as Timestamp).toDate() : undefined,
-    })),
+    matches: convertedMatches,
+    winnersMatches,
+    losersMatches: data.losersMatches?.map(convertMatchTimestamps) ||
+                   convertedMatches.filter((m: any) => m.bracket === 'losers'),
+    grandFinalMatch: data.grandFinalMatch ? convertMatchTimestamps(data.grandFinalMatch) :
+                     convertedMatches.find((m: any) => m.bracket === 'grand_final'),
   } as TournamentBracket;
 };
 
@@ -1417,7 +1498,7 @@ export const getUpcomingPublishedEvents = async (limitCount?: number): Promise<C
     where('status', '==', 'published'),
     where('date', '>=', Timestamp.fromDate(now)),
     orderBy('date', 'asc'),
-    ...(limitCount ? [limit(limitCount)] : [])
+    ...(limitCount ? [limitQuery(limitCount)] : [])
   );
   const snapshot = await getDocs(eventsQuery);
 
@@ -1588,7 +1669,7 @@ export const getAllEventNotifications = async (): Promise<ClubEventNotification[
   const notificationsQuery = query(
     collection(db, 'event_notifications'),
     orderBy('sentAt', 'desc'),
-    limit(100)
+    limitQuery(100)
   );
   const snapshot = await getDocs(notificationsQuery);
 
@@ -1878,7 +1959,7 @@ export const getUserPointsHistory = async (
     collection(db, 'points_transactions'),
     where('userId', '==', userId),
     orderBy('timestamp', 'desc'),
-    limit(limitCount)
+    limitQuery(limitCount)
   );
 
   const snapshot = await getDocs(transactionsQuery);
@@ -2146,6 +2227,634 @@ export const checkMonthlyEarningCap = async (
 };
 
 // ============================================================================
+// WELCOME POINTS PROMOTION MANAGEMENT
+// ============================================================================
+
+/**
+ * Create a new welcome points promotion
+ */
+export const createWelcomePointsPromotion = async (
+  promotion: Omit<WelcomePointsPromotion, 'id' | 'createdAt' | 'updatedAt' | 'currentCount'>
+): Promise<string> => {
+  const promotionId = `welcome_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  await setDoc(doc(db, 'welcome_points_promotions', promotionId), {
+    ...promotion,
+    id: promotionId,
+    currentCount: 0,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+    startDate: Timestamp.fromDate(promotion.startDate),
+    endDate: promotion.endDate ? Timestamp.fromDate(promotion.endDate) : null,
+  });
+
+  return promotionId;
+};
+
+/**
+ * Get active welcome points promotion
+ */
+export const getActiveWelcomePointsPromotion = async (): Promise<WelcomePointsPromotion | null> => {
+  const now = new Date();
+  const promotionsQuery = query(
+    collection(db, 'welcome_points_promotions'),
+    where('isActive', '==', true),
+    where('startDate', '<=', Timestamp.fromDate(now))
+  );
+
+  const snapshot = await getDocs(promotionsQuery);
+
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    const promotion: WelcomePointsPromotion = {
+      ...data,
+      id: doc.id,
+      startDate: data.startDate.toDate(),
+      endDate: data.endDate?.toDate(),
+      createdAt: data.createdAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+    } as WelcomePointsPromotion;
+
+    // Check if promotion is still valid
+    if (promotion.currentCount < promotion.maxUsers) {
+      if (!promotion.endDate || promotion.endDate > now) {
+        return promotion;
+      }
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Award welcome points to a new user
+ * Returns true if points were awarded, false if promotion is full or inactive
+ */
+export const awardWelcomePoints = async (
+  userId: string,
+  userEmail: string,
+  userDisplayName: string
+): Promise<{ awarded: boolean; points: number; promotionId?: string; recipientNumber?: number }> => {
+  // Check if user already received welcome points
+  const existingRecipientQuery = query(
+    collection(db, 'welcome_points_recipients'),
+    where('userId', '==', userId)
+  );
+  const existingSnapshot = await getDocs(existingRecipientQuery);
+
+  if (!existingSnapshot.empty) {
+    return { awarded: false, points: 0 };
+  }
+
+  // Get active promotion
+  const promotion = await getActiveWelcomePointsPromotion();
+
+  if (!promotion) {
+    return { awarded: false, points: 0 };
+  }
+
+  // Use transaction to ensure atomic update
+  const batch = writeBatch(db);
+
+  // Increment promotion count
+  const promotionRef = doc(db, 'welcome_points_promotions', promotion.id);
+  const recipientNumber = promotion.currentCount + 1;
+
+  batch.update(promotionRef, {
+    currentCount: increment(1),
+    updatedAt: Timestamp.now(),
+  });
+
+  // Create recipient record
+  const recipientId = `recipient_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const recipientRef = doc(db, 'welcome_points_recipients', recipientId);
+  batch.set(recipientRef, {
+    id: recipientId,
+    promotionId: promotion.id,
+    userId,
+    userEmail,
+    userDisplayName,
+    pointsAwarded: promotion.pointsAmount,
+    awardedAt: Timestamp.now(),
+    recipientNumber,
+  });
+
+  // Award points to user
+  const userRef = doc(db, 'users', userId);
+  batch.update(userRef, {
+    points: increment(promotion.pointsAmount),
+  });
+
+  // Create points transaction record
+  const transactionId = `pts_welcome_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const transactionRef = doc(db, 'points_transactions', transactionId);
+  batch.set(transactionRef, {
+    id: transactionId,
+    userId,
+    amount: promotion.pointsAmount,
+    reason: `Welcome bonus: ${promotion.name}`,
+    timestamp: Timestamp.now(),
+    awardedBy: 'system',
+    category: 'adjustment',
+    approvalStatus: 'approved',
+    approvedBy: 'system',
+    approvedAt: Timestamp.now(),
+  });
+
+  await batch.commit();
+
+  return {
+    awarded: true,
+    points: promotion.pointsAmount,
+    promotionId: promotion.id,
+    recipientNumber,
+  };
+};
+
+/**
+ * Get all welcome points promotions
+ */
+export const getAllWelcomePointsPromotions = async (): Promise<WelcomePointsPromotion[]> => {
+  const promotionsQuery = query(
+    collection(db, 'welcome_points_promotions'),
+    orderBy('createdAt', 'desc')
+  );
+
+  const snapshot = await getDocs(promotionsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      id: doc.id,
+      startDate: data.startDate.toDate(),
+      endDate: data.endDate?.toDate(),
+      createdAt: data.createdAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+    } as WelcomePointsPromotion;
+  });
+};
+
+/**
+ * Update welcome points promotion
+ */
+export const updateWelcomePointsPromotion = async (
+  promotionId: string,
+  updates: Partial<WelcomePointsPromotion>
+): Promise<void> => {
+  const updateData: Record<string, unknown> = { ...updates };
+
+  if (updates.startDate) {
+    updateData.startDate = Timestamp.fromDate(updates.startDate);
+  }
+  if (updates.endDate) {
+    updateData.endDate = Timestamp.fromDate(updates.endDate);
+  }
+
+  updateData.updatedAt = Timestamp.now();
+
+  await updateDoc(doc(db, 'welcome_points_promotions', promotionId), updateData);
+};
+
+/**
+ * Deactivate welcome points promotion
+ */
+export const deactivateWelcomePointsPromotion = async (promotionId: string): Promise<void> => {
+  await updateDoc(doc(db, 'welcome_points_promotions', promotionId), {
+    isActive: false,
+    updatedAt: Timestamp.now(),
+  });
+};
+
+/**
+ * Get recipients of a welcome points promotion
+ */
+export const getWelcomePointsRecipients = async (
+  promotionId: string
+): Promise<WelcomePointsRecipient[]> => {
+  const recipientsQuery = query(
+    collection(db, 'welcome_points_recipients'),
+    where('promotionId', '==', promotionId),
+    orderBy('awardedAt', 'asc')
+  );
+
+  const snapshot = await getDocs(recipientsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      id: doc.id,
+      awardedAt: data.awardedAt.toDate(),
+    } as WelcomePointsRecipient;
+  });
+};
+
+// ============================================================================
+// STORE CREDIT SYSTEM
+// ============================================================================
+
+/**
+ * Get or create store credit settings
+ * Returns default settings if none exist
+ */
+export const getStoreCreditSettings = async (): Promise<StoreCreditSettings> => {
+  const settingsDoc = await getDoc(doc(db, 'store_credit_settings', 'default'));
+
+  if (!settingsDoc.exists()) {
+    // Create default settings
+    const defaultSettings: StoreCreditSettings = {
+      id: 'default',
+      perItemDiscountCap: 50,           // 50% max per item
+      perOrderDiscountCap: 3000,        // $30.00 max per order
+      monthlyEarningCap: 5000,          // $50.00 max per month
+      earningValues: {
+        eventAttendance: 100,           // $1.00 for event attendance
+        volunteerWork: 250,             // $2.50 for volunteer work
+        eventHosting: 500,              // $5.00 for event hosting
+        contributionMin: 50,            // $0.50 minimum
+        contributionMax: 150,           // $1.50 maximum
+      },
+      approvedEmailDomains: ['.edu', 'belhaven.edu'],
+      approvedEmails: [],
+      updatedAt: new Date(),
+      updatedBy: 'system',
+    };
+
+    await setDoc(doc(db, 'store_credit_settings', 'default'), {
+      ...defaultSettings,
+      updatedAt: Timestamp.now(),
+    });
+
+    return defaultSettings;
+  }
+
+  const data = settingsDoc.data();
+  return {
+    ...data,
+    updatedAt: data.updatedAt.toDate(),
+  } as StoreCreditSettings;
+};
+
+/**
+ * Update store credit settings
+ */
+export const updateStoreCreditSettings = async (
+  settings: Partial<StoreCreditSettings>,
+  updatedBy: string
+): Promise<void> => {
+  await updateDoc(doc(db, 'store_credit_settings', 'default'), {
+    ...settings,
+    updatedAt: Timestamp.now(),
+    updatedBy,
+  });
+};
+
+/**
+ * Create a store credit transaction
+ */
+export const createStoreCreditTransaction = async (
+  transaction: Omit<StoreCreditTransaction, 'id' | 'timestamp'>
+): Promise<string> => {
+  const transactionId = `credit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  await setDoc(doc(db, 'store_credit_transactions', transactionId), {
+    ...transaction,
+    id: transactionId,
+    timestamp: Timestamp.now(),
+  });
+
+  // Update user's store credit balance
+  const userRef = doc(db, 'users', transaction.userId);
+  const userDoc = await getDoc(userRef);
+
+  if (userDoc.exists()) {
+    const userData = userDoc.data();
+    const currentBalance = userData.storeCreditBalance || 0;
+    const currentEarned = userData.storeCreditEarned || 0;
+    const currentSpent = userData.storeCreditSpent || 0;
+    const monthlyEarned = userData.monthlyStoreCreditEarned || 0;
+
+    const updates: any = {
+      storeCreditBalance: currentBalance + transaction.amountCents,
+    };
+
+    // Track earned vs spent
+    if (transaction.amountCents > 0) {
+      updates.storeCreditEarned = currentEarned + transaction.amountCents;
+      updates.monthlyStoreCreditEarned = monthlyEarned + transaction.amountCents;
+    } else {
+      updates.storeCreditSpent = currentSpent + Math.abs(transaction.amountCents);
+    }
+
+    await updateDoc(userRef, updates);
+  }
+
+  return transactionId;
+};
+
+/**
+ * Get user's store credit transactions
+ */
+export const getStoreCreditTransactions = async (
+  userId: string,
+  limit: number = 50
+): Promise<StoreCreditTransaction[]> => {
+  const transactionsQuery = query(
+    collection(db, 'store_credit_transactions'),
+    where('userId', '==', userId),
+    orderBy('timestamp', 'desc'),
+    limitQuery(limit)
+  );
+
+  const snapshot = await getDocs(transactionsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      id: doc.id,
+      timestamp: data.timestamp.toDate(),
+      approvedAt: data.approvedAt ? data.approvedAt.toDate() : undefined,
+    } as StoreCreditTransaction;
+  });
+};
+
+/**
+ * Get user's current store credit balance
+ */
+export const getUserStoreCreditBalance = async (userId: string): Promise<number> => {
+  const userDoc = await getDoc(doc(db, 'users', userId));
+
+  if (!userDoc.exists()) {
+    return 0;
+  }
+
+  const userData = userDoc.data();
+  return userData.storeCreditBalance || 0;
+};
+
+/**
+ * Convert user's points to store credit
+ * Conversion rate: 200 points = $1.00 store credit (100 cents)
+ */
+export const convertPointsToStoreCredit = async (userId: string): Promise<{
+  success: boolean;
+  pointsConverted: number;
+  creditEarned: number;
+  message: string;
+}> => {
+  const userRef = doc(db, 'users', userId);
+  const userDoc = await getDoc(userRef);
+
+  if (!userDoc.exists()) {
+    return {
+      success: false,
+      pointsConverted: 0,
+      creditEarned: 0,
+      message: 'User not found',
+    };
+  }
+
+  const userData = userDoc.data();
+  // Use 'points' field (same as Leaderboard) for legacy points conversion
+  const pointsBalance = userData.points || 0;
+
+  // Check if user has already converted
+  if (userData.pointsConverted === true) {
+    return {
+      success: false,
+      pointsConverted: 0,
+      creditEarned: 0,
+      message: 'Points have already been converted to store credit',
+    };
+  }
+
+  // Check if user has any points to convert
+  if (pointsBalance === 0) {
+    return {
+      success: false,
+      pointsConverted: 0,
+      creditEarned: 0,
+      message: 'No points available to convert',
+    };
+  }
+
+  // Calculate store credit (200 points = $1.00 = 100 cents)
+  const creditEarnedCents = Math.floor((pointsBalance / 200) * 100);
+
+  // Update user document
+  await updateDoc(userRef, {
+    storeCreditBalance: increment(creditEarnedCents),
+    storeCreditEarned: increment(creditEarnedCents),
+    points: 0, // Zero out legacy points
+    weeklyPoints: 0, // Zero out weekly points
+    monthlyPoints: 0, // Zero out monthly points
+    pointsConverted: true, // Mark as converted
+    pointsBalance_legacy: pointsBalance, // Save original points for reference
+  });
+
+  // Create transaction record
+  await addDoc(collection(db, 'store_credit_transactions'), {
+    userId,
+    amountCents: creditEarnedCents,
+    reason: `Converted ${pointsBalance} points to store credit`,
+    category: 'migration',
+    timestamp: Timestamp.now(),
+    approvalStatus: 'approved',
+  });
+
+  return {
+    success: true,
+    pointsConverted: pointsBalance,
+    creditEarned: creditEarnedCents,
+    message: `Successfully converted ${pointsBalance} points to $${(creditEarnedCents / 100).toFixed(2)} store credit`,
+  };
+};
+
+/**
+ * Create a store credit multiplier campaign
+ */
+export const createStoreCreditMultiplier = async (
+  multiplier: Omit<StoreCreditMultiplier, 'id' | 'createdAt'>
+): Promise<string> => {
+  const multiplierId = `multiplier_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  await setDoc(doc(db, 'store_credit_multipliers', multiplierId), {
+    ...multiplier,
+    id: multiplierId,
+    createdAt: Timestamp.now(),
+    startDate: Timestamp.fromDate(multiplier.startDate),
+    endDate: Timestamp.fromDate(multiplier.endDate),
+  });
+
+  return multiplierId;
+};
+
+/**
+ * Get active store credit multipliers
+ */
+export const getActiveStoreCreditMultipliers = async (): Promise<StoreCreditMultiplier[]> => {
+  const now = Timestamp.now();
+
+  const multipliersQuery = query(
+    collection(db, 'store_credit_multipliers'),
+    where('isActive', '==', true),
+    where('startDate', '<=', now),
+    where('endDate', '>=', now)
+  );
+
+  const snapshot = await getDocs(multipliersQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      id: doc.id,
+      createdAt: data.createdAt.toDate(),
+      startDate: data.startDate.toDate(),
+      endDate: data.endDate.toDate(),
+    } as StoreCreditMultiplier;
+  });
+};
+
+/**
+ * Get all store credit multipliers (for admin)
+ */
+export const getAllStoreCreditMultipliers = async (): Promise<StoreCreditMultiplier[]> => {
+  const multipliersQuery = query(
+    collection(db, 'store_credit_multipliers'),
+    orderBy('createdAt', 'desc')
+  );
+
+  const snapshot = await getDocs(multipliersQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      id: doc.id,
+      createdAt: data.createdAt.toDate(),
+      startDate: data.startDate.toDate(),
+      endDate: data.endDate.toDate(),
+    } as StoreCreditMultiplier;
+  });
+};
+
+/**
+ * Update store credit multiplier
+ */
+export const updateStoreCreditMultiplier = async (
+  id: string,
+  updates: Partial<StoreCreditMultiplier>
+): Promise<void> => {
+  const updateData: any = { ...updates };
+
+  if (updates.startDate) {
+    updateData.startDate = Timestamp.fromDate(updates.startDate);
+  }
+  if (updates.endDate) {
+    updateData.endDate = Timestamp.fromDate(updates.endDate);
+  }
+
+  await updateDoc(doc(db, 'store_credit_multipliers', id), updateData);
+};
+
+/**
+ * Delete store credit multiplier
+ */
+export const deleteStoreCreditMultiplier = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, 'store_credit_multipliers', id));
+};
+
+/**
+ * Get pending store credit transactions for approval
+ */
+export const getPendingStoreCreditTransactions = async (): Promise<StoreCreditTransaction[]> => {
+  const transactionsQuery = query(
+    collection(db, 'store_credit_transactions'),
+    where('approvalStatus', '==', 'pending'),
+    orderBy('timestamp', 'desc')
+  );
+
+  const snapshot = await getDocs(transactionsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      timestamp: data.timestamp.toDate(),
+      approvedAt: data.approvedAt ? data.approvedAt.toDate() : undefined,
+    } as StoreCreditTransaction;
+  });
+};
+
+/**
+ * Approve a store credit transaction
+ */
+export const approveStoreCreditTransaction = async (
+  transactionId: string,
+  adminId: string
+): Promise<void> => {
+  const transactionRef = doc(db, 'store_credit_transactions', transactionId);
+  const transactionDoc = await getDoc(transactionRef);
+
+  if (!transactionDoc.exists()) {
+    throw new Error('Transaction not found');
+  }
+
+  const transactionData = transactionDoc.data() as StoreCreditTransaction;
+
+  // Update transaction status
+  await updateDoc(transactionRef, {
+    approvalStatus: 'approved',
+    approvedBy: adminId,
+    approvedAt: Timestamp.now(),
+  });
+
+  // Update user's store credit balance
+  const userRef = doc(db, 'users', transactionData.userId);
+  const userDoc = await getDoc(userRef);
+
+  if (userDoc.exists()) {
+    const userData = userDoc.data();
+    const currentBalance = userData.storeCreditBalance || 0;
+    const currentEarned = userData.storeCreditEarned || 0;
+    const monthlyEarned = userData.monthlyStoreCreditEarned || 0;
+
+    const updates: any = {
+      storeCreditBalance: currentBalance + transactionData.amountCents,
+    };
+
+    // Track earned (only for positive amounts)
+    if (transactionData.amountCents > 0) {
+      updates.storeCreditEarned = currentEarned + transactionData.amountCents;
+      updates.monthlyStoreCreditEarned = monthlyEarned + transactionData.amountCents;
+    }
+
+    await updateDoc(userRef, updates);
+  }
+};
+
+/**
+ * Deny a store credit transaction
+ */
+export const denyStoreCreditTransaction = async (
+  transactionId: string,
+  adminId: string,
+  reason: string
+): Promise<void> => {
+  const transactionRef = doc(db, 'store_credit_transactions', transactionId);
+
+  await updateDoc(transactionRef, {
+    approvalStatus: 'denied',
+    approvedBy: adminId,
+    approvedAt: Timestamp.now(),
+    deniedReason: reason,
+  });
+};
+
+// ============================================================================
 // SHOP PRODUCT MANAGEMENT
 // ============================================================================
 
@@ -2371,7 +3080,7 @@ export const getShopOrderByStripeSession = async (
   const ordersQuery = query(
     collection(db, 'shop_orders'),
     where('stripeSessionId', '==', stripeSessionId),
-    limit(1)
+    limitQuery(1)
   );
 
   const snapshot = await getDocs(ordersQuery);
@@ -2648,7 +3357,7 @@ export const getUserRoleHistory = async (userId: string): Promise<Array<{
     collection(db, 'role_change_logs'),
     where('userId', '==', userId),
     orderBy('timestamp', 'desc'),
-    limit(50)
+    limitQuery(50)
   );
 
   const snapshot = await getDocs(logsQuery);
@@ -2683,7 +3392,7 @@ export const getAllRoleChangeLogs = async (limitCount: number = 100): Promise<Ar
   const logsQuery = query(
     collection(db, 'role_change_logs'),
     orderBy('timestamp', 'desc'),
-    limit(limitCount)
+    limitQuery(limitCount)
   );
 
   const snapshot = await getDocs(logsQuery);
@@ -2735,4 +3444,1274 @@ export const bulkAssignRoles = async (
   }
 
   return { success, failed, errors };
+};
+
+// ============================================================================
+// PROFILE & SOCIAL FUNCTIONS
+// ============================================================================
+
+/**
+ * Get user profile with all details
+ */
+export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+
+    if (!userDoc.exists()) {
+      return null;
+    }
+
+    const userData = userDoc.data();
+
+    // Convert Firestore timestamps to Dates
+    const profile: UserProfile = {
+      ...userData,
+      uid: userDoc.id,
+      joinDate: userData.joinDate?.toDate() || new Date(),
+      lastLoginDate: userData.lastLoginDate?.toDate(),
+      lastMonthlyReset: userData.lastMonthlyReset?.toDate(),
+      achievementsList: userData.achievementsList || [],
+      stickersList: userData.stickersList || [],
+      privacySettings: userData.privacySettings || {
+        showEmail: false,
+        showRoles: true,
+        showAchievements: true,
+        showStickers: true,
+        showPoints: true,
+        showEloRating: true,
+        showJoinDate: true,
+        showSocialMedia: true,
+        allowDirectMessages: true,
+      },
+      socialMediaAccounts: userData.socialMediaAccounts || [],
+    } as UserProfile;
+
+    return profile;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update user profile
+ */
+export const updateUserProfile = async (
+  userId: string,
+  updates: Partial<UserProfile>
+): Promise<void> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+
+    // Remove undefined values and convert Dates to Timestamps
+    const cleanUpdates: Record<string, unknown> = {};
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        if (value instanceof Date) {
+          cleanUpdates[key] = Timestamp.fromDate(value);
+        } else {
+          cleanUpdates[key] = value;
+        }
+      }
+    });
+
+    await updateDoc(userRef, cleanUpdates);
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload user avatar to Cloudinary
+ */
+export const uploadUserAvatar = async (
+  userId: string,
+  file: File,
+  timeoutMs: number = 60000
+): Promise<string> => {
+  try {
+    console.log('Starting avatar upload for user:', userId);
+    console.log('File details:', { name: file.name, size: file.size, type: file.type });
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      throw new Error('File must be an image');
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error('File size must be less than 5MB');
+    }
+
+    // Create FormData for Cloudinary
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'user_avatars');
+    formData.append('public_id', `avatar_${userId}_${Date.now()}`);
+
+    console.log('Uploading file to Cloudinary...');
+
+    // Create upload promise with timeout
+    const uploadPromise = fetch(
+      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    ).then(res => res.json());
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Upload timeout - please try again')), timeoutMs)
+    );
+
+    const data = await Promise.race([uploadPromise, timeoutPromise]) as any;
+
+    if (data.error) {
+      throw new Error(data.error.message || 'Upload failed');
+    }
+
+    console.log('File uploaded successfully:', data.secure_url);
+
+    // Update user document with new avatar URL
+    console.log('Updating user document with avatar URL...');
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      avatarUrl: data.secure_url,
+      updatedAt: Timestamp.now()
+    });
+    console.log('User document updated successfully');
+
+    return data.secure_url;
+  } catch (error) {
+    console.error('Error uploading avatar:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    throw new Error(`Failed to upload avatar: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+/**
+ * Upload profile banner to Cloudinary
+ */
+export const uploadProfileBanner = async (
+  userId: string,
+  file: File,
+  timeoutMs: number = 60000
+): Promise<string> => {
+  try {
+    console.log('Starting banner upload for user:', userId);
+    console.log('File details:', { name: file.name, size: file.size, type: file.type });
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      throw new Error('File must be an image');
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('File size must be less than 10MB');
+    }
+
+    // Create FormData for Cloudinary
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'profile_banners');
+    formData.append('public_id', `banner_${userId}_${Date.now()}`);
+
+    console.log('Uploading file to Cloudinary...');
+
+    // Create upload promise with timeout
+    const uploadPromise = fetch(
+      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    ).then(res => res.json());
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Upload timeout - please try again')), timeoutMs)
+    );
+
+    const data = await Promise.race([uploadPromise, timeoutPromise]) as any;
+
+    if (data.error) {
+      throw new Error(data.error.message || 'Upload failed');
+    }
+
+    console.log('File uploaded successfully:', data.secure_url);
+
+    // Update user document with new banner URL
+    console.log('Updating user document with banner URL...');
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      bannerUrl: data.secure_url,
+      updatedAt: Timestamp.now()
+    });
+    console.log('User document updated successfully');
+
+    return data.secure_url;
+  } catch (error) {
+    console.error('Error uploading banner:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    throw new Error(`Failed to upload banner: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+/**
+ * Add achievement to user
+ */
+export const addUserAchievement = async (
+  userId: string,
+  achievement: Omit<Achievement, 'unlockedAt'>
+): Promise<void> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
+    const currentAchievements = userDoc.data().achievementsList || [];
+
+    // Check if achievement already exists
+    if (currentAchievements.some((a: Achievement) => a.id === achievement.id)) {
+      return; // Achievement already unlocked
+    }
+
+    const newAchievement: Achievement = {
+      ...achievement,
+      unlockedAt: new Date(),
+    };
+
+    await updateDoc(userRef, {
+      achievementsList: arrayUnion(newAchievement),
+    });
+  } catch (error) {
+    console.error('Error adding achievement:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add sticker to user collection
+ */
+export const addUserSticker = async (
+  userId: string,
+  sticker: Omit<Sticker, 'obtainedAt' | 'isDisplayed'>
+): Promise<void> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
+    const currentStickers = userDoc.data().stickersList || [];
+
+    // Check if sticker already exists
+    if (currentStickers.some((s: Sticker) => s.id === sticker.id)) {
+      return; // Sticker already owned
+    }
+
+    const newSticker: Sticker = {
+      ...sticker,
+      obtainedAt: new Date(),
+      isDisplayed: false,
+    };
+
+    await updateDoc(userRef, {
+      stickersList: arrayUnion(newSticker),
+    });
+  } catch (error) {
+    console.error('Error adding sticker:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update user's displayed stickers
+ */
+export const updateDisplayedStickers = async (
+  userId: string,
+  stickerIds: string[]
+): Promise<void> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
+    const stickers: Sticker[] = userDoc.data().stickersList || [];
+
+    // Update isDisplayed and displayOrder for all stickers
+    const updatedStickers = stickers.map((sticker, index) => ({
+      ...sticker,
+      isDisplayed: stickerIds.includes(sticker.id),
+      displayOrder: stickerIds.indexOf(sticker.id),
+    }));
+
+    await updateDoc(userRef, {
+      stickersList: updatedStickers,
+    });
+  } catch (error) {
+    console.error('Error updating displayed stickers:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// MESSAGING FUNCTIONS
+// ============================================================================
+
+/**
+ * Create or get existing conversation between two users
+ */
+export const getOrCreateConversation = async (
+  user1Id: string,
+  user2Id: string
+): Promise<string> => {
+  try {
+    // Normalize participant order to ensure consistent querying
+    const sortedParticipants = [user1Id, user2Id].sort();
+
+    // Check if conversation already exists - search for both users
+    const conversationsRef = collection(db, 'conversations');
+
+    // Query for conversations containing user1
+    const q1 = query(
+      conversationsRef,
+      where('participants', 'array-contains', user1Id)
+    );
+
+    const snapshot = await getDocs(q1);
+
+    // Check if any conversation contains both users
+    const existingConversation = snapshot.docs.find(doc => {
+      const participants = doc.data().participants as string[];
+      // Check if both users are in the participants array
+      return participants.includes(user1Id) && participants.includes(user2Id) && participants.length === 2;
+    });
+
+    if (existingConversation) {
+      console.log('Found existing conversation:', existingConversation.id);
+      return existingConversation.id;
+    }
+
+    // Double-check by querying for user2 as well (extra safety)
+    const q2 = query(
+      conversationsRef,
+      where('participants', 'array-contains', user2Id)
+    );
+
+    const snapshot2 = await getDocs(q2);
+    const existingConversation2 = snapshot2.docs.find(doc => {
+      const participants = doc.data().participants as string[];
+      return participants.includes(user1Id) && participants.includes(user2Id) && participants.length === 2;
+    });
+
+    if (existingConversation2) {
+      console.log('Found existing conversation (second check):', existingConversation2.id);
+      return existingConversation2.id;
+    }
+
+    // Get user details
+    const user1Doc = await getDoc(doc(db, 'users', user1Id));
+    const user2Doc = await getDoc(doc(db, 'users', user2Id));
+
+    if (!user1Doc.exists() || !user2Doc.exists()) {
+      throw new Error('One or both users not found');
+    }
+
+    const user1Data = user1Doc.data();
+    const user2Data = user2Doc.data();
+
+    // Create new conversation with sorted participants for consistency
+    const newConversation: Omit<Conversation, 'id'> = {
+      participants: sortedParticipants,
+      participantNames: {
+        [user1Id]: user1Data.displayName || 'Unknown',
+        [user2Id]: user2Data.displayName || 'Unknown',
+      },
+      participantAvatars: {
+        [user1Id]: user1Data.avatarUrl || user1Data.avatar || '',
+        [user2Id]: user2Data.avatarUrl || user2Data.avatar || '',
+      },
+      unreadCount: {
+        [user1Id]: 0,
+        [user2Id]: 0,
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    console.log('Creating new conversation between', user1Id, 'and', user2Id);
+    const docRef = await addDoc(conversationsRef, newConversation);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating conversation:', error);
+    throw error;
+  }
+};
+
+/**
+ * Clean up duplicate conversations for a user
+ * This function finds and removes duplicate conversations between the same two users
+ */
+export const cleanupDuplicateConversations = async (userId: string): Promise<number> => {
+  try {
+    const conversationsRef = collection(db, 'conversations');
+    const q = query(
+      conversationsRef,
+      where('participants', 'array-contains', userId)
+    );
+
+    const snapshot = await getDocs(q);
+
+    type ConversationData = {
+      id: string;
+      participants: string[];
+      createdAt?: { toDate?: () => Date };
+      [key: string]: unknown;
+    };
+
+    const conversations = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as ConversationData[];
+
+    // Group conversations by participant pair
+    const conversationGroups = new Map<string, ConversationData[]>();
+
+    conversations.forEach(conv => {
+      const participants = conv.participants.sort().join('_');
+      if (!conversationGroups.has(participants)) {
+        conversationGroups.set(participants, []);
+      }
+      conversationGroups.get(participants)!.push(conv);
+    });
+
+    // Find and delete duplicates (keep the oldest one)
+    let deletedCount = 0;
+    for (const [, group] of conversationGroups) {
+      if (group.length > 1) {
+        // Sort by createdAt, keep the oldest
+        group.sort((a, b) => {
+          const aTime = a.createdAt?.toDate?.()?.getTime() || 0;
+          const bTime = b.createdAt?.toDate?.()?.getTime() || 0;
+          return aTime - bTime;
+        });
+
+        // Delete all except the first (oldest)
+        for (let i = 1; i < group.length; i++) {
+          await deleteDoc(doc(db, 'conversations', group[i].id));
+          deletedCount++;
+          console.log('Deleted duplicate conversation:', group[i].id);
+        }
+      }
+    }
+
+    return deletedCount;
+  } catch (error) {
+    console.error('Error cleaning up duplicate conversations:', error);
+    throw error;
+  }
+};
+
+/**
+ * Send a message in a conversation
+ */
+export const sendMessage = async (
+  conversationId: string,
+  senderId: string,
+  content: string
+): Promise<void> => {
+  try {
+    // Get sender details
+    const senderDoc = await getDoc(doc(db, 'users', senderId));
+    if (!senderDoc.exists()) {
+      throw new Error('Sender not found');
+    }
+
+    const senderData = senderDoc.data();
+
+    // Create message
+    const message: Omit<Message, 'id'> = {
+      conversationId,
+      senderId,
+      senderName: senderData.displayName || 'Unknown',
+      senderAvatar: senderData.avatarUrl || senderData.avatar,
+      content,
+      timestamp: new Date(),
+      isRead: false,
+      isEdited: false,
+      isDeleted: false,
+    };
+
+    const messagesRef = collection(db, 'messages');
+    await addDoc(messagesRef, message);
+
+    // Update conversation
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+
+    if (conversationDoc.exists()) {
+      const conversationData = conversationDoc.data();
+      const participants = conversationData.participants as string[];
+      const recipientId = participants.find(id => id !== senderId);
+
+      if (recipientId) {
+        await updateDoc(conversationRef, {
+          lastMessage: content.substring(0, 100),
+          lastMessageAt: Timestamp.fromDate(new Date()),
+          lastMessageBy: senderId,
+          updatedAt: Timestamp.fromDate(new Date()),
+          [`unreadCount.${recipientId}`]: increment(1),
+        });
+
+        // Create notification for recipient
+        await createMessageNotification(recipientId, senderId, conversationId, content);
+      }
+    }
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get messages for a conversation
+ */
+export const getConversationMessages = async (
+  conversationId: string,
+  limitCount: number = 50
+): Promise<Message[]> => {
+  try {
+    const messagesRef = collection(db, 'messages');
+    const q = query(
+      messagesRef,
+      where('conversationId', '==', conversationId),
+      where('isDeleted', '==', false)
+      // Removed orderBy to avoid needing composite index
+      // Will sort on client side instead
+    );
+
+    const snapshot = await getDocs(q);
+    const messages = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toDate() || new Date(),
+      readAt: doc.data().readAt?.toDate(),
+      editedAt: doc.data().editedAt?.toDate(),
+    })) as Message[];
+
+    // Sort by timestamp on the client side (ascending for chronological order)
+    messages.sort((a, b) => {
+      const aTime = a.timestamp?.getTime() || 0;
+      const bTime = b.timestamp?.getTime() || 0;
+      return aTime - bTime;
+    });
+
+    // Apply limit on client side
+    return messages.slice(0, limitCount);
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get user's conversations
+ */
+export const getUserConversations = async (userId: string): Promise<Conversation[]> => {
+  try {
+    const conversationsRef = collection(db, 'conversations');
+    const q = query(
+      conversationsRef,
+      where('participants', 'array-contains', userId)
+    );
+
+    const snapshot = await getDocs(q);
+    const conversations = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate() || new Date(),
+      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+      lastMessageAt: doc.data().lastMessageAt?.toDate(),
+    })) as Conversation[];
+
+    // Sort by updatedAt on the client side to avoid needing a composite index
+    conversations.sort((a, b) => {
+      const aTime = a.updatedAt?.getTime() || 0;
+      const bTime = b.updatedAt?.getTime() || 0;
+      return bTime - aTime;
+    });
+
+    return conversations;
+  } catch (error) {
+    console.error('Error fetching conversations:', error);
+    throw error;
+  }
+};
+
+/**
+ * Mark messages as read
+ */
+export const markMessagesAsRead = async (
+  conversationId: string,
+  userId: string
+): Promise<void> => {
+  try {
+    const messagesRef = collection(db, 'messages');
+    const q = query(
+      messagesRef,
+      where('conversationId', '==', conversationId),
+      where('isRead', '==', false)
+    );
+
+    const snapshot = await getDocs(q);
+    const batch = writeBatch(db);
+
+    snapshot.docs.forEach(doc => {
+      const messageData = doc.data();
+      if (messageData.senderId !== userId) {
+        batch.update(doc.ref, {
+          isRead: true,
+          readAt: Timestamp.fromDate(new Date()),
+        });
+      }
+    });
+
+    // Reset unread count in conversation
+    const conversationRef = doc(db, 'conversations', conversationId);
+    batch.update(conversationRef, {
+      [`unreadCount.${userId}`]: 0,
+    });
+
+    await batch.commit();
+  } catch (error) {
+    console.error('Error marking messages as read:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create message notification
+ */
+const createMessageNotification = async (
+  recipientId: string,
+  senderId: string,
+  conversationId: string,
+  messageContent: string
+): Promise<void> => {
+  try {
+    const senderDoc = await getDoc(doc(db, 'users', senderId));
+    if (!senderDoc.exists()) return;
+
+    const senderData = senderDoc.data();
+
+    const notification: Omit<MessageNotification, 'id'> = {
+      userId: recipientId,
+      senderId,
+      senderName: senderData.displayName || 'Unknown',
+      conversationId,
+      messagePreview: messageContent.substring(0, 100),
+      isRead: false,
+      createdAt: new Date(),
+    };
+
+    const notificationsRef = collection(db, 'message_notifications');
+    await addDoc(notificationsRef, notification);
+  } catch (error) {
+    console.error('Error creating message notification:', error);
+  }
+};
+
+/**
+ * Get unread message notifications for user
+ */
+export const getUnreadMessageNotifications = async (
+  userId: string
+): Promise<MessageNotification[]> => {
+  try {
+    const notificationsRef = collection(db, 'message_notifications');
+    const q = query(
+      notificationsRef,
+      where('userId', '==', userId),
+      where('isRead', '==', false)
+      // Removed orderBy to avoid needing composite index
+      // Will sort on client side instead
+    );
+
+    const snapshot = await getDocs(q);
+    const notifications = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate() || new Date(),
+    })) as MessageNotification[];
+
+    // Sort by createdAt on the client side (descending for newest first)
+    notifications.sort((a, b) => {
+      const aTime = a.createdAt?.getTime() || 0;
+      const bTime = b.createdAt?.getTime() || 0;
+      return bTime - aTime;
+    });
+
+    return notifications;
+  } catch (error) {
+    console.error('Error fetching message notifications:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// TOURNAMENT MESSAGING FUNCTIONS
+// ============================================================================
+
+/**
+ * Post message to tournament discussion
+ */
+export const postTournamentMessage = async (
+  tournamentId: string,
+  userId: string,
+  content: string
+): Promise<void> => {
+  try {
+    // Verify user is registered for tournament
+    const tournamentDoc = await getDoc(doc(db, 'tournaments', tournamentId));
+    if (!tournamentDoc.exists()) {
+      throw new Error('Tournament not found');
+    }
+
+    const tournamentData = tournamentDoc.data();
+    if (!tournamentData.participants.includes(userId)) {
+      throw new Error('Only registered participants can post messages');
+    }
+
+    // Get user details
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
+    const userData = userDoc.data();
+
+    const message: Omit<TournamentMessage, 'id'> = {
+      tournamentId,
+      userId,
+      userDisplayName: userData.displayName || 'Unknown',
+      userAvatar: userData.avatarUrl || userData.avatar,
+      content,
+      timestamp: new Date(),
+      isEdited: false,
+      isDeleted: false,
+    };
+
+    const messagesRef = collection(db, 'tournament_messages');
+    await addDoc(messagesRef, message);
+  } catch (error) {
+    console.error('Error posting tournament message:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get tournament messages
+ */
+export const getTournamentMessages = async (
+  tournamentId: string,
+  limitCount: number = 100
+): Promise<TournamentMessage[]> => {
+  try {
+    const messagesRef = collection(db, 'tournament_messages');
+    const q = query(
+      messagesRef,
+      where('tournamentId', '==', tournamentId),
+      where('isDeleted', '==', false)
+      // Removed orderBy to avoid needing composite index
+      // Will sort on client side instead
+    );
+
+    const snapshot = await getDocs(q);
+    const messages = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toDate() || new Date(),
+      editedAt: doc.data().editedAt?.toDate(),
+    })) as TournamentMessage[];
+
+    // Sort by timestamp on the client side (ascending for chronological order)
+    messages.sort((a, b) => {
+      const aTime = a.timestamp?.getTime() || 0;
+      const bTime = b.timestamp?.getTime() || 0;
+      return aTime - bTime;
+    });
+
+    // Apply limit on client side
+    return messages.slice(0, limitCount);
+  } catch (error) {
+    console.error('Error fetching tournament messages:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete tournament message (admin only)
+ */
+export const deleteTournamentMessage = async (
+  messageId: string,
+  adminId: string
+): Promise<void> => {
+  try {
+    const messageRef = doc(db, 'tournament_messages', messageId);
+    await updateDoc(messageRef, {
+      isDeleted: true,
+      deletedBy: adminId,
+    });
+  } catch (error) {
+    console.error('Error deleting tournament message:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// Quest System Functions
+// ============================================================================
+
+/**
+ * Get all active quests
+ */
+export const getActiveQuests = async (): Promise<Quest[]> => {
+  try {
+    // Query without composite index - sort in JavaScript instead
+    const questsQuery = query(
+      collection(db, 'quests'),
+      where('isActive', '==', true)
+    );
+    const snapshot = await getDocs(questsQuery);
+
+    const quests = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        createdAt: data.createdAt.toDate(),
+        updatedAt: data.updatedAt ? data.updatedAt.toDate() : undefined,
+        expiresAt: data.expiresAt ? data.expiresAt.toDate() : undefined,
+      } as Quest;
+    });
+
+    // Sort by category then createdAt in JavaScript
+    return quests.sort((a, b) => {
+      if (a.category !== b.category) {
+        return a.category.localeCompare(b.category);
+      }
+      return a.createdAt.getTime() - b.createdAt.getTime();
+    });
+  } catch (error) {
+    console.error('Error fetching active quests:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get user's quest progress for all quests
+ */
+export const getUserQuestProgress = async (userId: string): Promise<UserQuest[]> => {
+  try {
+    const userQuestsQuery = query(
+      collection(db, 'user_quests'),
+      where('userId', '==', userId)
+    );
+    const snapshot = await getDocs(userQuestsQuery);
+
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        startedAt: data.startedAt.toDate(),
+        lastUpdatedAt: data.lastUpdatedAt.toDate(),
+        completedAt: data.completedAt ? data.completedAt.toDate() : undefined,
+        rewardClaimedAt: data.rewardClaimedAt ? data.rewardClaimedAt.toDate() : undefined,
+        lastCompletedAt: data.lastCompletedAt ? data.lastCompletedAt.toDate() : undefined,
+        resetAt: data.resetAt ? data.resetAt.toDate() : undefined,
+      } as UserQuest;
+    });
+  } catch (error) {
+    console.error('Error fetching user quest progress:', error);
+    throw error;
+  }
+};
+
+/**
+ * Calculate user's current progress for a specific quest
+ */
+export const calculateQuestProgress = async (userId: string, quest: Quest): Promise<number> => {
+  try {
+    const user = await getUser(userId);
+    if (!user) return 0;
+
+    switch (quest.trackingKey) {
+      case 'account_created':
+        return 1; // If user exists, account is created
+
+      case 'profile_fields_completed': {
+        let completed = 0;
+        if (user.avatar) completed++;
+        if (user.bio && user.bio.trim().length > 0) completed++;
+        if ((user as any).socialLinks && Object.keys((user as any).socialLinks).length > 0) completed++;
+        return completed;
+      }
+
+      case 'events_attended': {
+        // Count event registrations with 'attended' status
+        const registrationsQuery = query(
+          collection(db, 'event_registrations'),
+          where('userId', '==', userId),
+          where('status', '==', 'attended')
+        );
+        const snapshot = await getDocs(registrationsQuery);
+        return snapshot.size;
+      }
+
+      case 'tournaments_joined': {
+        // Count tournament registrations
+        const registrationsQuery = query(
+          collection(db, 'tournament_registrations'),
+          where('userId', '==', userId)
+        );
+        const snapshot = await getDocs(registrationsQuery);
+        return snapshot.size;
+      }
+
+      case 'matches_won': {
+        // Get user stats and return total wins
+        const userStats = await getUserStats(userId);
+        return userStats?.totalWins || 0;
+      }
+
+      case 'tournaments_won': {
+        // Count tournament results where user finished in position 1
+        const resultsQuery = query(
+          collection(db, 'tournament_results'),
+          where('playerId', '==', userId),
+          where('position', '==', 1)
+        );
+        const snapshot = await getDocs(resultsQuery);
+        return snapshot.size;
+      }
+
+      case 'shop_purchases': {
+        // Count completed orders
+        const ordersQuery = query(
+          collection(db, 'orders'),
+          where('userId', '==', userId),
+          where('status', '==', 'completed')
+        );
+        const snapshot = await getDocs(ordersQuery);
+        return snapshot.size;
+      }
+
+      case 'referrals': {
+        // Count users referred by this user
+        const referralsQuery = query(
+          collection(db, 'users'),
+          where('referredBy', '==', userId)
+        );
+        const snapshot = await getDocs(referralsQuery);
+        return snapshot.size;
+      }
+
+      default:
+        return 0;
+    }
+  } catch (error) {
+    console.error('Error calculating quest progress:', error);
+    return 0;
+  }
+};
+
+
+/**
+ * Update or create user quest progress
+ */
+export const updateQuestProgress = async (
+  userId: string,
+  questId: string,
+  currentProgress: number,
+  targetProgress: number
+): Promise<void> => {
+  try {
+    // Check if user quest progress already exists
+    const userQuestsQuery = query(
+      collection(db, 'user_quests'),
+      where('userId', '==', userId),
+      where('questId', '==', questId)
+    );
+    const snapshot = await getDocs(userQuestsQuery);
+
+    const isCompleted = currentProgress >= targetProgress;
+    const now = Timestamp.now();
+
+    if (snapshot.empty) {
+      // Create new user quest progress
+      await addDoc(collection(db, 'user_quests'), {
+        userId,
+        questId,
+        currentProgress,
+        targetProgress,
+        isCompleted,
+        completedAt: isCompleted ? now : null,
+        rewardClaimed: false,
+        rewardClaimedAt: null,
+        rewardCents: 0, // Will be set when reward is claimed
+        startedAt: now,
+        lastUpdatedAt: now,
+      });
+    } else {
+      // Update existing progress
+      const userQuestDoc = snapshot.docs[0];
+      const existingData = userQuestDoc.data();
+
+      await updateDoc(doc(db, 'user_quests', userQuestDoc.id), {
+        currentProgress,
+        targetProgress,
+        isCompleted,
+        completedAt: isCompleted && !existingData.isCompleted ? now : existingData.completedAt,
+        lastUpdatedAt: now,
+      });
+    }
+  } catch (error) {
+    console.error('Error updating quest progress:', error);
+    throw error;
+  }
+};
+
+/**
+ * Claim quest reward (award store credit)
+ */
+export const claimQuestReward = async (
+  userId: string,
+  questId: string
+): Promise<{ success: boolean; creditAwarded: number; message: string }> => {
+  try {
+    // Get the quest
+    const questDoc = await getDoc(doc(db, 'quests', questId));
+    if (!questDoc.exists()) {
+      return { success: false, creditAwarded: 0, message: 'Quest not found' };
+    }
+
+    const quest = {
+      ...questDoc.data(),
+      createdAt: questDoc.data().createdAt.toDate(),
+    } as Quest;
+
+    // Get user quest progress
+    const userQuestsQuery = query(
+      collection(db, 'user_quests'),
+      where('userId', '==', userId),
+      where('questId', '==', questId)
+    );
+    const snapshot = await getDocs(userQuestsQuery);
+
+    if (snapshot.empty) {
+      return { success: false, creditAwarded: 0, message: 'Quest progress not found' };
+    }
+
+    const userQuestDoc = snapshot.docs[0];
+    const userQuest = userQuestDoc.data();
+
+    // Check if quest is completed
+    if (!userQuest.isCompleted) {
+      return { success: false, creditAwarded: 0, message: 'Quest not completed yet' };
+    }
+
+    // Check if reward already claimed
+    if (userQuest.rewardClaimed) {
+      return { success: false, creditAwarded: 0, message: 'Reward already claimed' };
+    }
+
+    // Award store credit
+    const creditCents = quest.rewardCents;
+    const batch = writeBatch(db);
+
+    // Update user's store credit balance
+    const userRef = doc(db, 'users', userId);
+    batch.update(userRef, {
+      storeCreditCents: increment(creditCents),
+    });
+
+    // Create store credit transaction
+    const transactionRef = doc(collection(db, 'store_credit_transactions'));
+    batch.set(transactionRef, {
+      userId,
+      amountCents: creditCents,
+      type: 'earned',
+      source: 'quest_reward',
+      description: `Quest completed: ${quest.name}`,
+      questId,
+      createdAt: Timestamp.now(),
+      createdBy: userId,
+    });
+
+    // Mark reward as claimed
+    batch.update(doc(db, 'user_quests', userQuestDoc.id), {
+      rewardClaimed: true,
+      rewardClaimedAt: Timestamp.now(),
+      rewardCents: creditCents,
+    });
+
+    await batch.commit();
+
+    return {
+      success: true,
+      creditAwarded: creditCents / 100, // Convert to dollars
+      message: `Earned $${(creditCents / 100).toFixed(2)} store credit!`,
+    };
+  } catch (error) {
+    console.error('Error claiming quest reward:', error);
+    return { success: false, creditAwarded: 0, message: 'Failed to claim reward' };
+  }
+};
+
+/**
+ * Sync all quest progress for a user
+ * This should be called periodically or when user performs tracked actions
+ */
+export const syncUserQuestProgress = async (userId: string): Promise<void> => {
+  try {
+    const quests = await getActiveQuests();
+
+    for (const quest of quests) {
+      const currentProgress = await calculateQuestProgress(userId, quest);
+      await updateQuestProgress(userId, quest.id, currentProgress, quest.requirementTarget);
+    }
+  } catch (error) {
+    console.error('Error syncing user quest progress:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all quests (admin function)
+ */
+export const getAllQuests = async (): Promise<Quest[]> => {
+  try {
+    const questsQuery = query(
+      collection(db, 'quests'),
+      orderBy('category'),
+      orderBy('createdAt', 'asc')
+    );
+    const snapshot = await getDocs(questsQuery);
+
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        createdAt: data.createdAt.toDate(),
+        updatedAt: data.updatedAt ? data.updatedAt.toDate() : undefined,
+        expiresAt: data.expiresAt ? data.expiresAt.toDate() : undefined,
+      } as Quest;
+    });
+  } catch (error) {
+    console.error('Error fetching all quests:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new quest
+ */
+export const createQuest = async (questData: Omit<Quest, 'id' | 'createdAt' | 'updatedAt'>, createdBy: string): Promise<string> => {
+  try {
+    const now = Timestamp.now();
+    const docRef = await addDoc(collection(db, 'quests'), {
+      ...questData,
+      createdAt: now,
+      createdBy,
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating quest:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update an existing quest
+ */
+export const updateQuest = async (questId: string, questData: Partial<Quest>): Promise<void> => {
+  try {
+    const questRef = doc(db, 'quests', questId);
+    await updateDoc(questRef, {
+      ...questData,
+      updatedAt: Timestamp.now(),
+    });
+  } catch (error) {
+    console.error('Error updating quest:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a quest
+ */
+export const deleteQuest = async (questId: string): Promise<void> => {
+  try {
+    // Delete the quest
+    await deleteDoc(doc(db, 'quests', questId));
+
+    // Delete all user quest progress for this quest
+    const userQuestsQuery = query(
+      collection(db, 'user_quests'),
+      where('questId', '==', questId)
+    );
+    const snapshot = await getDocs(userQuestsQuery);
+
+    const batch = writeBatch(db);
+    snapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+  } catch (error) {
+    console.error('Error deleting quest:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get quest statistics (how many users completed, total rewards claimed)
+ */
+export const getQuestStats = async (questId: string): Promise<{ completedCount: number; rewardsClaimed: number }> => {
+  try {
+    const userQuestsQuery = query(
+      collection(db, 'user_quests'),
+      where('questId', '==', questId),
+      where('isCompleted', '==', true)
+    );
+    const snapshot = await getDocs(userQuestsQuery);
+
+    let rewardsClaimed = 0;
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.rewardClaimed) {
+        rewardsClaimed += data.rewardCents || 0;
+      }
+    });
+
+    return {
+      completedCount: snapshot.size,
+      rewardsClaimed,
+    };
+  } catch (error) {
+    console.error('Error getting quest stats:', error);
+    return { completedCount: 0, rewardsClaimed: 0 };
+  }
 };

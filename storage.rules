@@ -1,0 +1,91 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Helper function to validate image file
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Helper function to validate file size (max 10MB)
+    function isValidSize(maxSizeMB) {
+      return request.resource.size < maxSizeMB * 1024 * 1024;
+    }
+
+    // User avatars - max 5MB (using storage.ts path structure)
+    match /user-avatars/{fileName} {
+      allow read: if true; // Anyone can read avatars
+      allow write: if isAuthenticated() && isImage() && isValidSize(5);
+    }
+
+    // Profile banners - max 10MB (using storage.ts path structure)
+    match /profile-banners/{fileName} {
+      allow read: if true; // Anyone can read banners
+      allow write: if isAuthenticated() && isImage() && isValidSize(10);
+    }
+
+    // Legacy paths for backward compatibility
+    match /avatars/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+                   && isOwner(userId)
+                   && isImage()
+                   && isValidSize(5);
+    }
+
+    match /banners/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+                   && isOwner(userId)
+                   && isImage()
+                   && isValidSize(10);
+    }
+
+    // Shop product images - max 5MB
+    match /product-images/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isValidSize(5);
+    }
+
+    // Tournament images - max 5MB
+    match /tournament-images/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isValidSize(5);
+    }
+
+    // Event images - max 5MB
+    match /event-images/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isValidSize(5);
+    }
+
+    // Announcement images - max 5MB
+    match /announcement-images/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isValidSize(5);
+    }
+
+    // General images - max 5MB
+    match /general/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isValidSize(5);
+    }
+
+    // Default deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

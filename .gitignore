@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.env.local
+.env.*.local
 
 # vercel
 .vercel
@@ -39,3 +41,25 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Firebase configuration and credentials
+**/serviceAccountKey.json
+**/*-firebase-adminsdk-*.json
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+firebase.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backups folder
+/backups/
+backups/
+
+# Scripts folder (contains sensitive scripts and credentials)
+/scripts/
+scripts/

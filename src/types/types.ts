@@ -17,6 +17,8 @@ export interface User {
   email: string;
   displayName: string;
   avatar?: string;
+  avatarUrl?: string;              // New: Profile avatar URL
+  bio?: string;                    // New: User bio/description
   role: 'admin' | 'member' | 'guest'; // Primary role for backward compatibility
   roles: UserRole[]; // New: Array of roles for multi-role support
   points: number;
@@ -24,7 +26,9 @@ export interface User {
   monthlyPoints: number;
   eloRating: number; // New: ELO rating for competitive ranking
   joinDate: Date;
-  achievements?: string[];
+  achievements?: string[];         // Legacy: kept for backward compatibility
+  achievementsList?: Achievement[]; // New: Full achievement objects
+  stickersList?: Sticker[];        // New: User's sticker collection
   isActive: boolean;
   lastLoginDate?: Date;
   preferences?: {
@@ -32,15 +36,33 @@ export interface User {
     emailUpdates: boolean;
     favoriteGames: GameType[];
   };
-  // Shop & Points System fields
+  // Shop & Points System fields (LEGACY - being replaced by store credit)
   pointsBalance?: number;          // Current available points for redemption
   pointsEarned?: number;           // Total points earned all-time
   pointsSpent?: number;            // Total points spent all-time
   pointsExpired?: number;          // Total points that have expired
   lastMonthlyReset?: Date;         // Last time monthly cap was reset
   monthlyPointsEarned?: number;    // Points earned this month (for cap tracking)
+  // Store Credit System fields (NEW)
+  storeCreditBalance?: number;     // Current available store credit in cents
+  storeCreditEarned?: number;      // Total store credit earned all-time in cents
+  storeCreditSpent?: number;       // Total store credit spent all-time in cents
+  monthlyStoreCreditEarned?: number; // Store credit earned this month in cents (for cap tracking)
+  lastStoreCreditMonthlyReset?: Date; // Last time monthly credit cap was reset
   campusEmail?: string;            // Verified .edu email for eligibility
   isEmailVerified?: boolean;       // Email verification status
+  // Profile & Social fields
+  privacySettings?: ProfilePrivacySettings; // New: Privacy controls
+  socialMediaAccounts?: SocialMediaLink[];  // New: Linked social accounts
+  gamingInfo?: GamingInfo;                  // New: Gaming preferences
+  pronouns?: string;                        // New: User pronouns
+  location?: string;                        // New: Location
+  timezone?: string;                        // New: Timezone
+  customStatus?: string;                    // New: Custom status
+  themeColor?: string;                      // New: Profile theme color
+  bannerUrl?: string;                       // New: Profile banner
+  isOnline?: boolean;                       // New: Online status
+  lastSeen?: Date;                          // New: Last activity
 }
 
 // Legacy GameType for backward compatibility
@@ -71,7 +93,7 @@ export interface Tournament {
   registrationDeadline: Date;
   maxParticipants: number;
   participants: string[]; // User UIDs
-  brackets?: BracketMatch[];
+  brackets?: TournamentBracket[];
   rules: string[];
   status: 'upcoming' | 'ongoing' | 'completed';
   pointsAwarded: {
@@ -88,6 +110,7 @@ export interface Tournament {
   format: 'single_elimination' | 'double_elimination' | 'round_robin' | 'swiss';
   entryFee?: number;
   prizePool?: number;
+  imageUrl?: string; // Firebase Storage URL for tournament banner image
 }
 
 export interface BracketMatch {
@@ -130,7 +153,7 @@ export interface Announcement {
   dismissedBy?: string[]; // User UIDs who have dismissed the announcement (for broadcast)
 }
 
-export interface Message {
+export interface LegacyTournamentMessage {
   id: string;
   tournamentId: string;
   userId: string;
@@ -168,7 +191,7 @@ export interface PointsTransaction {
   isEloCalculated?: boolean; // New: Whether this transaction used ELO calculations
 }
 
-export interface Achievement {
+export interface LegacyAchievement {
   id: string;
   name: string;
   description: string;
@@ -413,8 +436,10 @@ export interface ShopOrder {
   userDisplayName: string;
   items: OrderItem[];
   subtotal: number;                 // Total before discounts (cents)
-  pointsDiscount: number;           // Discount from points (cents)
-  pointsUsed: number;               // Number of points redeemed
+  pointsDiscount: number;           // Discount from points (cents) - LEGACY
+  pointsUsed: number;               // Number of points redeemed - LEGACY
+  storeCreditDiscount?: number;     // Discount from store credit (cents) - NEW
+  storeCreditUsed?: number;         // Store credit used in cents - NEW
   shipping: number;                 // Shipping cost (cents)
   tax: number;                      // Tax amount (cents)
   total: number;                    // Final total paid (cents)
@@ -466,7 +491,7 @@ export interface ShippingAddress {
 // Points Settings (configurable by President/Co-President/Head Admin)
 export interface PointsSettings {
   id: string;
-  conversionRate: number;           // Points per $1 (default: 1000)
+  conversionRate: number;           // Points per $1 (default: 200, meaning 1000 points = $5.00)
   perItemDiscountCap: number;       // Max discount % per item (default: 50)
   perOrderDiscountCap: number;      // Max discount $ per order in cents (default: 3000 = $30)
   monthlyEarningCap: number;        // Max points per month (default: 10000)
@@ -519,6 +544,34 @@ export interface PointsMultiplier {
   createdBy: string;                // Admin UID
 }
 
+// Welcome Points Promotion
+export interface WelcomePointsPromotion {
+  id: string;
+  name: string;                     // e.g., "First 100 Users Bonus"
+  description: string;
+  pointsAmount: number;             // Points to award (e.g., 1500)
+  startDate: Date;                  // When promotion starts
+  endDate?: Date;                   // Optional end date
+  maxUsers: number;                 // Maximum users who can receive (e.g., 100)
+  currentCount: number;             // How many users have received so far
+  isActive: boolean;
+  createdAt: Date;
+  createdBy: string;                // Admin UID
+  updatedAt: Date;
+}
+
+// Welcome Points Recipient (tracks who received the bonus)
+export interface WelcomePointsRecipient {
+  id: string;
+  promotionId: string;              // Reference to WelcomePointsPromotion
+  userId: string;
+  userEmail: string;
+  userDisplayName: string;
+  pointsAwarded: number;
+  awardedAt: Date;
+  recipientNumber: number;          // e.g., 1st, 2nd, 3rd... 100th user
+}
+
 // Campus Pickup Queue Item
 export interface PickupQueueItem {
   id: string;
@@ -533,4 +586,447 @@ export interface PickupQueueItem {
   pickedUpBy?: string;              // Admin UID who marked as picked up
   notes?: string;
   createdAt: Date;
+}
+
+// ============================================================================
+// STORE CREDIT SYSTEM TYPES
+// ============================================================================
+
+// Store Credit Category (similar to PointsCategory)
+export type StoreCreditCategory =
+  | 'event_attendance'
+  | 'volunteer_work'
+  | 'event_hosting'
+  | 'contribution'
+  | 'purchase'              // Credit spent on shop purchase
+  | 'adjustment'            // Manual admin adjustment
+  | 'migration'             // One-time migration from points system
+  | 'welcome_bonus';        // Welcome credit for new users
+
+// Store Credit Settings (replaces PointsSettings)
+export interface StoreCreditSettings {
+  id: 'default';
+  perItemDiscountCap: number;       // Percentage cap per item (e.g., 50 = 50%)
+  perOrderDiscountCap: number;      // Max discount per order in cents (e.g., 3000 = $30.00)
+  monthlyEarningCap: number;        // Max credit earnable per month in cents (e.g., 5000 = $50.00)
+  earningValues: {
+    eventAttendance: number;        // Credit for QR check-in in cents (e.g., 100 = $1.00)
+    volunteerWork: number;          // Credit for volunteering in cents (e.g., 250 = $2.50)
+    eventHosting: number;           // Credit for hosting event in cents (e.g., 500 = $5.00)
+    contributionMin: number;        // Min contribution credit in cents (e.g., 50 = $0.50)
+    contributionMax: number;        // Max contribution credit in cents (e.g., 150 = $1.50)
+  };
+  approvedEmailDomains: string[];   // e.g., [".edu", "belhaven.edu"]
+  approvedEmails: string[];         // Manually approved emails
+  updatedAt: Date;
+  updatedBy: string;                // Admin UID
+}
+
+// Store Credit Transaction
+export interface StoreCreditTransaction {
+  id: string;
+  userId: string;
+  amountCents: number;              // Amount in cents (positive = earned, negative = spent)
+  reason: string;                   // Description of transaction
+  category: StoreCreditCategory;
+  timestamp: Date;
+  adminId?: string;                 // Admin who created transaction (if manual)
+  multiplierApplied?: number;       // Multiplier applied (e.g., 1.5, 2.0)
+  multiplierCampaignId?: string;    // Which campaign applied the multiplier
+  approvalStatus: 'pending' | 'approved' | 'denied';
+  approvedBy?: string;              // Admin UID who approved
+  approvedAt?: Date;
+  deniedReason?: string;
+  orderId?: string;                 // For purchase transactions
+  eventId?: string;                 // For event-related transactions
+}
+
+// Store Credit Multiplier Campaign (replaces PointsMultiplier)
+export interface StoreCreditMultiplier {
+  id: string;
+  name: string;                     // e.g., "Double Credit Weekend"
+  description: string;
+  multiplier: number;               // e.g., 1.5, 2.0, 3.0
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  applicableCategories: StoreCreditCategory[]; // Which earning types get multiplier
+  createdAt: Date;
+  createdBy: string;                // Admin UID
+}
+
+// Welcome Credit Promotion (replaces WelcomePointsPromotion)
+export interface WelcomeCreditPromotion {
+  id: string;
+  name: string;                     // e.g., "First 100 Users Bonus"
+  description: string;
+  creditAmountCents: number;        // Credit to award in cents (e.g., 750 = $7.50)
+  startDate: Date;                  // When promotion starts
+  endDate?: Date;                   // Optional end date
+  maxUsers: number;                 // Maximum users who can receive (e.g., 100)
+  currentCount: number;             // How many users have received so far
+  isActive: boolean;
+  createdAt: Date;
+  createdBy: string;                // Admin UID
+  updatedAt: Date;
+}
+
+// Welcome Credit Recipient (tracks who received the bonus)
+export interface WelcomeCreditRecipient {
+  id: string;
+  promotionId: string;              // Reference to WelcomeCreditPromotion
+  userId: string;
+  userEmail: string;
+  userDisplayName: string;
+  creditAwarded: number;            // Amount in cents
+  awardedAt: Date;
+  recipientNumber: number;          // e.g., 1st, 2nd, 3rd... 100th user
+}
+
+// ============================================================================
+// PROFILE, MESSAGING & SOCIAL TYPES
+// ============================================================================
+
+// Achievement System
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  iconUrl?: string;
+  category: 'tournament' | 'points' | 'participation' | 'special' | 'social';
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  unlockedAt: Date;
+  progress?: number;                // For progressive achievements (0-100)
+  maxProgress?: number;             // Max value for progress
+}
+
+// Quest System
+export type QuestCategory =
+  | 'profile_setup'
+  | 'club_participation'
+  | 'gaming_achievements'
+  | 'social'
+  | 'special';
+
+export type QuestType =
+  | 'one_time'          // Complete once
+  | 'repeatable'        // Can be completed multiple times
+  | 'daily'             // Resets daily
+  | 'weekly'            // Resets weekly
+  | 'progressive';      // Track progress over time
+
+export interface Quest {
+  id: string;
+  name: string;
+  description: string;
+  category: QuestCategory;
+  type: QuestType;
+  rewardCents: number;              // Store credit reward in cents
+  iconUrl?: string;
+  isActive: boolean;
+
+  // Requirements
+  requirementType: 'count' | 'boolean' | 'value';
+  requirementTarget: number;        // Target value (e.g., 5 for "attend 5 events")
+
+  // Tracking
+  trackingKey: string;              // What to track (e.g., 'events_attended', 'profile_completed')
+
+  // Metadata
+  createdAt: Date;
+  createdBy: string;                // Admin UID
+  updatedAt?: Date;
+
+  // Optional constraints
+  expiresAt?: Date;                 // Quest expiration
+  minLevel?: number;                // Minimum user level required
+  prerequisiteQuestIds?: string[];  // Must complete these quests first
+}
+
+export interface UserQuest {
+  id: string;
+  userId: string;
+  questId: string;
+
+  // Progress
+  currentProgress: number;
+  targetProgress: number;
+  isCompleted: boolean;
+  completedAt?: Date;
+
+  // Rewards
+  rewardClaimed: boolean;
+  rewardClaimedAt?: Date;
+  rewardCents: number;
+
+  // Tracking
+  startedAt: Date;
+  lastUpdatedAt: Date;
+
+  // For repeatable quests
+  completionCount?: number;         // How many times completed
+  lastCompletedAt?: Date;           // Last completion date
+  resetAt?: Date;                   // When progress resets (for daily/weekly)
+}
+
+// Sticker/Badge System
+export interface Sticker {
+  id: string;
+  name: string;
+  imageUrl: string;
+  description?: string;
+  category: 'event' | 'tournament' | 'seasonal' | 'special' | 'purchased';
+  obtainedAt: Date;
+  isDisplayed: boolean;             // Whether user chose to display it
+  displayOrder?: number;            // Order on profile
+}
+
+// Gaming Platform Types
+export type GamingPlatform = 'pc' | 'xbox' | 'playstation' | 'nintendo_switch' | 'mobile' | 'other';
+
+// Skill Level Types
+export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+
+// Profile Visibility Types
+export type ProfileVisibility = 'public' | 'members_only' | 'private';
+
+// Gaming Availability
+export interface GamingAvailability {
+  monday?: string[];      // e.g., ['morning', 'evening']
+  tuesday?: string[];
+  wednesday?: string[];
+  thursday?: string[];
+  friday?: string[];
+  saturday?: string[];
+  sunday?: string[];
+  timezone?: string;      // e.g., 'America/New_York'
+}
+
+// Social Media Platform Types
+export type SocialPlatform = 'discord' | 'twitch' | 'youtube' | 'twitter' | 'instagram' | 'tiktok' | 'steam' | 'xbox' | 'playstation';
+
+// Social Media Account Link
+export interface SocialMediaLink {
+  platform: SocialPlatform;
+  username: string;
+  url: string;
+  isPublic: boolean;                // Privacy toggle per platform
+  verifiedAt?: Date;                // Optional verification timestamp
+}
+
+// Gaming Information
+export interface GamingInfo {
+  favoriteGames?: string[];         // Array of game names/tags
+  primaryPlatform?: GamingPlatform;
+  platforms?: GamingPlatform[];     // All platforms they use
+  skillLevel?: SkillLevel;
+  availability?: GamingAvailability;
+  lookingForTeam?: boolean;         // Looking for teammates
+  competitivePlayer?: boolean;      // Interested in competitive play
+}
+
+// Profile Privacy Settings
+export interface ProfilePrivacySettings {
+  profileVisibility: ProfileVisibility; // Overall profile visibility
+  showEmail: boolean;
+  showRoles: boolean;
+  showAchievements: boolean;
+  showStickers: boolean;
+  showPoints: boolean;
+  showEloRating: boolean;
+  showJoinDate: boolean;
+  showSocialMedia: boolean;         // Global social media toggle
+  showOnlineStatus: boolean;        // Show/hide online status
+  showGamingStats: boolean;         // Show/hide gaming statistics
+  showLocation: boolean;            // Show/hide location/timezone
+  allowDirectMessages: boolean;
+  allowDirectMessagesFromNonFriends: boolean; // DMs from non-friends
+}
+
+// Extended User Profile (for profile pages)
+export interface UserProfile extends Omit<User, 'achievements'> {
+  bio?: string;
+  avatarUrl?: string;
+  bannerUrl?: string;                   // Profile banner/cover image
+  achievements?: string[];              // Legacy field
+  achievementsList?: Achievement[];     // New field
+  stickersList?: Sticker[];            // New field
+  privacySettings?: ProfilePrivacySettings;
+  socialMediaAccounts?: SocialMediaLink[];
+  gamingInfo?: GamingInfo;             // Gaming preferences and info
+  pronouns?: string;                    // User pronouns (e.g., "he/him", "she/her", "they/them")
+  location?: string;                    // City/State/Country
+  timezone?: string;                    // Timezone (e.g., "America/New_York")
+  customStatus?: string;                // Custom status message
+  themeColor?: string;                  // Profile accent color (hex code)
+  isOnline?: boolean;                   // Online status
+  lastSeen?: Date;                      // Last activity timestamp
+}
+
+// Direct Messaging Types
+export interface Conversation {
+  id: string;
+  participants: string[];           // Array of user UIDs (always 2 for DM)
+  participantNames: Record<string, string>; // UID -> displayName mapping
+  participantAvatars: Record<string, string>; // UID -> avatarUrl mapping
+  lastMessage?: string;
+  lastMessageAt?: Date;
+  lastMessageBy?: string;           // UID of last sender
+  unreadCount: Record<string, number>; // UID -> unread count mapping
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  content: string;
+  timestamp: Date;
+  isRead: boolean;
+  readAt?: Date;
+  isEdited: boolean;
+  editedAt?: Date;
+  isDeleted: boolean;
+}
+
+// Message Notification
+export interface MessageNotification {
+  id: string;
+  userId: string;                   // Recipient
+  senderId: string;
+  senderName: string;
+  conversationId: string;
+  messagePreview: string;
+  isRead: boolean;
+  createdAt: Date;
+}
+
+// Tournament Communication
+export interface TournamentMessage {
+  id: string;
+  tournamentId: string;
+  userId: string;
+  userDisplayName: string;
+  userAvatar?: string;
+  content: string;
+  timestamp: Date;
+  isEdited: boolean;
+  editedAt?: Date;
+  isDeleted: boolean;
+  deletedBy?: string;               // Admin UID if deleted by admin
+}
+
+// Social Media Feed Types
+export type SocialFeedPlatform = 'youtube' | 'twitch' | 'tiktok' | 'instagram';
+
+export interface SocialPost {
+  id: string;
+  platform: SocialFeedPlatform;
+  title?: string;
+  description?: string;
+  thumbnailUrl?: string;
+  url: string;
+  author: string;
+  publishedAt: Date;
+  viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
+  embedHtml?: string;               // For embedded content
+}
+
+// ============================================================================
+// TOURNAMENT BRACKET TYPES
+// ============================================================================
+
+/**
+ * Bracket format types
+ */
+export type BracketFormat = 'single-elimination' | 'double-elimination' | 'round-robin';
+
+/**
+ * Match state types
+ */
+export type MatchState = 'SCHEDULED' | 'LIVE' | 'DONE' | 'SCORE_DONE' | 'NO_SHOW' | 'WALK_OVER' | 'NO_PARTY';
+
+/**
+ * Participant status types
+ */
+export type ParticipantStatus = 'PLAYED' | 'NO_SHOW' | 'WALK_OVER' | 'NO_PARTY' | null;
+
+/**
+ * Seeding method types
+ */
+export type SeedingMethod = 'manual' | 'random' | 'ranked';
+
+/**
+ * Bracket participant
+ */
+export interface BracketParticipant {
+  id: string;                      // User ID or team ID
+  name: string;                    // Display name
+  seed?: number;                   // Seeding position (1, 2, 3, etc.)
+  isWinner: boolean;               // Whether this participant won the match
+  status: ParticipantStatus;       // Participant status
+  resultText?: string | null;      // Result text (e.g., "WON", "LOST", "2-1")
+  score?: number;                  // Numeric score
+}
+
+/**
+ * Tournament match
+ */
+export interface TournamentMatch {
+  id: string;                      // Unique match ID
+  name: string;                    // Match name (e.g., "Semi Final - Match 1")
+  tournamentId: string;            // Parent tournament ID
+  bracketId: string;               // Parent bracket ID
+  roundNumber: number;             // Round number (1, 2, 3, etc.)
+  tournamentRoundText?: string;    // Round text for display (e.g., "Quarter Finals")
+  matchNumber: number;             // Match number within the round
+  nextMatchId?: string | null;     // ID of next match (winner advances to)
+  nextLooserMatchId?: string | null; // ID of next match in loser bracket (double-elim only)
+  participants: BracketParticipant[]; // Match participants (usually 2)
+  state: MatchState;               // Current match state
+  startTime?: Date | null;         // Scheduled start time
+  endTime?: Date | null;           // Actual end time
+  location?: string | null;        // Physical location or game server
+  streamUrl?: string | null;       // Stream URL if match is being streamed
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;               // Admin who created the match
+  updatedBy?: string;              // Admin who last updated the match
+}
+
+/**
+ * Tournament bracket
+ */
+export interface TournamentBracket {
+  id: string;                      // Unique bracket ID
+  tournamentId: string;            // Parent tournament ID
+  name: string;                    // Bracket name (e.g., "Main Bracket", "Losers Bracket")
+  format: BracketFormat;           // Bracket format
+  totalRounds: number;             // Total number of rounds
+  participantCount: number;        // Number of participants
+  seedingMethod: SeedingMethod;    // How participants were seeded
+  matches: TournamentMatch[];      // All matches in the bracket
+  isActive: boolean;               // Whether bracket is currently active
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;               // Admin who created the bracket
+}
+
+// Duplicate Tournament interface removed - using the one defined earlier in the file
+
+/**
+ * Bracket generation options
+ */
+export interface BracketGenerationOptions {
+  format: BracketFormat;
+  participantIds: string[];
+  participantNames: string[];
+  seedingMethod: SeedingMethod;
+  tournamentId: string;
+  createdBy: string;
 }

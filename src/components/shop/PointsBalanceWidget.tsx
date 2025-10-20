@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserAvailablePoints } from '@/lib/database';
 import { formatPointsAsDiscount } from '@/lib/points';
@@ -81,7 +82,7 @@ export default function PointsBalanceWidget() {
           <div className="space-y-2">
             <h5 className="text-sm font-semibold text-foreground">How it works:</h5>
             <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• 1,000 points = $1.00 discount</li>
+              <li>• 1,000 points = $5.00 discount</li>
               <li>• Maximum 50% off any single item</li>
               <li>• Maximum $30.00 off per order</li>
               <li>• Shipping & taxes always paid in full</li>
@@ -90,13 +91,13 @@ export default function PointsBalanceWidget() {
 
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="flex-1" asChild>
-              <a href="/leaderboard">
+              <Link href="/leaderboard">
                 <TrendingUp className="h-4 w-4 mr-2" />
                 Earn More
-              </a>
+              </Link>
             </Button>
             <Button variant="outline" size="sm" className="flex-1" asChild>
-              <a href="/profile">View History</a>
+              <Link href="/profile">View History</Link>
             </Button>
           </div>
         </div>
@@ -104,4 +105,3 @@ export default function PointsBalanceWidget() {
     </Popover>
   );
 }
-

@@ -5,7 +5,7 @@
  * Points can be used for discounts on shop purchases but have NO CASH VALUE.
  *
  * Key Rules:
- * - 1,000 points = $1.00 USD discount
+ * - 1,000 points = $5.00 USD discount (NEW RATE!)
  * - Maximum 50% off any single item
  * - Maximum $30.00 off total order
  * - Shipping & taxes ALWAYS paid in full (never covered by points)
@@ -17,7 +17,7 @@ import { PointsSettings, OrderItem, ShopOrder } from '@/types/types';
 
 // Default points settings (used if no custom settings exist)
 export const DEFAULT_POINTS_SETTINGS: Omit<PointsSettings, 'id' | 'updatedAt' | 'updatedBy'> = {
-  conversionRate: 1000,              // 1000 points = $1.00
+  conversionRate: 200,               // 200 points = $1.00 (1000 points = $5.00)
   perItemDiscountCap: 50,            // 50% max discount per item
   perOrderDiscountCap: 3000,         // $30.00 max discount per order (in cents)
   monthlyEarningCap: 10000,          // 10,000 points max per month
@@ -219,7 +219,7 @@ export function arePointsExpired(expirationDate: Date): boolean {
 
 /**
  * Format points as currency discount
- * Example: 5000 points -> "$5.00"
+ * Example: 1000 points -> "$5.00" (with new rate)
  */
 export function formatPointsAsDiscount(
   points: number,

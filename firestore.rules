@@ -2,19 +2,30 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isSignedIn() {
+    // Helper functions for authentication and authorization
+    function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return isSignedIn() &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    function hasRole(role) {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('roles', []).hasAny([role]);
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isOfficer() {
+      return hasRole('officer');
+    }
+
+    function isPresidentOrCoPresident() {
+      return hasRole('president') || hasRole('co_president');
     }
 
     // Users collection
@@ -31,6 +42,16 @@ service cloud.firestore {
 
       // Only admins can delete users
       allow delete: if isAdmin();
+    }
+
+    // Admin users collection
+    match /admin_users/{userId} {
+      // Users can read their own admin data (if it exists)
+      // This allows the auth flow to check if a user is an admin
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+
+      // Only admins can create, update, or delete admin users
+      allow create, update, delete: if isAdmin();
     }
 
     // Tournaments collection
@@ -52,122 +73,284 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
-    // Points transactions collection
-    match /points_transactions/{transactionId} {
-      // Users can read their own transactions, admins can read all
-      allow read: if isOwner(resource.data.userId) || isAdmin();
-
-      // Only admins can create, update, or delete transactions
-      allow create, update, delete: if isAdmin();
-    }
-
-    // Points settings collection
-    match /points_settings/{settingId} {
-      // Anyone can read points settings
+    // Leaderboard collection
+    match /leaderboard/{userId} {
+      // Anyone can read leaderboard
       allow read: if true;
 
-      // Only admins can modify settings
+      // Only admins can update leaderboard
+      allow write: if isAdmin();
+    }
+
+    // Store items collection
+    match /store_items/{itemId} {
+      // Anyone can read store items
+      allow read: if true;
+
+      // Only admins can create, update, or delete store items
       allow create, update, delete: if isAdmin();
     }
 
-    // ============================================
-    // SHOP COLLECTIONS
-    // ============================================
+    // User purchases collection
+    match /user_purchases/{purchaseId} {
+      // Users can read their own purchases, admins can read all
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
 
-    // Shop products collection
-    match /shop_products/{productId} {
-      // Admins can read all products (including inactive)
-      // Non-admins can only read active products
-      allow read: if isAdmin() || resource.data.isActive == true;
+      // Users can create their own purchases
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
 
-      // Only admins can create, update, or delete products
-      allow create, update, delete: if isAdmin();
-    }
-
-    // Shop orders collection
-    match /shop_orders/{orderId} {
-      // Users can read their own orders, admins can read all orders
-      allow read: if isOwner(resource.data.userId) || isAdmin();
-
-      // Users can create their own orders (during checkout)
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
-
-      // Only admins can update or delete orders
+      // Only admins can update or delete purchases
       allow update, delete: if isAdmin();
     }
 
-    // Shop cart collection (optional - for persistent carts)
-    match /shop_carts/{userId} {
-      // Users can read and write their own cart
-      allow read, write: if isOwner(userId);
+    // User inventory collection
+    match /user_inventory/{inventoryId} {
+      // Users can read their own inventory, admins can read all
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Users can create their own inventory items
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+
+      // Users can update their own inventory, admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Only admins can delete inventory items
+      allow delete: if isAdmin();
     }
 
-    // ============================================
-    // ANNOUNCEMENTS & BROADCASTS
-    // ============================================
+    // User transactions collection
+    match /user_transactions/{transactionId} {
+      // Users can read their own transactions, admins can read all
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Users can create their own transactions
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+
+      // Only admins can update or delete transactions
+      allow update, delete: if isAdmin();
+    }
 
     // Announcements collection
     match /announcements/{announcementId} {
-      // Admins can read all announcements
-      // Non-admins can only read active announcements
-      allow read: if isAdmin() || resource.data.isActive == true;
+      // Anyone can read published announcements
+      allow read: if resource.data.status == 'published' || isAdmin();
 
-      // Only admins can create or delete announcements
-      allow create, delete: if isAdmin();
-
-      // Admins can update any field
-      // Authenticated users can update only readBy and dismissedBy fields
-      allow update: if isAdmin() ||
-                      (isSignedIn() &&
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy', 'dismissedBy']));
-    }
-
-    // Broadcasts collection
-    match /broadcasts/{broadcastId} {
-      // Admins can read all broadcasts
-      // Non-admins can only read active broadcasts
-      allow read: if isAdmin() || resource.data.isActive == true;
-
-      // Only admins can create or delete broadcasts
-      allow create, delete: if isAdmin();
-
-      // Admins can update any field
-      // Authenticated users can update only readBy and dismissedBy fields
-      allow update: if isAdmin() ||
-                      (isSignedIn() &&
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy', 'dismissedBy']));
-    }
-
-    // ============================================
-    // NOTIFICATIONS
-    // ============================================
-
-    // Notifications collection
-    match /notifications/{notificationId} {
-      // Users can read their own notifications
-      allow read: if isOwner(resource.data.userId);
-
-      // Users can update their own notifications (mark as read)
-      allow update: if isOwner(resource.data.userId);
-
-      // Admins can create notifications for any user
-      allow create: if isAdmin();
-
-      // Users can delete their own notifications
-      allow delete: if isOwner(resource.data.userId) || isAdmin();
-    }
-
-    // ============================================
-    // ADMIN COLLECTIONS
-    // ============================================
-
-    // Admin users collection
-    match /admin_users/{userId} {
-      // Only admins can read admin user data
-      allow read: if isAdmin();
-
-      // Only admins can create, update, or delete admin users
+      // Only admins can create, update, or delete announcements
       allow create, update, delete: if isAdmin();
+    }
+
+    // Feedback collection
+    match /feedback/{feedbackId} {
+      // Anyone can create feedback
+      allow create: if true;
+
+      // Only admins can read, update, or delete feedback
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Messages collection
+    match /messages/{messageId} {
+      // Users can read messages where they are sender or recipient
+      allow read: if isAuthenticated() &&
+                     (resource.data.senderId == request.auth.uid ||
+                      resource.data.recipientId == request.auth.uid ||
+                      isAdmin());
+
+      // Users can create messages where they are the sender
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+
+      // Users can update their own sent messages (e.g., mark as read)
+      // Recipients can update messages sent to them (e.g., mark as read)
+      allow update: if isAuthenticated() &&
+                       (resource.data.senderId == request.auth.uid ||
+                        resource.data.recipientId == request.auth.uid ||
+                        isAdmin());
+
+      // Only sender or admin can delete
+      allow delete: if isAuthenticated() &&
+                       (resource.data.senderId == request.auth.uid || isAdmin());
+    }
+
+    // Conversations collection
+    match /conversations/{conversationId} {
+      // Users can read conversations they are part of
+      allow read: if isAuthenticated() &&
+                     (request.auth.uid in resource.data.participants || isAdmin());
+
+      // Users can create conversations where they are a participant
+      allow create: if isAuthenticated() &&
+                       request.auth.uid in request.resource.data.participants;
+
+      // Users can update conversations they are part of
+      allow update: if isAuthenticated() &&
+                       (request.auth.uid in resource.data.participants || isAdmin());
+
+      // Only admins can delete conversations
+      allow delete: if isAdmin();
+
+      // Subcollection for conversation messages
+      match /messages/{messageId} {
+        // Users can read messages in conversations they are part of
+        allow read: if isAuthenticated() &&
+                       (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants ||
+                        isAdmin());
+
+        // Users can create messages in conversations they are part of
+        allow create: if isAuthenticated() &&
+                         request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
+                         request.resource.data.senderId == request.auth.uid;
+
+        // Users can update their own messages
+        allow update: if isAuthenticated() &&
+                         (resource.data.senderId == request.auth.uid || isAdmin());
+
+        // Only sender or admin can delete
+        allow delete: if isAuthenticated() &&
+                         (resource.data.senderId == request.auth.uid || isAdmin());
+      }
+    }
+
+    // Friend requests collection
+    match /friend_requests/{requestId} {
+      // Users can read requests where they are sender or recipient
+      allow read: if isAuthenticated() &&
+                     (resource.data.senderId == request.auth.uid ||
+                      resource.data.recipientId == request.auth.uid ||
+                      isAdmin());
+
+      // Users can create friend requests where they are the sender
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+
+      // Users can update requests where they are sender or recipient
+      allow update: if isAuthenticated() &&
+                       (resource.data.senderId == request.auth.uid ||
+                        resource.data.recipientId == request.auth.uid ||
+                        isAdmin());
+
+      // Users can delete their own sent requests
+      allow delete: if isAuthenticated() &&
+                       (resource.data.senderId == request.auth.uid || isAdmin());
+    }
+
+    // Social posts collection
+    match /social_posts/{postId} {
+      // Anyone can read published posts
+      allow read: if resource.data.visibility == 'public' ||
+                     (isAuthenticated() && resource.data.authorId == request.auth.uid) ||
+                     isAdmin();
+
+      // Authenticated users can create posts
+      allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid;
+
+      // Users can update their own posts, admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.authorId == request.auth.uid || isAdmin());
+
+      // Users can delete their own posts, admins can delete any
+      allow delete: if isAuthenticated() &&
+                       (resource.data.authorId == request.auth.uid || isAdmin());
+
+      // Subcollection for post comments
+      match /comments/{commentId} {
+        // Anyone can read comments on public posts
+        allow read: if get(/databases/$(database)/documents/social_posts/$(postId)).data.visibility == 'public' ||
+                       isAuthenticated() ||
+                       isAdmin();
+
+        // Authenticated users can create comments
+        allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid;
+
+        // Users can update their own comments, admins can update any
+        allow update: if isAuthenticated() &&
+                         (resource.data.authorId == request.auth.uid || isAdmin());
+
+        // Users can delete their own comments, admins can delete any
+        allow delete: if isAuthenticated() &&
+                         (resource.data.authorId == request.auth.uid || isAdmin());
+      }
+
+      // Subcollection for post likes
+      match /likes/{likeId} {
+        // Anyone can read likes on public posts
+        allow read: if get(/databases/$(database)/documents/social_posts/$(postId)).data.visibility == 'public' ||
+                       isAuthenticated() ||
+                       isAdmin();
+
+        // Authenticated users can create likes
+        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+
+        // Users can delete their own likes
+        allow delete: if isAuthenticated() &&
+                         (resource.data.userId == request.auth.uid || isAdmin());
+      }
+    }
+
+    // Tournament brackets collection
+    match /tournament_brackets/{bracketId} {
+      // Anyone can read brackets
+      allow read: if true;
+
+      // Only admins can create, update, or delete brackets
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Tournament matches collection
+    match /tournament_matches/{matchId} {
+      // Anyone can read matches
+      allow read: if true;
+
+      // Only admins can create, update, or delete matches
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Tournament results collection
+    match /tournament_results/{resultId} {
+      // Anyone can read results
+      allow read: if true;
+
+      // Only admins can create, update, or delete results
+      allow create, update, delete: if isAdmin();
+    }
+
+    // User stats collection
+    match /user_stats/{userId} {
+      // Anyone can read user stats (for leaderboards, etc.)
+      allow read: if true;
+
+      // Users can create their own stats during signup
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+
+      // Users can update their own stats, admins can update any stats
+      allow update: if isOwner(userId) || isAdmin();
+
+      // Only admins can delete stats
+      allow delete: if isAdmin();
+    }
+
+    // Welcome points promotions collection
+    match /welcome_points_promotions/{promotionId} {
+      // Anyone can read active promotions
+      allow read: if true;
+
+      // Only admins can create, update, or delete promotions
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Welcome points recipients collection
+    match /welcome_points_recipients/{recipientId} {
+      // Users can read their own recipient record, admins can read all
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
+
+      // System can create recipient records (during signup)
+      allow create: if isAuthenticated();
+
+      // Only admins can update or delete recipient records
+      allow update, delete: if isAdmin();
     }
 
     // Admin logs collection
@@ -175,93 +358,243 @@ service cloud.firestore {
       // Only admins can read logs
       allow read: if isAdmin();
 
-      // System can create logs (via server-side code)
+      // System can create logs (via server-side code or admin actions)
       allow create: if true;
 
-      // No one can update or delete logs
-      allow update, delete: if false;
+      // Only admins can update or delete logs
+      allow update, delete: if isAdmin();
     }
 
-    // Role change logs collection
-    match /role_change_logs/{logId} {
-      // Only admins can read role change logs
-      allow read: if isAdmin();
-
-      // Only admins can create role change logs
-      allow create: if isAdmin();
-
-      // No one can update or delete logs
-      allow update, delete: if false;
-    }
-
-    // ============================================
-    // USER STATS & REGISTRATIONS
-    // ============================================
-
-    // User stats collection
-    match /user_stats/{userId} {
-      // Anyone can read user stats (for leaderboards)
+    // Points transactions collection
+    match /points_transactions/{transactionId} {
+      // Anyone can read points transactions (for leaderboard latest activity)
       allow read: if true;
 
-      // Users can create their own stats during signup
-      allow create: if request.auth != null && request.auth.uid == userId;
-
-      // Only admins can update or delete user stats
-      allow update, delete: if isAdmin();
+      // Only admins can create, update, or delete transactions
+      allow create, update, delete: if isAdmin();
     }
 
     // Tournament registrations collection
     match /tournament_registrations/{registrationId} {
-      // Users can read their own registrations, admins can read all
-      allow read: if isOwner(resource.data.userId) || isAdmin();
+      // Anyone can read registrations (for participant lists)
+      allow read: if true;
 
-      // Users can create their own registrations
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      // Authenticated users can create their own registrations
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
 
-      // Only admins can update or delete registrations
+      // Users can update their own registrations, admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Users can delete their own registrations, admins can delete any
+      allow delete: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Quests collection
+    match /quests/{questId} {
+      // Anyone can read active quests
+      allow read: if true;
+
+      // Only admins can create, update, or delete quests
+      allow create, update, delete: if isAdmin();
+    }
+
+    // User quests collection (quest progress tracking)
+    match /user_quests/{userQuestId} {
+      // Users can read their own quest progress, admins can read all
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Users can create their own quest progress
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+
+      // Users can update their own quest progress, admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Only admins can delete quest progress
+      allow delete: if isAdmin();
+    }
+
+    // Orders collection (shop purchases)
+    match /orders/{orderId} {
+      // Users can read their own orders, admins can read all
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Users can create their own orders
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+
+      // Only admins can update or delete orders
       allow update, delete: if isAdmin();
+    }
+
+    // Store credit transactions collection
+    match /store_credit_transactions/{transactionId} {
+      // Users can read their own transactions, admins can read all
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
+
+      // System can create transactions (during purchases, rewards, etc.)
+      allow create: if isAuthenticated();
+
+      // Only admins can update or delete transactions
+      allow update, delete: if isAdmin();
+    }
+
+    // Store credit settings collection
+    match /store_credit_settings/{settingId} {
+      // Anyone can read settings
+      allow read: if true;
+
+      // Only admins can create, update, or delete settings
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Game genres collection
+    match /game_genres/{genreId} {
+      // Anyone can read game genres
+      allow read: if true;
+
+      // Only admins can create, update, or delete genres
+      allow create, update, delete: if isAdmin();
     }
 
     // Event registrations collection
     match /event_registrations/{registrationId} {
       // Users can read their own registrations, admins can read all
-      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
 
       // Users can create their own registrations
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
 
-      // Only admins can update or delete registrations
-      allow update, delete: if isAdmin();
+      // Users can update their own registrations, admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Users can delete their own registrations, admins can delete any
+      allow delete: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Event notifications collection
     match /event_notifications/{notificationId} {
-      // Users can read notifications for events they're registered for
-      allow read: if isSignedIn();
+      // Users can read notifications sent to them, admins can read all
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
 
-      // Only admins can create, update, or delete event notifications
+      // System can create notifications
+      allow create: if true;
+
+      // Only admins can update or delete notifications
+      allow update, delete: if isAdmin();
+    }
+
+    // Points multipliers collection
+    match /points_multipliers/{multiplierId} {
+      // Anyone can read multipliers
+      allow read: if true;
+
+      // Only admins can create, update, or delete multipliers
       allow create, update, delete: if isAdmin();
+    }
+
+    // Store credit multipliers collection
+    match /store_credit_multipliers/{multiplierId} {
+      // Anyone can read multipliers
+      allow read: if true;
+
+      // Only admins can create, update, or delete multipliers
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Shop products collection
+    match /shop_products/{productId} {
+      // Anyone can read products
+      allow read: if true;
+
+      // Only admins can create, update, or delete products
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Shop orders collection
+    match /shop_orders/{orderId} {
+      // Users can read their own orders, admins can read all
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Users can create their own orders
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+
+      // Only admins can update or delete orders
+      allow update, delete: if isAdmin();
     }
 
     // Pickup queue collection
     match /pickup_queue/{queueId} {
-      // Users can read their own pickup queue items, admins can read all
-      allow read: if isOwner(resource.data.userId) || isAdmin();
+      // Users can read their own queue items, admins can read all
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
 
-      // System can create pickup queue items (via server-side code)
+      // Users can create their own queue items
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+
+      // Users can update their own queue items, admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Users can delete their own queue items, admins can delete any
+      allow delete: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Role change logs collection
+    match /role_change_logs/{logId} {
+      // Only admins can read logs
+      allow read: if isAdmin();
+
+      // System can create logs
       allow create: if true;
 
-      // Only admins can update or delete pickup queue items
+      // Only admins can update or delete logs
       allow update, delete: if isAdmin();
     }
 
-    // ============================================
-    // DEFAULT DENY
-    // ============================================
+    // Message notifications collection
+    match /message_notifications/{notificationId} {
+      // Users can read their own notifications, admins can read all
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
 
-    // Deny all other access by default
-    match /{document=**} {
-      allow read, write: if false;
+      // System can create notifications
+      allow create: if true;
+
+      // Users can update their own notifications, admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Users can delete their own notifications, admins can delete any
+      allow delete: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Tournament messages collection
+    match /tournament_messages/{messageId} {
+      // Anyone can read tournament messages
+      allow read: if true;
+
+      // Authenticated users can create messages
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+
+      // Users can update their own messages, admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.senderId == request.auth.uid || isAdmin());
+
+      // Users can delete their own messages, admins can delete any
+      allow delete: if isAuthenticated() &&
+                       (resource.data.senderId == request.auth.uid || isAdmin());
     }
   }
 }

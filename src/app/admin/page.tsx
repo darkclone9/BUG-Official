@@ -11,6 +11,7 @@ import GameGenreManagement from '@/components/admin/GameGenreManagement';
 import EloManagement from '@/components/admin/EloManagement';
 import PointsManagement from '@/components/admin/PointsManagement';
 import RoleManagement from '@/components/admin/RoleManagement';
+import StoreCreditSettingsManagement from '@/components/admin/StoreCreditSettingsManagement';
 import Navigation from '@/components/Navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +42,8 @@ import {
     Trash2,
     Trophy,
     Users,
-    Calendar
+    Calendar,
+    Gift
 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
@@ -56,7 +58,7 @@ type AnnouncementWithReadCount = Omit<Announcement, 'createdAt' | 'readBy'> & {
 };
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, canAccessPointsManagement } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [overviewStats, setOverviewStats] = useState<{
     totalUsers: number;
@@ -166,7 +168,8 @@ export default function AdminPage() {
     const tournamentForModal: Tournament = {
       ...tournament,
       date: new Date(tournament.date),
-      participants: []
+      participants: [],
+      rules: tournament.rules || []
     };
     setSelectedTournament(tournamentForModal);
     setEditTournamentModalOpen(true);
@@ -316,13 +319,22 @@ export default function AdminPage() {
                   Manage tournaments, announcements, and community settings
                 </p>
               </div>
-              <Button
-                onClick={() => window.location.href = '/admin/events'}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Manage Events
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => window.location.href = '/admin/events'}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Manage Events
+                </Button>
+                <Button
+                  onClick={() => window.location.href = '/admin/promotions'}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                >
+                  <Gift className="h-4 w-4 mr-2" />
+                  Promotions
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -403,7 +415,7 @@ export default function AdminPage() {
 
           {/* Admin Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-10">
+            <TabsList className="grid w-full grid-cols-11">
               <TabsTrigger value="overview">
                 Overview
               </TabsTrigger>
@@ -425,11 +437,16 @@ export default function AdminPage() {
               <TabsTrigger value="analytics">
                 Analytics
               </TabsTrigger>
-              <TabsTrigger value="points">
-                Points
-              </TabsTrigger>
+              {canAccessPointsManagement() && (
+                <TabsTrigger value="points">
+                  Points
+                </TabsTrigger>
+              )}
               <TabsTrigger value="elo">
                 ELO System
+              </TabsTrigger>
+              <TabsTrigger value="store-settings">
+                Store Settings
               </TabsTrigger>
               <TabsTrigger value="settings">
                 Settings
@@ -798,9 +815,9 @@ export default function AdminPage() {
                         <TableRow key={userData.uid} className="border-slate-700">
                           <TableCell className="text-white">
                             <div className="flex items-center space-x-3">
-                              {userData.avatar ? (
+                              {userData.avatarUrl || userData.avatar ? (
                                 <Image
-                                  src={userData.avatar}
+                                  src={(userData.avatarUrl || userData.avatar) as string}
                                   alt={userData.displayName}
                                   width={32}
                                   height={32}
@@ -880,10 +897,12 @@ export default function AdminPage() {
               <AnalyticsDashboard />
             </TabsContent>
 
-            {/* Points Tab */}
-            <TabsContent value="points" className="space-y-6">
-              <PointsManagement />
-            </TabsContent>
+            {/* Points Tab - Only accessible to President/Co-President */}
+            {canAccessPointsManagement() && (
+              <TabsContent value="points" className="space-y-6">
+                <PointsManagement />
+              </TabsContent>
+            )}
 
             {/* ELO System Tab */}
             <TabsContent value="elo" className="space-y-6">
@@ -898,6 +917,11 @@ export default function AdminPage() {
             {/* Roles Tab */}
             <TabsContent value="roles" className="space-y-6">
               <RoleManagement />
+            </TabsContent>
+
+            {/* Store Settings Tab */}
+            <TabsContent value="store-settings" className="space-y-6">
+              <StoreCreditSettingsManagement />
             </TabsContent>
 
             {/* Settings Tab */}
