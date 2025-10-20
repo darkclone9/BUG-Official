@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["sfo1", "cdg1"],
+  "functionFailoverRegions": ["sfo1", "cdg1", "hnd1", "lhr1"],
+  "functions": {
+    "app/**/*.ts": {
+      "memory": 1024,
+      "maxDuration": 10
+    },
+    "app/**/*.tsx": {
+      "memory": 1024,
+      "maxDuration": 10
+    },
+    "app/api/**/*.ts": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
+  "crons": []
+}
+
