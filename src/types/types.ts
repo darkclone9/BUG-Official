@@ -110,6 +110,7 @@ export interface Tournament {
   format: 'single_elimination' | 'double_elimination' | 'round_robin' | 'swiss';
   entryFee?: number;
   prizePool?: number;
+  imageUrl?: string; // Firebase Storage URL for tournament banner image
 }
 
 export interface BracketMatch {
@@ -934,4 +935,126 @@ export interface SocialPost {
   likeCount?: number;
   commentCount?: number;
   embedHtml?: string;               // For embedded content
+}
+
+// ============================================================================
+// TOURNAMENT BRACKET TYPES
+// ============================================================================
+
+/**
+ * Bracket format types
+ */
+export type BracketFormat = 'single-elimination' | 'double-elimination' | 'round-robin';
+
+/**
+ * Match state types
+ */
+export type MatchState = 'SCHEDULED' | 'LIVE' | 'DONE' | 'SCORE_DONE' | 'NO_SHOW' | 'WALK_OVER' | 'NO_PARTY';
+
+/**
+ * Participant status types
+ */
+export type ParticipantStatus = 'PLAYED' | 'NO_SHOW' | 'WALK_OVER' | 'NO_PARTY' | null;
+
+/**
+ * Seeding method types
+ */
+export type SeedingMethod = 'manual' | 'random' | 'ranked';
+
+/**
+ * Bracket participant
+ */
+export interface BracketParticipant {
+  id: string;                      // User ID or team ID
+  name: string;                    // Display name
+  seed?: number;                   // Seeding position (1, 2, 3, etc.)
+  isWinner: boolean;               // Whether this participant won the match
+  status: ParticipantStatus;       // Participant status
+  resultText?: string | null;      // Result text (e.g., "WON", "LOST", "2-1")
+  score?: number;                  // Numeric score
+}
+
+/**
+ * Tournament match
+ */
+export interface TournamentMatch {
+  id: string;                      // Unique match ID
+  name: string;                    // Match name (e.g., "Semi Final - Match 1")
+  tournamentId: string;            // Parent tournament ID
+  bracketId: string;               // Parent bracket ID
+  roundNumber: number;             // Round number (1, 2, 3, etc.)
+  tournamentRoundText?: string;    // Round text for display (e.g., "Quarter Finals")
+  matchNumber: number;             // Match number within the round
+  nextMatchId?: string | null;     // ID of next match (winner advances to)
+  nextLooserMatchId?: string | null; // ID of next match in loser bracket (double-elim only)
+  participants: BracketParticipant[]; // Match participants (usually 2)
+  state: MatchState;               // Current match state
+  startTime?: Date | null;         // Scheduled start time
+  endTime?: Date | null;           // Actual end time
+  location?: string | null;        // Physical location or game server
+  streamUrl?: string | null;       // Stream URL if match is being streamed
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;               // Admin who created the match
+  updatedBy?: string;              // Admin who last updated the match
+}
+
+/**
+ * Tournament bracket
+ */
+export interface TournamentBracket {
+  id: string;                      // Unique bracket ID
+  tournamentId: string;            // Parent tournament ID
+  name: string;                    // Bracket name (e.g., "Main Bracket", "Losers Bracket")
+  format: BracketFormat;           // Bracket format
+  totalRounds: number;             // Total number of rounds
+  participantCount: number;        // Number of participants
+  seedingMethod: SeedingMethod;    // How participants were seeded
+  matches: TournamentMatch[];      // All matches in the bracket
+  isActive: boolean;               // Whether bracket is currently active
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;               // Admin who created the bracket
+}
+
+/**
+ * Tournament with bracket support
+ */
+export interface Tournament {
+  id: string;                      // Unique tournament ID
+  eventId?: string;                // Optional: Link to event if tournament is part of an event
+  name: string;                    // Tournament name
+  description: string;             // Tournament description
+  game: GameType;                  // Game being played
+  format: BracketFormat;           // Tournament format
+  maxParticipants: number;         // Maximum number of participants
+  currentParticipants: number;     // Current number of registered participants
+  participantIds: string[];        // Array of participant user IDs
+  bracketId?: string;              // ID of the main bracket
+  brackets: TournamentBracket[];   // All brackets (main + losers for double-elim)
+  status: 'draft' | 'registration' | 'in-progress' | 'completed' | 'cancelled';
+  registrationStartDate: Date;     // When registration opens
+  registrationEndDate: Date;       // When registration closes
+  startDate: Date;                 // Tournament start date
+  endDate?: Date;                  // Tournament end date (optional, can be TBD)
+  prizePool?: string;              // Prize pool description
+  rules?: string;                  // Tournament rules
+  streamUrl?: string;              // Main stream URL
+  isPublic: boolean;               // Whether tournament is publicly visible
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;               // Admin who created the tournament
+  updatedBy?: string;              // Admin who last updated the tournament
+}
+
+/**
+ * Bracket generation options
+ */
+export interface BracketGenerationOptions {
+  format: BracketFormat;
+  participantIds: string[];
+  participantNames: string[];
+  seedingMethod: SeedingMethod;
+  tournamentId: string;
+  createdBy: string;
 }

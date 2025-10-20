@@ -1,0 +1,416 @@
+[
+  {
+    "id": "bracket_test-bracket-8",
+    "tournamentId": "test-bracket-8",
+    "format": "single_elimination",
+    "matches": [
+      {
+        "id": "test-bracket-8_M1",
+        "tournamentId": "test-bracket-8",
+        "round": 1,
+        "matchNumber": 1,
+        "bracket": "winners",
+        "player1Id": "testuser1",
+        "player2Id": "testuser2",
+        "player1Name": "Player 1",
+        "player2Name": "Player 2",
+        "winnerId": "testuser1",
+        "score": {
+          "player1": 2,
+          "player2": 0
+        },
+        "status": "completed",
+        "nextMatchId": "test-bracket-8_M5",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "completedAt": {
+          "_seconds": 1760721139,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760805739,
+          "_nanoseconds": 589000000
+        },
+        "location": "Main Hall"
+      },
+      {
+        "id": "test-bracket-8_M2",
+        "tournamentId": "test-bracket-8",
+        "round": 1,
+        "matchNumber": 2,
+        "bracket": "winners",
+        "player1Id": "testuser3",
+        "player2Id": "testuser4",
+        "player1Name": "Player 3",
+        "player2Name": "Player 4",
+        "winnerId": "testuser4",
+        "score": {
+          "player1": 1,
+          "player2": 2
+        },
+        "status": "completed",
+        "nextMatchId": "test-bracket-8_M5",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "completedAt": {
+          "_seconds": 1760721439,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760805739,
+          "_nanoseconds": 589000000
+        },
+        "location": "Main Hall"
+      },
+      {
+        "id": "test-bracket-8_M3",
+        "tournamentId": "test-bracket-8",
+        "round": 1,
+        "matchNumber": 3,
+        "bracket": "winners",
+        "player1Id": "testuser5",
+        "player2Id": "testuser6",
+        "player1Name": "Player 5",
+        "player2Name": "Player 6",
+        "status": "in_progress",
+        "score": {
+          "player1": 1,
+          "player2": 0
+        },
+        "nextMatchId": "test-bracket-8_M6",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760805739,
+          "_nanoseconds": 589000000
+        },
+        "location": "Arena 2"
+      },
+      {
+        "id": "test-bracket-8_M4",
+        "tournamentId": "test-bracket-8",
+        "round": 1,
+        "matchNumber": 4,
+        "bracket": "winners",
+        "player1Id": "testuser7",
+        "player2Id": "testuser8",
+        "player1Name": "Player 7",
+        "player2Name": "Player 8",
+        "status": "pending",
+        "nextMatchId": "test-bracket-8_M6",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760805739,
+          "_nanoseconds": 589000000
+        },
+        "location": "Arena 2"
+      },
+      {
+        "id": "test-bracket-8_M5",
+        "tournamentId": "test-bracket-8",
+        "round": 2,
+        "matchNumber": 5,
+        "bracket": "winners",
+        "status": "pending",
+        "nextMatchId": "test-bracket-8_M7",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760812939,
+          "_nanoseconds": 589000000
+        },
+        "location": "Main Hall"
+      },
+      {
+        "id": "test-bracket-8_M6",
+        "tournamentId": "test-bracket-8",
+        "round": 2,
+        "matchNumber": 6,
+        "bracket": "winners",
+        "status": "pending",
+        "nextMatchId": "test-bracket-8_M7",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760812939,
+          "_nanoseconds": 589000000
+        },
+        "location": "Arena 2"
+      },
+      {
+        "id": "test-bracket-8_M7",
+        "tournamentId": "test-bracket-8",
+        "round": 3,
+        "matchNumber": 7,
+        "bracket": "winners",
+        "status": "pending",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760820139,
+          "_nanoseconds": 589000000
+        },
+        "location": "Main Stage"
+      }
+    ],
+    "winnersMatches": [
+      {
+        "id": "test-bracket-8_M1",
+        "tournamentId": "test-bracket-8",
+        "round": 1,
+        "matchNumber": 1,
+        "bracket": "winners",
+        "player1Id": "testuser1",
+        "player2Id": "testuser2",
+        "player1Name": "Player 1",
+        "player2Name": "Player 2",
+        "winnerId": "testuser1",
+        "score": {
+          "player1": 2,
+          "player2": 0
+        },
+        "status": "completed",
+        "nextMatchId": "test-bracket-8_M5",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "completedAt": {
+          "_seconds": 1760721139,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760805739,
+          "_nanoseconds": 589000000
+        },
+        "location": "Main Hall"
+      },
+      {
+        "id": "test-bracket-8_M2",
+        "tournamentId": "test-bracket-8",
+        "round": 1,
+        "matchNumber": 2,
+        "bracket": "winners",
+        "player1Id": "testuser3",
+        "player2Id": "testuser4",
+        "player1Name": "Player 3",
+        "player2Name": "Player 4",
+        "winnerId": "testuser4",
+        "score": {
+          "player1": 1,
+          "player2": 2
+        },
+        "status": "completed",
+        "nextMatchId": "test-bracket-8_M5",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "completedAt": {
+          "_seconds": 1760721439,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760805739,
+          "_nanoseconds": 589000000
+        },
+        "location": "Main Hall"
+      },
+      {
+        "id": "test-bracket-8_M3",
+        "tournamentId": "test-bracket-8",
+        "round": 1,
+        "matchNumber": 3,
+        "bracket": "winners",
+        "player1Id": "testuser5",
+        "player2Id": "testuser6",
+        "player1Name": "Player 5",
+        "player2Name": "Player 6",
+        "status": "in_progress",
+        "score": {
+          "player1": 1,
+          "player2": 0
+        },
+        "nextMatchId": "test-bracket-8_M6",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760805739,
+          "_nanoseconds": 589000000
+        },
+        "location": "Arena 2"
+      },
+      {
+        "id": "test-bracket-8_M4",
+        "tournamentId": "test-bracket-8",
+        "round": 1,
+        "matchNumber": 4,
+        "bracket": "winners",
+        "player1Id": "testuser7",
+        "player2Id": "testuser8",
+        "player1Name": "Player 7",
+        "player2Name": "Player 8",
+        "status": "pending",
+        "nextMatchId": "test-bracket-8_M6",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760805739,
+          "_nanoseconds": 589000000
+        },
+        "location": "Arena 2"
+      },
+      {
+        "id": "test-bracket-8_M5",
+        "tournamentId": "test-bracket-8",
+        "round": 2,
+        "matchNumber": 5,
+        "bracket": "winners",
+        "status": "pending",
+        "nextMatchId": "test-bracket-8_M7",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760812939,
+          "_nanoseconds": 589000000
+        },
+        "location": "Main Hall"
+      },
+      {
+        "id": "test-bracket-8_M6",
+        "tournamentId": "test-bracket-8",
+        "round": 2,
+        "matchNumber": 6,
+        "bracket": "winners",
+        "status": "pending",
+        "nextMatchId": "test-bracket-8_M7",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760812939,
+          "_nanoseconds": 589000000
+        },
+        "location": "Arena 2"
+      },
+      {
+        "id": "test-bracket-8_M7",
+        "tournamentId": "test-bracket-8",
+        "round": 3,
+        "matchNumber": 7,
+        "bracket": "winners",
+        "status": "pending",
+        "createdAt": {
+          "_seconds": 1760719339,
+          "_nanoseconds": 589000000
+        },
+        "scheduledTime": {
+          "_seconds": 1760820139,
+          "_nanoseconds": 589000000
+        },
+        "location": "Main Stage"
+      }
+    ],
+    "totalRounds": 3,
+    "currentRound": 1,
+    "isComplete": false,
+    "createdAt": {
+      "_seconds": 1760719339,
+      "_nanoseconds": 589000000
+    },
+    "updatedAt": {
+      "_seconds": 1760719339,
+      "_nanoseconds": 589000000
+    }
+  },
+  {
+    "id": "bracket_tournament_1758947892212_jx5r09t7h",
+    "tournamentId": "tournament_1758947892212_jx5r09t7h",
+    "format": "single_elimination",
+    "matches": [
+      {
+        "id": "tournament_1758947892212_jx5r09t7h_match_1",
+        "tournamentId": "tournament_1758947892212_jx5r09t7h",
+        "round": 1,
+        "matchNumber": 1,
+        "bracket": "winners",
+        "player1Id": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+        "player2Id": "PYu1aTZ8Hsh4lKOsVktgmcxTQXn2",
+        "status": "pending",
+        "winnerId": null,
+        "createdAt": {
+          "_seconds": 1760638736,
+          "_nanoseconds": 358000000
+        },
+        "completedAt": null,
+        "scheduledTime": null,
+        "loserId": null,
+        "score": null,
+        "nextMatchId": null,
+        "nextLoserMatchId": null,
+        "player1Name": null,
+        "player2Name": null,
+        "location": null
+      }
+    ],
+    "winnersMatches": [
+      {
+        "id": "tournament_1758947892212_jx5r09t7h_match_1",
+        "tournamentId": "tournament_1758947892212_jx5r09t7h",
+        "round": 1,
+        "matchNumber": 1,
+        "bracket": "winners",
+        "player1Id": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+        "player2Id": "PYu1aTZ8Hsh4lKOsVktgmcxTQXn2",
+        "status": "pending",
+        "winnerId": null,
+        "createdAt": {
+          "_seconds": 1760638736,
+          "_nanoseconds": 358000000
+        },
+        "completedAt": null,
+        "scheduledTime": null,
+        "loserId": null,
+        "score": null,
+        "nextMatchId": null,
+        "nextLoserMatchId": null,
+        "player1Name": null,
+        "player2Name": null,
+        "location": null
+      }
+    ],
+    "totalRounds": 1,
+    "currentRound": 1,
+    "isComplete": false,
+    "createdAt": {
+      "_seconds": 1760638736,
+      "_nanoseconds": 358000000
+    },
+    "updatedAt": {
+      "_seconds": 1760638736,
+      "_nanoseconds": 358000000
+    }
+  }
+]

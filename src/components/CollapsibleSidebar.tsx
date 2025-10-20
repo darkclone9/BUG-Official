@@ -36,6 +36,7 @@ const navItems: NavItem[] = [
   { name: 'Messages', href: '/messages', icon: MessageCircle, requiresAuth: true },
   { name: 'Profile', href: '/profile', icon: User, requiresAuth: true },
   { name: 'Tournaments', href: '/tournaments', icon: Gamepad2 },
+  { name: 'Games', href: '/games', icon: Gamepad2 },
   { name: 'Events', href: '/events', icon: Calendar },
   { name: 'Quests', href: '/quests', icon: Target, requiresAuth: true },
   { name: 'Leaderboard', href: '/leaderboard', icon: BarChart3 },
@@ -43,6 +44,7 @@ const navItems: NavItem[] = [
   { name: 'Shop', href: '/shop', icon: ShoppingBag },
   { name: 'Search', href: '/search', icon: Search },
   { name: 'Admin', href: '/admin', icon: Settings, adminOnly: true, requiresAuth: true },
+  { name: 'Admin Quests', href: '/admin/quests', icon: Target, adminOnly: true, requiresAuth: true },
 ];
 
 export default function CollapsibleSidebar() {
@@ -83,7 +85,7 @@ export default function CollapsibleSidebar() {
       {/* Sidebar */}
       <div
         className={cn(
-          'fixed left-0 top-0 h-screen bg-background/95 backdrop-blur-md border-r border-border z-40 transition-all duration-300 ease-in-out',
+          'fixed left-0 top-0 h-screen bg-background/95 backdrop-blur-md border-r border-border z-40 transition-all duration-300 ease-in-out flex flex-col',
           isExpanded ? 'w-64' : 'w-16'
         )}
         onMouseEnter={() => setIsExpanded(true)}
@@ -101,8 +103,8 @@ export default function CollapsibleSidebar() {
           )}
         </div>
 
-        {/* Navigation Items */}
-        <nav className="py-4 space-y-1">
+        {/* Navigation Items - Scrollable */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-1 sidebar-scroll">
           {processedNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href ||

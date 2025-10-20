@@ -1,0 +1,56 @@
+[
+  {
+    "id": "08t17wEuRYc7SUzgrxly",
+    "type": "bug",
+    "title": "Harassment",
+    "description": "I witnessed Garrison Colvin Owens touching a minor",
+    "email": "garrisoncowens@gmail.com",
+    "userId": null,
+    "userName": "GOC",
+    "status": "new",
+    "url": "http://localhost:3000/leaderboard",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0",
+    "githubIssueNumber": 2,
+    "githubIssueUrl": "https://github.com/darkclone9/BUG-Official/issues/2",
+    "createdAt": {
+      "_seconds": 1760734437,
+      "_nanoseconds": 786000000
+    }
+  },
+  {
+    "id": "S7uL8hlAMK6Jvy71A9pi",
+    "type": "bug",
+    "title": "This is a test",
+    "description": "Testing",
+    "email": "garrisoncowens@gmail.com",
+    "userId": null,
+    "userName": "GOC",
+    "status": "new",
+    "url": "http://localhost:3003/",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0",
+    "githubIssueNumber": null,
+    "githubIssueUrl": null,
+    "createdAt": {
+      "_seconds": 1760638493,
+      "_nanoseconds": 990000000
+    }
+  },
+  {
+    "id": "zZoeBzsNam62xQg5L09r",
+    "type": "bug",
+    "title": "This is a test",
+    "description": "Testing a bug report",
+    "email": "garrisoncowens@gmail.com",
+    "userId": null,
+    "userName": "GOC",
+    "status": "new",
+    "url": "http://localhost:3003/",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0",
+    "githubIssueNumber": 1,
+    "githubIssueUrl": "https://github.com/darkclone9/BUG-Official/issues/1",
+    "createdAt": {
+      "_seconds": 1760638678,
+      "_nanoseconds": 434000000
+    }
+  }
+]

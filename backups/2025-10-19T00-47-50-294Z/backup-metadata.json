@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-10-19T00-47-50-294Z",
+  "collections": {
+    "admin_users": 8,
+    "announcements": 12,
+    "conversations": 4,
+    "feedback": 3,
+    "game_genres": 3,
+    "message_notifications": 1,
+    "messages": 1,
+    "points_transactions": 9,
+    "store_credit_multipliers": 2,
+    "store_credit_settings": 1,
+    "tournament_brackets": 2,
+    "tournament_messages": 1,
+    "tournament_registrations": 3,
+    "tournaments": 3,
+    "user_stats": 13,
+    "users": 23
+  },
+  "totalDocuments": 89,
+  "backupPath": "C:\\Users\\haley\\Desktop\\Belhaven Files (Classes)\\Personal Projects\\BUG Website\\BUG-Official\\backups\\2025-10-19T00-47-50-294Z"
+}

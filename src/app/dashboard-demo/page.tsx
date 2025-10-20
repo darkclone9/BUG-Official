@@ -54,7 +54,7 @@ export default function DashboardDemoPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={user?.avatar} alt={user?.displayName} />
+                <AvatarImage src={user?.avatarUrl || user?.avatar} alt={user?.displayName} />
                 <AvatarFallback className="text-lg">
                   {user?.displayName?.charAt(0).toUpperCase()}
                 </AvatarFallback>

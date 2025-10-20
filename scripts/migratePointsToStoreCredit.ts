@@ -1,14 +1,14 @@
 /**
  * Migration Script: Points to Store Credit
- * 
+ *
  * This script migrates the existing points system to the new store credit system.
  * Conversion rate: 200 points = $1.00 store credit
- * 
+ *
  * IMPORTANT: Run this script during a maintenance window with a full database backup.
- * 
+ *
  * Usage:
  *   npx ts-node scripts/migratePointsToStoreCredit.ts
- * 
+ *
  * Options:
  *   --dry-run: Preview changes without writing to database
  *   --batch-size=N: Process N users at a time (default: 50)
@@ -18,6 +18,12 @@ import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// ES module compatibility
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Configuration
 const CONVERSION_RATE = 200; // 200 points = $1.00 store credit
@@ -26,10 +32,10 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const BATCH_SIZE = parseInt(process.argv.find(arg => arg.startsWith('--batch-size='))?.split('=')[1] || String(DEFAULT_BATCH_SIZE));
 
 // Initialize Firebase Admin
-const serviceAccountPath = path.join(__dirname, '../serviceAccountKey.json');
+const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
 if (!fs.existsSync(serviceAccountPath)) {
   console.error('❌ Error: serviceAccountKey.json not found!');
-  console.error('Please download your Firebase service account key and place it in the project root.');
+  console.error('Please download your Firebase service account key and place it in the scripts folder.');
   process.exit(1);
 }
 
@@ -153,7 +159,7 @@ async function migrate() {
     console.log('⚠️  WARNING: This will modify the database!');
     console.log('⚠️  Make sure you have a backup before proceeding.');
     console.log('');
-    
+
     // Wait 5 seconds to allow cancellation
     console.log('Starting in 5 seconds... (Press Ctrl+C to cancel)');
     await new Promise(resolve => setTimeout(resolve, 5000));
@@ -237,4 +243,3 @@ migrate()
     console.error('\n❌ Migration failed:', error);
     process.exit(1);
   });
-

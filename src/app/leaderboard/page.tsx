@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -114,7 +113,6 @@ export default function LeaderboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -129,8 +127,6 @@ export default function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -277,7 +273,7 @@ export default function LeaderboardPage() {
                       </div>
 
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={player.avatar} alt={player.displayName} />
+                        <AvatarImage src={player.avatarUrl || player.avatar} alt={player.displayName} />
                         <AvatarFallback>
                           {player.displayName.charAt(0).toUpperCase()}
                         </AvatarFallback>

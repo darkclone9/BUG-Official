@@ -34,7 +34,9 @@ import {
     StoreCreditTransaction,
     StoreCreditMultiplier,
     WelcomeCreditPromotion,
-    WelcomeCreditRecipient
+    WelcomeCreditRecipient,
+    Quest,
+    UserQuest
 } from '@/types/types';
 import { BracketMatch, TournamentBracket, BracketGenerationOptions } from '@/types/bracket';
 import { BracketGenerator } from './bracketGenerator';
@@ -58,8 +60,7 @@ import {
     writeBatch,
     WriteBatch,
 } from 'firebase/firestore';
-import { db, storage } from './firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db } from './firebase';
 
 // User Management
 export const createUser = async (user: User): Promise<void> => {
@@ -327,7 +328,7 @@ export const getLeaderboard = async (gameType?: GameType, timeframe: 'all' | 'we
   return snapshot.docs.map((doc, index) => ({
     uid: doc.id,
     displayName: doc.data().displayName,
-    avatar: doc.data().avatar,
+    avatar: doc.data().avatarUrl || doc.data().avatar,
     points: doc.data().points,
     weeklyPoints: doc.data().weeklyPoints,
     monthlyPoints: doc.data().monthlyPoints,
@@ -563,7 +564,7 @@ export const searchUsers = async (searchTerm: string, limit_count: number = 10):
       title: doc.data().displayName,
       subtitle: doc.data().email,
       description: `${doc.data().points} points`,
-      avatar: doc.data().avatar,
+      avatar: doc.data().avatarUrl || doc.data().avatar,
       metadata: {
         points: doc.data().points,
         role: doc.data().role,
@@ -852,7 +853,7 @@ export const getEloLeaderboard = async (gameType?: GameType): Promise<Leaderboar
           leaderboard.push({
             uid: statDoc.id,
             displayName: userData.displayName,
-            avatar: userData.avatar,
+            avatar: userData.avatarUrl || userData.avatar,
             points: userData.points,
             weeklyPoints: userData.weeklyPoints,
             monthlyPoints: userData.monthlyPoints,
@@ -883,7 +884,7 @@ export const getEloLeaderboard = async (gameType?: GameType): Promise<Leaderboar
     return snapshot.docs.map((doc, index) => ({
       uid: doc.id,
       displayName: doc.data().displayName,
-      avatar: doc.data().avatar,
+      avatar: doc.data().avatarUrl || doc.data().avatar,
       points: doc.data().points,
       weeklyPoints: doc.data().weeklyPoints,
       monthlyPoints: doc.data().monthlyPoints,
@@ -1101,31 +1102,24 @@ export const createGameGenre = async (genre: Omit<GameGenre, 'id' | 'createdAt' 
 };
 
 export const getGameGenres = async (activeOnly: boolean = false): Promise<GameGenre[]> => {
-  let genresQuery;
-
-  if (activeOnly) {
-    genresQuery = query(
-      collection(db, 'game_genres'),
-      where('isActive', '==', true),
-      orderBy('displayOrder')
-    );
-  } else {
-    // For all genres, just get all documents and sort on client side
-    genresQuery = query(collection(db, 'game_genres'));
-  }
+  // Always get all documents and filter/sort on client side to avoid composite index requirement
+  const genresQuery = query(collection(db, 'game_genres'));
 
   const snapshot = await getDocs(genresQuery);
 
-  const genres = snapshot.docs.map(doc => ({
+  let genres = snapshot.docs.map(doc => ({
     ...doc.data(),
     createdAt: doc.data().createdAt.toDate(),
     updatedAt: doc.data().updatedAt.toDate(),
   })) as GameGenre[];
 
-  // Sort on client side if not using server-side ordering
-  if (!activeOnly) {
-    genres.sort((a, b) => a.displayOrder - b.displayOrder);
+  // Filter active genres if requested
+  if (activeOnly) {
+    genres = genres.filter(g => g.isActive === true);
   }
+
+  // Sort by displayOrder
+  genres.sort((a, b) => a.displayOrder - b.displayOrder);
 
   return genres;
 };
@@ -1233,18 +1227,84 @@ export const createTournamentBracket = async (
     updatedAt: new Date(),
   };
 
-  // Save bracket to Firestore
-  await setDoc(doc(db, 'tournament_brackets', bracket.id), {
-    ...bracket,
-    createdAt: Timestamp.fromDate(bracket.createdAt),
-    updatedAt: Timestamp.fromDate(bracket.updatedAt),
+  // Prepare data for Firestore (remove undefined values)
+  const firestoreData: Record<string, unknown> = {
+    id: bracket.id,
+    tournamentId: bracket.tournamentId,
+    format: bracket.format,
     matches: bracket.matches.map(match => ({
       ...match,
       createdAt: Timestamp.fromDate(match.createdAt),
       completedAt: match.completedAt ? Timestamp.fromDate(match.completedAt) : null,
       scheduledTime: match.scheduledTime ? Timestamp.fromDate(match.scheduledTime) : null,
+      // Remove undefined fields from matches
+      winnerId: match.winnerId || null,
+      loserId: match.loserId || null,
+      score: match.score || null,
+      nextMatchId: match.nextMatchId || null,
+      nextLoserMatchId: match.nextLoserMatchId || null,
+      player1Name: match.player1Name || null,
+      player2Name: match.player2Name || null,
+      location: match.location || null,
     })),
-  });
+    winnersMatches: bracket.winnersMatches.map(match => ({
+      ...match,
+      createdAt: Timestamp.fromDate(match.createdAt),
+      completedAt: match.completedAt ? Timestamp.fromDate(match.completedAt) : null,
+      scheduledTime: match.scheduledTime ? Timestamp.fromDate(match.scheduledTime) : null,
+      winnerId: match.winnerId || null,
+      loserId: match.loserId || null,
+      score: match.score || null,
+      nextMatchId: match.nextMatchId || null,
+      nextLoserMatchId: match.nextLoserMatchId || null,
+      player1Name: match.player1Name || null,
+      player2Name: match.player2Name || null,
+      location: match.location || null,
+    })),
+    totalRounds: bracket.totalRounds,
+    currentRound: bracket.currentRound,
+    isComplete: bracket.isComplete,
+    createdAt: Timestamp.fromDate(bracket.createdAt),
+    updatedAt: Timestamp.fromDate(bracket.updatedAt),
+  };
+
+  // Only add losersMatches and grandFinalMatch for double elimination
+  if (format === 'double_elimination' && bracket.losersMatches) {
+    firestoreData.losersMatches = bracket.losersMatches.map(match => ({
+      ...match,
+      createdAt: Timestamp.fromDate(match.createdAt),
+      completedAt: match.completedAt ? Timestamp.fromDate(match.completedAt) : null,
+      scheduledTime: match.scheduledTime ? Timestamp.fromDate(match.scheduledTime) : null,
+      winnerId: match.winnerId || null,
+      loserId: match.loserId || null,
+      score: match.score || null,
+      nextMatchId: match.nextMatchId || null,
+      nextLoserMatchId: match.nextLoserMatchId || null,
+      player1Name: match.player1Name || null,
+      player2Name: match.player2Name || null,
+      location: match.location || null,
+    }));
+  }
+
+  if (format === 'double_elimination' && bracket.grandFinalMatch) {
+    firestoreData.grandFinalMatch = {
+      ...bracket.grandFinalMatch,
+      createdAt: Timestamp.fromDate(bracket.grandFinalMatch.createdAt),
+      completedAt: bracket.grandFinalMatch.completedAt ? Timestamp.fromDate(bracket.grandFinalMatch.completedAt) : null,
+      scheduledTime: bracket.grandFinalMatch.scheduledTime ? Timestamp.fromDate(bracket.grandFinalMatch.scheduledTime) : null,
+      winnerId: bracket.grandFinalMatch.winnerId || null,
+      loserId: bracket.grandFinalMatch.loserId || null,
+      score: bracket.grandFinalMatch.score || null,
+      nextMatchId: bracket.grandFinalMatch.nextMatchId || null,
+      nextLoserMatchId: bracket.grandFinalMatch.nextLoserMatchId || null,
+      player1Name: bracket.grandFinalMatch.player1Name || null,
+      player2Name: bracket.grandFinalMatch.player2Name || null,
+      location: bracket.grandFinalMatch.location || null,
+    };
+  }
+
+  // Save bracket to Firestore
+  await setDoc(doc(db, 'tournament_brackets', bracket.id), firestoreData);
 
   return bracket;
 };
@@ -1255,16 +1315,32 @@ export const getTournamentBracket = async (tournamentId: string): Promise<Tourna
   if (!bracketDoc.exists()) return null;
 
   const data = bracketDoc.data();
+
+  // Helper function to convert match timestamps
+  const convertMatchTimestamps = (match: Record<string, unknown>) => ({
+    ...match,
+    createdAt: (match.createdAt as Timestamp).toDate(),
+    completedAt: match.completedAt ? (match.completedAt as Timestamp).toDate() : undefined,
+    scheduledTime: match.scheduledTime ? (match.scheduledTime as Timestamp).toDate() : undefined,
+  });
+
+  // Convert all matches
+  const convertedMatches = data.matches.map(convertMatchTimestamps);
+
+  // If winnersMatches is not set, derive it from matches array
+  const winnersMatches = data.winnersMatches?.map(convertMatchTimestamps) ||
+                         convertedMatches.filter((m: any) => m.bracket === 'winners');
+
   return {
     ...data,
     createdAt: data.createdAt.toDate(),
     updatedAt: data.updatedAt.toDate(),
-    matches: data.matches.map((match: Record<string, unknown>) => ({
-      ...match,
-      createdAt: (match.createdAt as Timestamp).toDate(),
-      completedAt: match.completedAt ? (match.completedAt as Timestamp).toDate() : undefined,
-      scheduledTime: match.scheduledTime ? (match.scheduledTime as Timestamp).toDate() : undefined,
-    })),
+    matches: convertedMatches,
+    winnersMatches,
+    losersMatches: data.losersMatches?.map(convertMatchTimestamps) ||
+                   convertedMatches.filter((m: any) => m.bracket === 'losers'),
+    grandFinalMatch: data.grandFinalMatch ? convertMatchTimestamps(data.grandFinalMatch) :
+                     convertedMatches.find((m: any) => m.bracket === 'grand_final'),
   } as TournamentBracket;
 };
 
@@ -2541,7 +2617,8 @@ export const convertPointsToStoreCredit = async (userId: string): Promise<{
   }
 
   const userData = userDoc.data();
-  const pointsBalance = userData.pointsBalance || 0;
+  // Use 'points' field (same as Leaderboard) for legacy points conversion
+  const pointsBalance = userData.points || 0;
 
   // Check if user has already converted
   if (userData.pointsConverted === true) {
@@ -2570,7 +2647,9 @@ export const convertPointsToStoreCredit = async (userId: string): Promise<{
   await updateDoc(userRef, {
     storeCreditBalance: increment(creditEarnedCents),
     storeCreditEarned: increment(creditEarnedCents),
-    pointsBalance: 0, // Zero out points
+    points: 0, // Zero out legacy points
+    weeklyPoints: 0, // Zero out weekly points
+    monthlyPoints: 0, // Zero out monthly points
     pointsConverted: true, // Mark as converted
     pointsBalance_legacy: pointsBalance, // Save original points for reference
   });
@@ -2686,6 +2765,93 @@ export const updateStoreCreditMultiplier = async (
  */
 export const deleteStoreCreditMultiplier = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, 'store_credit_multipliers', id));
+};
+
+/**
+ * Get pending store credit transactions for approval
+ */
+export const getPendingStoreCreditTransactions = async (): Promise<StoreCreditTransaction[]> => {
+  const transactionsQuery = query(
+    collection(db, 'store_credit_transactions'),
+    where('approvalStatus', '==', 'pending'),
+    orderBy('timestamp', 'desc')
+  );
+
+  const snapshot = await getDocs(transactionsQuery);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      timestamp: data.timestamp.toDate(),
+      approvedAt: data.approvedAt ? data.approvedAt.toDate() : undefined,
+    } as StoreCreditTransaction;
+  });
+};
+
+/**
+ * Approve a store credit transaction
+ */
+export const approveStoreCreditTransaction = async (
+  transactionId: string,
+  adminId: string
+): Promise<void> => {
+  const transactionRef = doc(db, 'store_credit_transactions', transactionId);
+  const transactionDoc = await getDoc(transactionRef);
+
+  if (!transactionDoc.exists()) {
+    throw new Error('Transaction not found');
+  }
+
+  const transactionData = transactionDoc.data() as StoreCreditTransaction;
+
+  // Update transaction status
+  await updateDoc(transactionRef, {
+    approvalStatus: 'approved',
+    approvedBy: adminId,
+    approvedAt: Timestamp.now(),
+  });
+
+  // Update user's store credit balance
+  const userRef = doc(db, 'users', transactionData.userId);
+  const userDoc = await getDoc(userRef);
+
+  if (userDoc.exists()) {
+    const userData = userDoc.data();
+    const currentBalance = userData.storeCreditBalance || 0;
+    const currentEarned = userData.storeCreditEarned || 0;
+    const monthlyEarned = userData.monthlyStoreCreditEarned || 0;
+
+    const updates: any = {
+      storeCreditBalance: currentBalance + transactionData.amountCents,
+    };
+
+    // Track earned (only for positive amounts)
+    if (transactionData.amountCents > 0) {
+      updates.storeCreditEarned = currentEarned + transactionData.amountCents;
+      updates.monthlyStoreCreditEarned = monthlyEarned + transactionData.amountCents;
+    }
+
+    await updateDoc(userRef, updates);
+  }
+};
+
+/**
+ * Deny a store credit transaction
+ */
+export const denyStoreCreditTransaction = async (
+  transactionId: string,
+  adminId: string,
+  reason: string
+): Promise<void> => {
+  const transactionRef = doc(db, 'store_credit_transactions', transactionId);
+
+  await updateDoc(transactionRef, {
+    approvalStatus: 'denied',
+    approvedBy: adminId,
+    approvedAt: Timestamp.now(),
+    deniedReason: reason,
+  });
 };
 
 // ============================================================================
@@ -3357,36 +3523,64 @@ export const updateUserProfile = async (
 };
 
 /**
- * Upload user avatar to Firebase Storage
+ * Upload user avatar to Cloudinary
  */
 export const uploadUserAvatar = async (
   userId: string,
-  file: File
+  file: File,
+  timeoutMs: number = 60000
 ): Promise<string> => {
   try {
     console.log('Starting avatar upload for user:', userId);
     console.log('File details:', { name: file.name, size: file.size, type: file.type });
 
-    const storageRef = ref(storage, `avatars/${userId}/${Date.now()}_${file.name}`);
-    console.log('Storage reference created:', storageRef.fullPath);
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      throw new Error('File must be an image');
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error('File size must be less than 5MB');
+    }
 
-    console.log('Uploading file to Firebase Storage...');
-    const snapshot = await uploadBytes(storageRef, file);
-    console.log('File uploaded successfully, getting download URL...');
+    // Create FormData for Cloudinary
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'user_avatars');
+    formData.append('public_id', `avatar_${userId}_${Date.now()}`);
 
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    console.log('Download URL obtained:', downloadURL);
+    console.log('Uploading file to Cloudinary...');
+
+    // Create upload promise with timeout
+    const uploadPromise = fetch(
+      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    ).then(res => res.json());
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Upload timeout - please try again')), timeoutMs)
+    );
+
+    const data = await Promise.race([uploadPromise, timeoutPromise]) as any;
+
+    if (data.error) {
+      throw new Error(data.error.message || 'Upload failed');
+    }
+
+    console.log('File uploaded successfully:', data.secure_url);
 
     // Update user document with new avatar URL
     console.log('Updating user document with avatar URL...');
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
-      avatarUrl: downloadURL,
+      avatarUrl: data.secure_url,
       updatedAt: Timestamp.now()
     });
     console.log('User document updated successfully');
 
-    return downloadURL;
+    return data.secure_url;
   } catch (error) {
     console.error('Error uploading avatar:', error);
     if (error instanceof Error) {
@@ -3398,36 +3592,64 @@ export const uploadUserAvatar = async (
 };
 
 /**
- * Upload profile banner to Firebase Storage
+ * Upload profile banner to Cloudinary
  */
 export const uploadProfileBanner = async (
   userId: string,
-  file: File
+  file: File,
+  timeoutMs: number = 60000
 ): Promise<string> => {
   try {
     console.log('Starting banner upload for user:', userId);
     console.log('File details:', { name: file.name, size: file.size, type: file.type });
 
-    const storageRef = ref(storage, `banners/${userId}/${Date.now()}_${file.name}`);
-    console.log('Storage reference created:', storageRef.fullPath);
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      throw new Error('File must be an image');
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('File size must be less than 10MB');
+    }
 
-    console.log('Uploading file to Firebase Storage...');
-    const snapshot = await uploadBytes(storageRef, file);
-    console.log('File uploaded successfully, getting download URL...');
+    // Create FormData for Cloudinary
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'profile_banners');
+    formData.append('public_id', `banner_${userId}_${Date.now()}`);
 
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    console.log('Download URL obtained:', downloadURL);
+    console.log('Uploading file to Cloudinary...');
+
+    // Create upload promise with timeout
+    const uploadPromise = fetch(
+      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    ).then(res => res.json());
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Upload timeout - please try again')), timeoutMs)
+    );
+
+    const data = await Promise.race([uploadPromise, timeoutPromise]) as any;
+
+    if (data.error) {
+      throw new Error(data.error.message || 'Upload failed');
+    }
+
+    console.log('File uploaded successfully:', data.secure_url);
 
     // Update user document with new banner URL
     console.log('Updating user document with banner URL...');
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
-      bannerUrl: downloadURL,
+      bannerUrl: data.secure_url,
       updatedAt: Timestamp.now()
     });
     console.log('User document updated successfully');
 
-    return downloadURL;
+    return data.secure_url;
   } catch (error) {
     console.error('Error uploading banner:', error);
     if (error instanceof Error) {
@@ -4055,5 +4277,441 @@ export const deleteTournamentMessage = async (
   } catch (error) {
     console.error('Error deleting tournament message:', error);
     throw error;
+  }
+};
+
+// ============================================================================
+// Quest System Functions
+// ============================================================================
+
+/**
+ * Get all active quests
+ */
+export const getActiveQuests = async (): Promise<Quest[]> => {
+  try {
+    // Query without composite index - sort in JavaScript instead
+    const questsQuery = query(
+      collection(db, 'quests'),
+      where('isActive', '==', true)
+    );
+    const snapshot = await getDocs(questsQuery);
+
+    const quests = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        createdAt: data.createdAt.toDate(),
+        updatedAt: data.updatedAt ? data.updatedAt.toDate() : undefined,
+        expiresAt: data.expiresAt ? data.expiresAt.toDate() : undefined,
+      } as Quest;
+    });
+
+    // Sort by category then createdAt in JavaScript
+    return quests.sort((a, b) => {
+      if (a.category !== b.category) {
+        return a.category.localeCompare(b.category);
+      }
+      return a.createdAt.getTime() - b.createdAt.getTime();
+    });
+  } catch (error) {
+    console.error('Error fetching active quests:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get user's quest progress for all quests
+ */
+export const getUserQuestProgress = async (userId: string): Promise<UserQuest[]> => {
+  try {
+    const userQuestsQuery = query(
+      collection(db, 'user_quests'),
+      where('userId', '==', userId)
+    );
+    const snapshot = await getDocs(userQuestsQuery);
+
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        startedAt: data.startedAt.toDate(),
+        lastUpdatedAt: data.lastUpdatedAt.toDate(),
+        completedAt: data.completedAt ? data.completedAt.toDate() : undefined,
+        rewardClaimedAt: data.rewardClaimedAt ? data.rewardClaimedAt.toDate() : undefined,
+        lastCompletedAt: data.lastCompletedAt ? data.lastCompletedAt.toDate() : undefined,
+        resetAt: data.resetAt ? data.resetAt.toDate() : undefined,
+      } as UserQuest;
+    });
+  } catch (error) {
+    console.error('Error fetching user quest progress:', error);
+    throw error;
+  }
+};
+
+/**
+ * Calculate user's current progress for a specific quest
+ */
+export const calculateQuestProgress = async (userId: string, quest: Quest): Promise<number> => {
+  try {
+    const user = await getUser(userId);
+    if (!user) return 0;
+
+    switch (quest.trackingKey) {
+      case 'account_created':
+        return 1; // If user exists, account is created
+
+      case 'profile_fields_completed': {
+        let completed = 0;
+        if (user.avatar) completed++;
+        if (user.bio && user.bio.trim().length > 0) completed++;
+        if (user.socialLinks && Object.keys(user.socialLinks).length > 0) completed++;
+        return completed;
+      }
+
+      case 'events_attended': {
+        // Count event registrations with 'attended' status
+        const registrationsQuery = query(
+          collection(db, 'event_registrations'),
+          where('userId', '==', userId),
+          where('status', '==', 'attended')
+        );
+        const snapshot = await getDocs(registrationsQuery);
+        return snapshot.size;
+      }
+
+      case 'tournaments_joined': {
+        // Count tournament registrations
+        const registrationsQuery = query(
+          collection(db, 'tournament_registrations'),
+          where('userId', '==', userId)
+        );
+        const snapshot = await getDocs(registrationsQuery);
+        return snapshot.size;
+      }
+
+      case 'matches_won': {
+        // Get user stats and return total wins
+        const userStats = await getUserStats(userId);
+        return userStats?.totalWins || 0;
+      }
+
+      case 'tournaments_won': {
+        // Count tournament results where user finished in position 1
+        const resultsQuery = query(
+          collection(db, 'tournament_results'),
+          where('playerId', '==', userId),
+          where('position', '==', 1)
+        );
+        const snapshot = await getDocs(resultsQuery);
+        return snapshot.size;
+      }
+
+      case 'shop_purchases': {
+        // Count completed orders
+        const ordersQuery = query(
+          collection(db, 'orders'),
+          where('userId', '==', userId),
+          where('status', '==', 'completed')
+        );
+        const snapshot = await getDocs(ordersQuery);
+        return snapshot.size;
+      }
+
+      case 'referrals': {
+        // Count users referred by this user
+        const referralsQuery = query(
+          collection(db, 'users'),
+          where('referredBy', '==', userId)
+        );
+        const snapshot = await getDocs(referralsQuery);
+        return snapshot.size;
+      }
+
+      default:
+        return 0;
+    }
+  } catch (error) {
+    console.error('Error calculating quest progress:', error);
+    return 0;
+  }
+};
+
+
+/**
+ * Update or create user quest progress
+ */
+export const updateQuestProgress = async (
+  userId: string,
+  questId: string,
+  currentProgress: number,
+  targetProgress: number
+): Promise<void> => {
+  try {
+    // Check if user quest progress already exists
+    const userQuestsQuery = query(
+      collection(db, 'user_quests'),
+      where('userId', '==', userId),
+      where('questId', '==', questId)
+    );
+    const snapshot = await getDocs(userQuestsQuery);
+
+    const isCompleted = currentProgress >= targetProgress;
+    const now = Timestamp.now();
+
+    if (snapshot.empty) {
+      // Create new user quest progress
+      await addDoc(collection(db, 'user_quests'), {
+        userId,
+        questId,
+        currentProgress,
+        targetProgress,
+        isCompleted,
+        completedAt: isCompleted ? now : null,
+        rewardClaimed: false,
+        rewardClaimedAt: null,
+        rewardCents: 0, // Will be set when reward is claimed
+        startedAt: now,
+        lastUpdatedAt: now,
+      });
+    } else {
+      // Update existing progress
+      const userQuestDoc = snapshot.docs[0];
+      const existingData = userQuestDoc.data();
+
+      await updateDoc(doc(db, 'user_quests', userQuestDoc.id), {
+        currentProgress,
+        targetProgress,
+        isCompleted,
+        completedAt: isCompleted && !existingData.isCompleted ? now : existingData.completedAt,
+        lastUpdatedAt: now,
+      });
+    }
+  } catch (error) {
+    console.error('Error updating quest progress:', error);
+    throw error;
+  }
+};
+
+/**
+ * Claim quest reward (award store credit)
+ */
+export const claimQuestReward = async (
+  userId: string,
+  questId: string
+): Promise<{ success: boolean; creditAwarded: number; message: string }> => {
+  try {
+    // Get the quest
+    const questDoc = await getDoc(doc(db, 'quests', questId));
+    if (!questDoc.exists()) {
+      return { success: false, creditAwarded: 0, message: 'Quest not found' };
+    }
+
+    const quest = {
+      ...questDoc.data(),
+      createdAt: questDoc.data().createdAt.toDate(),
+    } as Quest;
+
+    // Get user quest progress
+    const userQuestsQuery = query(
+      collection(db, 'user_quests'),
+      where('userId', '==', userId),
+      where('questId', '==', questId)
+    );
+    const snapshot = await getDocs(userQuestsQuery);
+
+    if (snapshot.empty) {
+      return { success: false, creditAwarded: 0, message: 'Quest progress not found' };
+    }
+
+    const userQuestDoc = snapshot.docs[0];
+    const userQuest = userQuestDoc.data();
+
+    // Check if quest is completed
+    if (!userQuest.isCompleted) {
+      return { success: false, creditAwarded: 0, message: 'Quest not completed yet' };
+    }
+
+    // Check if reward already claimed
+    if (userQuest.rewardClaimed) {
+      return { success: false, creditAwarded: 0, message: 'Reward already claimed' };
+    }
+
+    // Award store credit
+    const creditCents = quest.rewardCents;
+    const batch = writeBatch(db);
+
+    // Update user's store credit balance
+    const userRef = doc(db, 'users', userId);
+    batch.update(userRef, {
+      storeCreditCents: increment(creditCents),
+    });
+
+    // Create store credit transaction
+    const transactionRef = doc(collection(db, 'store_credit_transactions'));
+    batch.set(transactionRef, {
+      userId,
+      amountCents: creditCents,
+      type: 'earned',
+      source: 'quest_reward',
+      description: `Quest completed: ${quest.name}`,
+      questId,
+      createdAt: Timestamp.now(),
+      createdBy: userId,
+    });
+
+    // Mark reward as claimed
+    batch.update(doc(db, 'user_quests', userQuestDoc.id), {
+      rewardClaimed: true,
+      rewardClaimedAt: Timestamp.now(),
+      rewardCents: creditCents,
+    });
+
+    await batch.commit();
+
+    return {
+      success: true,
+      creditAwarded: creditCents / 100, // Convert to dollars
+      message: `Earned $${(creditCents / 100).toFixed(2)} store credit!`,
+    };
+  } catch (error) {
+    console.error('Error claiming quest reward:', error);
+    return { success: false, creditAwarded: 0, message: 'Failed to claim reward' };
+  }
+};
+
+/**
+ * Sync all quest progress for a user
+ * This should be called periodically or when user performs tracked actions
+ */
+export const syncUserQuestProgress = async (userId: string): Promise<void> => {
+  try {
+    const quests = await getActiveQuests();
+
+    for (const quest of quests) {
+      const currentProgress = await calculateQuestProgress(userId, quest);
+      await updateQuestProgress(userId, quest.id, currentProgress, quest.requirementTarget);
+    }
+  } catch (error) {
+    console.error('Error syncing user quest progress:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all quests (admin function)
+ */
+export const getAllQuests = async (): Promise<Quest[]> => {
+  try {
+    const questsQuery = query(
+      collection(db, 'quests'),
+      orderBy('category'),
+      orderBy('createdAt', 'asc')
+    );
+    const snapshot = await getDocs(questsQuery);
+
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        createdAt: data.createdAt.toDate(),
+        updatedAt: data.updatedAt ? data.updatedAt.toDate() : undefined,
+        expiresAt: data.expiresAt ? data.expiresAt.toDate() : undefined,
+      } as Quest;
+    });
+  } catch (error) {
+    console.error('Error fetching all quests:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new quest
+ */
+export const createQuest = async (questData: Omit<Quest, 'id' | 'createdAt' | 'updatedAt'>, createdBy: string): Promise<string> => {
+  try {
+    const now = Timestamp.now();
+    const docRef = await addDoc(collection(db, 'quests'), {
+      ...questData,
+      createdAt: now,
+      createdBy,
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating quest:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update an existing quest
+ */
+export const updateQuest = async (questId: string, questData: Partial<Quest>): Promise<void> => {
+  try {
+    const questRef = doc(db, 'quests', questId);
+    await updateDoc(questRef, {
+      ...questData,
+      updatedAt: Timestamp.now(),
+    });
+  } catch (error) {
+    console.error('Error updating quest:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a quest
+ */
+export const deleteQuest = async (questId: string): Promise<void> => {
+  try {
+    // Delete the quest
+    await deleteDoc(doc(db, 'quests', questId));
+
+    // Delete all user quest progress for this quest
+    const userQuestsQuery = query(
+      collection(db, 'user_quests'),
+      where('questId', '==', questId)
+    );
+    const snapshot = await getDocs(userQuestsQuery);
+
+    const batch = writeBatch(db);
+    snapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+  } catch (error) {
+    console.error('Error deleting quest:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get quest statistics (how many users completed, total rewards claimed)
+ */
+export const getQuestStats = async (questId: string): Promise<{ completedCount: number; rewardsClaimed: number }> => {
+  try {
+    const userQuestsQuery = query(
+      collection(db, 'user_quests'),
+      where('questId', '==', questId),
+      where('isCompleted', '==', true)
+    );
+    const snapshot = await getDocs(userQuestsQuery);
+
+    let rewardsClaimed = 0;
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.rewardClaimed) {
+        rewardsClaimed += data.rewardCents || 0;
+      }
+    });
+
+    return {
+      completedCount: snapshot.size,
+      rewardsClaimed,
+    };
+  } catch (error) {
+    console.error('Error getting quest stats:', error);
+    return { completedCount: 0, rewardsClaimed: 0 };
   }
 };

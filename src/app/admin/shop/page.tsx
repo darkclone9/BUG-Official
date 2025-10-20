@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Package,
-  Sparkles,
+  DollarSign,
   MapPin,
   ShoppingBag,
   Settings,
@@ -17,9 +17,9 @@ import {
 import Link from 'next/link';
 import OrderManagement from '@/components/admin/OrderManagement';
 import ProductManagement from '@/components/admin/ProductManagement';
-import PointsApproval from '@/components/admin/PointsApproval';
+import StoreCreditApproval from '@/components/admin/StoreCreditApproval';
 import PickupQueueManagement from '@/components/admin/PickupQueueManagement';
-import PointsSettings from '@/components/admin/PointsSettings';
+import StoreCreditSettings from '@/components/admin/StoreCreditSettings';
 
 export default function ShopAdminPage() {
   const router = useRouter();
@@ -52,7 +52,7 @@ export default function ShopAdminPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Shop Admin</h1>
-              <p className="text-muted-foreground">Manage shop, points, and orders</p>
+              <p className="text-muted-foreground">Manage shop, store credit, and orders</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" asChild>
@@ -90,15 +90,15 @@ export default function ShopAdminPage() {
               </>
             )}
             {permissions.canApprovePoints() && (
-              <TabsTrigger value="points-approval" className="gap-2">
-                <Sparkles className="h-4 w-4" />
-                Points Approval
+              <TabsTrigger value="credit-approval" className="gap-2">
+                <DollarSign className="h-4 w-4" />
+                Credit Approval
               </TabsTrigger>
             )}
             {permissions.canEditPointsSettings() && (
-              <TabsTrigger value="points-settings" className="gap-2">
+              <TabsTrigger value="credit-settings" className="gap-2">
                 <Settings className="h-4 w-4" />
-                Points Settings
+                Credit Settings
               </TabsTrigger>
             )}
           </TabsList>
@@ -124,17 +124,17 @@ export default function ShopAdminPage() {
             </TabsContent>
           )}
 
-          {/* Points Approval Tab */}
+          {/* Store Credit Approval Tab */}
           {permissions.canApprovePoints() && (
-            <TabsContent value="points-approval">
-              <PointsApproval />
+            <TabsContent value="credit-approval">
+              <StoreCreditApproval />
             </TabsContent>
           )}
 
-          {/* Points Settings Tab */}
+          {/* Store Credit Settings Tab */}
           {permissions.canEditPointsSettings() && (
-            <TabsContent value="points-settings">
-              <PointsSettings />
+            <TabsContent value="credit-settings">
+              <StoreCreditSettings />
             </TabsContent>
           )}
         </Tabs>

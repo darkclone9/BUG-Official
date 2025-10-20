@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
+import FeedbackButton from '@/components/FeedbackButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -399,6 +400,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Floating Feedback Button */}
+      <FeedbackButton variant="floating" showBubble={true} />
     </div>
   );
 }

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "default",
+    "perItemDiscountCap": 50,
+    "perOrderDiscountCap": 3000,
+    "monthlyEarningCap": 5000,
+    "earningValues": {
+      "eventAttendance": 100,
+      "volunteerWork": 250,
+      "eventHosting": 500,
+      "contributionMin": 50,
+      "contributionMax": 150
+    },
+    "updatedAt": {
+      "_seconds": 1760723977,
+      "_nanoseconds": 407000000
+    },
+    "updatedBy": "initialization_script"
+  }
+]

@@ -1,0 +1,186 @@
+[
+  {
+    "id": "1463Tji5SRhrPEFaYHxwgdWhdX22",
+    "createdBy": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "permissions": [
+      "manage_tournaments",
+      "manage_users",
+      "manage_announcements",
+      "view_analytics",
+      "manage_points"
+    ],
+    "isActive": true,
+    "lastActivity": {
+      "_seconds": 1758845326,
+      "_nanoseconds": 254000000
+    },
+    "createdAt": {
+      "_seconds": 1758845326,
+      "_nanoseconds": 254000000
+    },
+    "email": "",
+    "uid": "1463Tji5SRhrPEFaYHxwgdWhdX22",
+    "displayName": ""
+  },
+  {
+    "id": "AHHw2U0XT5hFVXaSIzTKtCVmZA53",
+    "uid": "AHHw2U0XT5hFVXaSIzTKtCVmZA53",
+    "email": "",
+    "displayName": "",
+    "permissions": [
+      "manage_tournaments",
+      "manage_users",
+      "manage_announcements",
+      "view_analytics",
+      "manage_points"
+    ],
+    "createdAt": {
+      "_seconds": 1759442123,
+      "_nanoseconds": 179000000
+    },
+    "createdBy": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "isActive": true,
+    "lastActivity": {
+      "_seconds": 1759442123,
+      "_nanoseconds": 179000000
+    }
+  },
+  {
+    "id": "CEtdeHNRSzMmNUaKvwfvmzRDEoG2",
+    "uid": "CEtdeHNRSzMmNUaKvwfvmzRDEoG2",
+    "email": "",
+    "displayName": "",
+    "permissions": [
+      "manage_tournaments",
+      "manage_users",
+      "manage_announcements",
+      "view_analytics",
+      "manage_points"
+    ],
+    "createdAt": {
+      "_seconds": 1759445474,
+      "_nanoseconds": 758000000
+    },
+    "createdBy": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "isActive": true,
+    "lastActivity": {
+      "_seconds": 1759445474,
+      "_nanoseconds": 758000000
+    }
+  },
+  {
+    "id": "FSclOLHVUbXMdNQJFvszS4JqS9v1",
+    "uid": "FSclOLHVUbXMdNQJFvszS4JqS9v1",
+    "email": "",
+    "displayName": "",
+    "permissions": [
+      "manage_tournaments",
+      "manage_users",
+      "manage_announcements",
+      "view_analytics",
+      "manage_points"
+    ],
+    "createdAt": {
+      "_seconds": 1759629312,
+      "_nanoseconds": 440000000
+    },
+    "createdBy": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "isActive": true,
+    "lastActivity": {
+      "_seconds": 1759629312,
+      "_nanoseconds": 440000000
+    }
+  },
+  {
+    "id": "LKRAvatyRVdXQqGP03xXv4xhT7f1",
+    "uid": "LKRAvatyRVdXQqGP03xXv4xhT7f1",
+    "email": "",
+    "displayName": "",
+    "permissions": [
+      "manage_tournaments",
+      "manage_users",
+      "manage_announcements",
+      "view_analytics",
+      "manage_points"
+    ],
+    "createdAt": {
+      "_seconds": 1759445476,
+      "_nanoseconds": 475000000
+    },
+    "createdBy": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "isActive": true,
+    "lastActivity": {
+      "_seconds": 1759445476,
+      "_nanoseconds": 475000000
+    }
+  },
+  {
+    "id": "PYu1aTZ8Hsh4lKOsVktgmcxTQXn2",
+    "uid": "PYu1aTZ8Hsh4lKOsVktgmcxTQXn2",
+    "email": "",
+    "displayName": "",
+    "permissions": [
+      "manage_tournaments",
+      "manage_users",
+      "manage_announcements",
+      "view_analytics",
+      "manage_points"
+    ],
+    "createdAt": {
+      "_seconds": 1759807487,
+      "_nanoseconds": 536000000
+    },
+    "createdBy": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "isActive": true,
+    "lastActivity": {
+      "_seconds": 1759807487,
+      "_nanoseconds": 536000000
+    }
+  },
+  {
+    "id": "SCKp7eyrwlMOpymWebuoTJa9JUi1",
+    "uid": "SCKp7eyrwlMOpymWebuoTJa9JUi1",
+    "email": "",
+    "displayName": "",
+    "permissions": [
+      "manage_tournaments",
+      "manage_users",
+      "manage_announcements",
+      "view_analytics",
+      "manage_points"
+    ],
+    "createdAt": {
+      "_seconds": 1759445475,
+      "_nanoseconds": 339000000
+    },
+    "createdBy": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "isActive": true,
+    "lastActivity": {
+      "_seconds": 1759445475,
+      "_nanoseconds": 339000000
+    }
+  },
+  {
+    "id": "SOGs0Hy1hiT9aU5EvRLgRZYwNXv1",
+    "uid": "SOGs0Hy1hiT9aU5EvRLgRZYwNXv1",
+    "email": "",
+    "displayName": "",
+    "permissions": [
+      "manage_tournaments",
+      "manage_users",
+      "manage_announcements",
+      "view_analytics",
+      "manage_points"
+    ],
+    "createdAt": {
+      "_seconds": 1759504466,
+      "_nanoseconds": 114000000
+    },
+    "createdBy": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "isActive": true,
+    "lastActivity": {
+      "_seconds": 1759504466,
+      "_nanoseconds": 114000000
+    }
+  }
+]

@@ -140,7 +140,7 @@ export default function SettingsPage() {
                     {/* Avatar Section */}
                     <div className="flex items-center space-x-6">
                       <Avatar className="h-20 w-20">
-                        <AvatarImage src={user?.avatar} alt={user?.displayName} />
+                        <AvatarImage src={user?.avatarUrl || user?.avatar} alt={user?.displayName} />
                         <AvatarFallback className="text-2xl bg-slate-600 text-white">
                           {user?.displayName?.charAt(0).toUpperCase()}
                         </AvatarFallback>

@@ -1,0 +1,197 @@
+[
+  {
+    "id": "1463Tji5SRhrPEFaYHxwgdWhdX22",
+    "winRate": 0,
+    "longestStreak": 0,
+    "lastUpdated": {
+      "_seconds": 1758843584,
+      "_nanoseconds": 897000000
+    },
+    "gameStats": {},
+    "currentStreak": 0,
+    "uid": "1463Tji5SRhrPEFaYHxwgdWhdX22",
+    "totalWins": 0,
+    "totalLosses": 0,
+    "totalGamesPlayed": 0
+  },
+  {
+    "id": "3eFSfwMyB3PoOpOVNBvJC32U8DH2",
+    "currentStreak": 0,
+    "gameStats": {},
+    "totalGamesPlayed": 0,
+    "lastUpdated": {
+      "_seconds": 1758945903,
+      "_nanoseconds": 662000000
+    },
+    "totalWins": 0,
+    "winRate": 0,
+    "uid": "3eFSfwMyB3PoOpOVNBvJC32U8DH2",
+    "longestStreak": 0,
+    "totalLosses": 0
+  },
+  {
+    "id": "AHHw2U0XT5hFVXaSIzTKtCVmZA53",
+    "lastUpdated": {
+      "_seconds": 1758949221,
+      "_nanoseconds": 64000000
+    },
+    "currentStreak": 0,
+    "longestStreak": 0,
+    "gameStats": {},
+    "totalGamesPlayed": 0,
+    "uid": "AHHw2U0XT5hFVXaSIzTKtCVmZA53",
+    "winRate": 0,
+    "totalLosses": 0,
+    "totalWins": 0
+  },
+  {
+    "id": "CEtdeHNRSzMmNUaKvwfvmzRDEoG2",
+    "totalWins": 0,
+    "gameStats": {},
+    "totalGamesPlayed": 0,
+    "winRate": 0,
+    "totalLosses": 0,
+    "lastUpdated": {
+      "_seconds": 1759442360,
+      "_nanoseconds": 973000000
+    },
+    "currentStreak": 0,
+    "longestStreak": 0,
+    "uid": "CEtdeHNRSzMmNUaKvwfvmzRDEoG2"
+  },
+  {
+    "id": "JSieUSGQnKaErTPIKln56TOgapb2",
+    "totalWins": 0,
+    "winRate": 0,
+    "lastUpdated": {
+      "_seconds": 1758941038,
+      "_nanoseconds": 42000000
+    },
+    "currentStreak": 0,
+    "totalGamesPlayed": 0,
+    "longestStreak": 0,
+    "gameStats": {},
+    "totalLosses": 0,
+    "uid": "JSieUSGQnKaErTPIKln56TOgapb2"
+  },
+  {
+    "id": "LKRAvatyRVdXQqGP03xXv4xhT7f1",
+    "uid": "LKRAvatyRVdXQqGP03xXv4xhT7f1",
+    "totalGamesPlayed": 0,
+    "totalWins": 0,
+    "totalLosses": 0,
+    "winRate": 0,
+    "currentStreak": 0,
+    "longestStreak": 0,
+    "gameStats": {},
+    "lastUpdated": {
+      "_seconds": 1759442328,
+      "_nanoseconds": 773000000
+    }
+  },
+  {
+    "id": "PYu1aTZ8Hsh4lKOsVktgmcxTQXn2",
+    "uid": "PYu1aTZ8Hsh4lKOsVktgmcxTQXn2",
+    "totalGamesPlayed": 0,
+    "totalWins": 0,
+    "totalLosses": 0,
+    "winRate": 0,
+    "currentStreak": 0,
+    "longestStreak": 0,
+    "gameStats": {},
+    "lastUpdated": {
+      "_seconds": 1759807378,
+      "_nanoseconds": 514000000
+    }
+  },
+  {
+    "id": "SCKp7eyrwlMOpymWebuoTJa9JUi1",
+    "totalWins": 0,
+    "currentStreak": 0,
+    "winRate": 0,
+    "gameStats": {},
+    "totalLosses": 0,
+    "totalGamesPlayed": 0,
+    "uid": "SCKp7eyrwlMOpymWebuoTJa9JUi1",
+    "lastUpdated": {
+      "_seconds": 1759442305,
+      "_nanoseconds": 690000000
+    },
+    "longestStreak": 0
+  },
+  {
+    "id": "SOGs0Hy1hiT9aU5EvRLgRZYwNXv1",
+    "uid": "SOGs0Hy1hiT9aU5EvRLgRZYwNXv1",
+    "totalGamesPlayed": 0,
+    "totalWins": 0,
+    "totalLosses": 0,
+    "winRate": 0,
+    "currentStreak": 0,
+    "longestStreak": 0,
+    "gameStats": {},
+    "lastUpdated": {
+      "_seconds": 1759445568,
+      "_nanoseconds": 359000000
+    }
+  },
+  {
+    "id": "Thhe6Wrb2xOWGvz0UGn90U22Jml1",
+    "lastUpdated": {
+      "_seconds": 1758909937,
+      "_nanoseconds": 566000000
+    },
+    "totalLosses": 0,
+    "longestStreak": 0,
+    "gameStats": {},
+    "totalWins": 0,
+    "uid": "Thhe6Wrb2xOWGvz0UGn90U22Jml1",
+    "totalGamesPlayed": 0,
+    "currentStreak": 0,
+    "winRate": 0
+  },
+  {
+    "id": "sFhsmGSrCLVls6NysUw6RKHtQqN2",
+    "lastUpdated": {
+      "_seconds": 1758904665,
+      "_nanoseconds": 66000000
+    },
+    "gameStats": {},
+    "longestStreak": 0,
+    "currentStreak": 0,
+    "totalWins": 0,
+    "totalLosses": 0,
+    "totalGamesPlayed": 0,
+    "winRate": 0,
+    "uid": "sFhsmGSrCLVls6NysUw6RKHtQqN2"
+  },
+  {
+    "id": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "currentStreak": 0,
+    "uid": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "totalGamesPlayed": 0,
+    "gameStats": {},
+    "lastUpdated": {
+      "_seconds": 1758843349,
+      "_nanoseconds": 903000000
+    },
+    "winRate": 0,
+    "totalLosses": 0,
+    "longestStreak": 0,
+    "totalWins": 0
+  },
+  {
+    "id": "wylfrYXz5RZEoj1ulgRD0z14eEt1",
+    "lastUpdated": {
+      "_seconds": 1758938496,
+      "_nanoseconds": 446000000
+    },
+    "winRate": 0,
+    "currentStreak": 0,
+    "totalWins": 0,
+    "longestStreak": 0,
+    "totalLosses": 0,
+    "totalGamesPlayed": 0,
+    "gameStats": {},
+    "uid": "wylfrYXz5RZEoj1ulgRD0z14eEt1"
+  }
+]

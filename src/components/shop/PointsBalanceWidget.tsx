@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserAvailablePoints } from '@/lib/database';
 import { formatPointsAsDiscount } from '@/lib/points';
@@ -90,13 +91,13 @@ export default function PointsBalanceWidget() {
 
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="flex-1" asChild>
-              <a href="/leaderboard">
+              <Link href="/leaderboard">
                 <TrendingUp className="h-4 w-4 mr-2" />
                 Earn More
-              </a>
+              </Link>
             </Button>
             <Button variant="outline" size="sm" className="flex-1" asChild>
-              <a href="/profile">View History</a>
+              <Link href="/profile">View History</Link>
             </Button>
           </div>
         </div>

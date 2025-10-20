@@ -282,7 +282,7 @@ export default function PlayersPage() {
                         <Link href={`/profile/${player.uid}`} className="block">
                           <div className="flex items-center space-x-3">
                             <Avatar className="h-8 w-8">
-                              <AvatarImage src={player.avatar} alt={player.displayName} />
+                              <AvatarImage src={player.avatarUrl || player.avatar} alt={player.displayName} />
                               <AvatarFallback>
                                 {player.displayName.charAt(0).toUpperCase()}
                               </AvatarFallback>

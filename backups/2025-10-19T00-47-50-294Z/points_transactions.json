@@ -1,0 +1,101 @@
+[
+  {
+    "id": "FByUUrB5qbfGzqGkzEBG",
+    "userId": "AHHw2U0XT5hFVXaSIzTKtCVmZA53",
+    "amount": 100,
+    "reason": "Attending Officer Meeting",
+    "adminId": "admin",
+    "timestamp": {
+      "_seconds": 1759769334,
+      "_nanoseconds": 625000000
+    }
+  },
+  {
+    "id": "FLlXIW2jyIGvvvMXaaIC",
+    "userId": "AHHw2U0XT5hFVXaSIzTKtCVmZA53",
+    "amount": 2,
+    "reason": "Participating in meeting",
+    "adminId": "admin",
+    "timestamp": {
+      "_seconds": 1759514100,
+      "_nanoseconds": 910000000
+    }
+  },
+  {
+    "id": "KZLjIRqOxXJRpDixvnCr",
+    "userId": "3eFSfwMyB3PoOpOVNBvJC32U8DH2",
+    "amount": 100,
+    "reason": "Attending Officer Meeting",
+    "adminId": "admin",
+    "timestamp": {
+      "_seconds": 1759769345,
+      "_nanoseconds": 691000000
+    }
+  },
+  {
+    "id": "Y2pqa1HLnxL64RCWrLvq",
+    "userId": "CEtdeHNRSzMmNUaKvwfvmzRDEoG2",
+    "amount": 100,
+    "reason": "Attending Officer Meeting",
+    "adminId": "admin",
+    "timestamp": {
+      "_seconds": 1759769358,
+      "_nanoseconds": 313000000
+    }
+  },
+  {
+    "id": "gLYwB0YOy0Fp36Z0SEjv",
+    "userId": "FSclOLHVUbXMdNQJFvszS4JqS9v1",
+    "amount": 100,
+    "reason": "Attending Officer Meeting",
+    "adminId": "admin",
+    "timestamp": {
+      "_seconds": 1759769340,
+      "_nanoseconds": 910000000
+    }
+  },
+  {
+    "id": "iUk7QDR59Wplp7OBJWED",
+    "userId": "LKRAvatyRVdXQqGP03xXv4xhT7f1",
+    "amount": 100,
+    "reason": "Attending Officer Meeting",
+    "adminId": "admin",
+    "timestamp": {
+      "_seconds": 1759769373,
+      "_nanoseconds": 92000000
+    }
+  },
+  {
+    "id": "oOn2S9Ii6pBjwsU35pyI",
+    "userId": "SCKp7eyrwlMOpymWebuoTJa9JUi1",
+    "amount": 100,
+    "reason": "Attending Officer Meeting",
+    "adminId": "admin",
+    "timestamp": {
+      "_seconds": 1759769368,
+      "_nanoseconds": 640000000
+    }
+  },
+  {
+    "id": "qibiKQVPtMOOnyWdPiSR",
+    "userId": "SOGs0Hy1hiT9aU5EvRLgRZYwNXv1",
+    "amount": 100,
+    "reason": "Attending Officer Meeting",
+    "adminId": "admin",
+    "timestamp": {
+      "_seconds": 1759769363,
+      "_nanoseconds": 648000000
+    }
+  },
+  {
+    "id": "xrVCwvz63k3g4On8D8lV",
+    "userId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "amount": 100,
+    "reason": "Attending Officer Meeting",
+    "adminId": "admin",
+    "timestamp": {
+      "_seconds": 1759769352,
+      "_nanoseconds": 86000000
+    }
+  }
+]

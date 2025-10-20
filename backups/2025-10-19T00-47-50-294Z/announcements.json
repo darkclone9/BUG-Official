@@ -1,0 +1,260 @@
+[
+  {
+    "id": "announcement_1758848699554",
+    "targetAudience": "all",
+    "priority": "normal",
+    "title": "This is a test announcement",
+    "updatedAt": null,
+    "content": "This is a test",
+    "authorName": "Garrison Owens",
+    "authorId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "readBy": [],
+    "expiresAt": {
+      "_seconds": 1758776400,
+      "_nanoseconds": 0
+    },
+    "createdAt": {
+      "_seconds": 1758848699,
+      "_nanoseconds": 554000000
+    },
+    "isActive": false
+  },
+  {
+    "id": "announcement_1758906243042",
+    "priority": "important",
+    "readBy": [],
+    "content": "This is a test to make sure this is working",
+    "authorName": "Garrison Owens",
+    "createdAt": {
+      "_seconds": 1758906243,
+      "_nanoseconds": 42000000
+    },
+    "targetAudience": "all",
+    "authorId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "isActive": false,
+    "title": "✅ UPDATED: Test announcement - Fixed!",
+    "expiresAt": null,
+    "updatedAt": {
+      "_seconds": 1758910450,
+      "_nanoseconds": 737000000
+    }
+  },
+  {
+    "id": "announcement_1758906281391",
+    "expiresAt": {
+      "_seconds": 1758862800,
+      "_nanoseconds": 0
+    },
+    "targetAudience": "all",
+    "title": "This is another test to check the broadcast feature",
+    "priority": "urgent",
+    "authorName": "Garrison Owens",
+    "updatedAt": null,
+    "authorId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "readBy": [],
+    "content": "This is another test to check the broadcast feature",
+    "createdAt": {
+      "_seconds": 1758906281,
+      "_nanoseconds": 391000000
+    },
+    "isActive": false
+  },
+  {
+    "id": "announcement_1758907437121",
+    "updatedAt": null,
+    "readBy": [],
+    "authorName": "Garrison Owens",
+    "createdAt": {
+      "_seconds": 1758907437,
+      "_nanoseconds": 121000000
+    },
+    "targetAudience": "all",
+    "content": "Our servers will be undergoing scheduled maintenance tonight from 11 PM to 3 AM EST. All tournaments and leaderboard updates will be temporarily unavailable during this time. Thank you for your patience!",
+    "priority": "broadcast",
+    "title": "🚨 URGENT: Server Maintenance Tonight",
+    "expiresAt": null,
+    "authorId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "dismissedBy": [
+      "w1HTwGnqTbO92Ax2KnoMKE0GlYS2"
+    ],
+    "isActive": false
+  },
+  {
+    "id": "announcement_1758908326529",
+    "expiresAt": null,
+    "priority": "broadcast",
+    "title": "🎮 NEW: Tournament Registration Open!",
+    "targetAudience": "all",
+    "updatedAt": null,
+    "content": "Registration is now open for our upcoming Mario Kart and Super Smash Bros tournaments! Sign up today to secure your spot and compete for amazing prizes. Limited spots available!",
+    "authorName": "Garrison Owens",
+    "readBy": [],
+    "createdAt": {
+      "_seconds": 1758908326,
+      "_nanoseconds": 529000000
+    },
+    "authorId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "dismissedBy": [
+      "w1HTwGnqTbO92Ax2KnoMKE0GlYS2"
+    ],
+    "isActive": false
+  },
+  {
+    "id": "announcement_1758909049531",
+    "authorId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "targetAudience": "all",
+    "expiresAt": null,
+    "authorName": "Garrison Owens",
+    "title": "🔥 LIVE: Winter Championship Starting Soon!",
+    "readBy": [],
+    "priority": "broadcast",
+    "createdAt": {
+      "_seconds": 1758909049,
+      "_nanoseconds": 531000000
+    },
+    "updatedAt": null,
+    "content": "The Winter Championship tournament is starting in 30 minutes! Join now to compete for the grand prize of $500 and exclusive gaming gear. Don't miss out on this epic competition!",
+    "dismissedBy": [
+      "w1HTwGnqTbO92Ax2KnoMKE0GlYS2"
+    ],
+    "isActive": false
+  },
+  {
+    "id": "announcement_1758909423909",
+    "authorName": "Garrison Owens",
+    "expiresAt": null,
+    "readBy": [],
+    "title": "This is a test announcement for the broadcast feature",
+    "authorId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "updatedAt": null,
+    "content": "Im testing this now",
+    "createdAt": {
+      "_seconds": 1758909423,
+      "_nanoseconds": 909000000
+    },
+    "priority": "broadcast",
+    "targetAudience": "all",
+    "dismissedBy": [
+      "w1HTwGnqTbO92Ax2KnoMKE0GlYS2"
+    ],
+    "isActive": false
+  },
+  {
+    "id": "announcement_1758909730417",
+    "expiresAt": null,
+    "readBy": [],
+    "createdAt": {
+      "_seconds": 1758909730,
+      "_nanoseconds": 417000000
+    },
+    "authorName": "Garrison Owens",
+    "authorId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "priority": "broadcast",
+    "targetAudience": "all",
+    "content": "This announcement is created to test the anti-flicker functionality. It should appear smoothly without any visual flickering when navigating between pages.",
+    "dismissedBy": [
+      "w1HTwGnqTbO92Ax2KnoMKE0GlYS2"
+    ],
+    "title": "🚀 NEW: Anti-Flicker Test Announcement Gary",
+    "updatedAt": {
+      "_seconds": 1758910543,
+      "_nanoseconds": 980000000
+    },
+    "isActive": false
+  },
+  {
+    "id": "announcement_1758910850024",
+    "content": "This broadcast announcement tests the anti-flicker fix. It should appear smoothly without any flashing behavior on page refresh or new tab loads.",
+    "authorName": "Garrison Owens",
+    "expiresAt": null,
+    "targetAudience": "all",
+    "authorId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "priority": "broadcast",
+    "readBy": [],
+    "createdAt": {
+      "_seconds": 1758910850,
+      "_nanoseconds": 24000000
+    },
+    "dismissedBy": [
+      "w1HTwGnqTbO92Ax2KnoMKE0GlYS2"
+    ],
+    "title": "🔧 FIXED: Anti-Flicker Broadcast Test Gary",
+    "updatedAt": {
+      "_seconds": 1758911421,
+      "_nanoseconds": 811000000
+    },
+    "isActive": false
+  },
+  {
+    "id": "announcement_1758911942249",
+    "authorName": "Garrison Owens",
+    "authorId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "content": "The Global Broadcast Bar is now working perfectly! This announcement demonstrates that the system correctly handles authentication timing, database queries, and dismissal functionality.",
+    "title": "🎉 RESOLVED: Global Broadcast Bar Issue Fixed!",
+    "readBy": [],
+    "targetAudience": "all",
+    "createdAt": {
+      "_seconds": 1758911942,
+      "_nanoseconds": 249000000
+    },
+    "expiresAt": null,
+    "priority": "broadcast",
+    "updatedAt": null,
+    "dismissedBy": [
+      "w1HTwGnqTbO92Ax2KnoMKE0GlYS2"
+    ],
+    "isActive": false
+  },
+  {
+    "id": "announcement_1758937937697",
+    "createdAt": {
+      "_seconds": 1758937937,
+      "_nanoseconds": 697000000
+    },
+    "expiresAt": null,
+    "authorName": "Garrison Owens",
+    "title": "This is a test",
+    "updatedAt": null,
+    "priority": "broadcast",
+    "authorId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "targetAudience": "all",
+    "content": "This is a test",
+    "readBy": [
+      "w1HTwGnqTbO92Ax2KnoMKE0GlYS2"
+    ],
+    "isActive": false
+  },
+  {
+    "id": "announcement_1759504227290",
+    "title": "Belhaven Gaming Us!",
+    "content": "Today marks the first time Belhaven Gaming steps into a new light!\nWelcome to BUG!",
+    "authorId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "authorName": "Garrison Owens",
+    "createdAt": {
+      "_seconds": 1759504227,
+      "_nanoseconds": 290000000
+    },
+    "isActive": true,
+    "priority": "broadcast",
+    "expiresAt": {
+      "_seconds": 1761886800,
+      "_nanoseconds": 0
+    },
+    "targetAudience": "all",
+    "updatedAt": null,
+    "readBy": [
+      "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+      "JSieUSGQnKaErTPIKln56TOgapb2",
+      "2fcSr1WcdNc0XMYA7Dmxv7ThaT62",
+      "AHHw2U0XT5hFVXaSIzTKtCVmZA53",
+      "1463Tji5SRhrPEFaYHxwgdWhdX22",
+      "PYu1aTZ8Hsh4lKOsVktgmcxTQXn2"
+    ],
+    "dismissedBy": [
+      "JSieUSGQnKaErTPIKln56TOgapb2",
+      "AHHw2U0XT5hFVXaSIzTKtCVmZA53",
+      "1463Tji5SRhrPEFaYHxwgdWhdX22",
+      "PYu1aTZ8Hsh4lKOsVktgmcxTQXn2"
+    ]
+  }
+]

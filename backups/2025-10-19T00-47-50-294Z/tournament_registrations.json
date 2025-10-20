@@ -1,0 +1,38 @@
+[
+  {
+    "id": "reg_1759442195133_v8b7k209r",
+    "tournamentId": "tournament_1758947892212_jx5r09t7h",
+    "userId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "userName": "Garrison Owens",
+    "userEmail": "garrisoncowens@gmail.com",
+    "registeredAt": {
+      "_seconds": 1759442195,
+      "_nanoseconds": 133000000
+    },
+    "status": "registered"
+  },
+  {
+    "id": "reg_1759807510313_fnjj1tann",
+    "tournamentId": "tournament_1758947892212_jx5r09t7h",
+    "userId": "PYu1aTZ8Hsh4lKOsVktgmcxTQXn2",
+    "userName": "Gabriel Denson",
+    "userEmail": "gabriel.denson2006@gmail.com",
+    "registeredAt": {
+      "_seconds": 1759807510,
+      "_nanoseconds": 313000000
+    },
+    "status": "registered"
+  },
+  {
+    "id": "reg_1760651822164_wtayjmfdn",
+    "tournamentId": "tournament_1760651811009_so5lq77qt",
+    "userId": "w1HTwGnqTbO92Ax2KnoMKE0GlYS2",
+    "userName": "GOC",
+    "userEmail": "garrisoncowens@gmail.com",
+    "registeredAt": {
+      "_seconds": 1760651822,
+      "_nanoseconds": 164000000
+    },
+    "status": "registered"
+  }
+]

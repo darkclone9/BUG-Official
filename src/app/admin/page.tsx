@@ -11,6 +11,7 @@ import GameGenreManagement from '@/components/admin/GameGenreManagement';
 import EloManagement from '@/components/admin/EloManagement';
 import PointsManagement from '@/components/admin/PointsManagement';
 import RoleManagement from '@/components/admin/RoleManagement';
+import StoreCreditSettingsManagement from '@/components/admin/StoreCreditSettingsManagement';
 import Navigation from '@/components/Navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Badge } from '@/components/ui/badge';
@@ -413,7 +414,7 @@ export default function AdminPage() {
 
           {/* Admin Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-10">
+            <TabsList className="grid w-full grid-cols-11">
               <TabsTrigger value="overview">
                 Overview
               </TabsTrigger>
@@ -442,6 +443,9 @@ export default function AdminPage() {
               )}
               <TabsTrigger value="elo">
                 ELO System
+              </TabsTrigger>
+              <TabsTrigger value="store-settings">
+                Store Settings
               </TabsTrigger>
               <TabsTrigger value="settings">
                 Settings
@@ -810,9 +814,9 @@ export default function AdminPage() {
                         <TableRow key={userData.uid} className="border-slate-700">
                           <TableCell className="text-white">
                             <div className="flex items-center space-x-3">
-                              {userData.avatar ? (
+                              {userData.avatarUrl || userData.avatar ? (
                                 <Image
-                                  src={userData.avatar}
+                                  src={userData.avatarUrl || userData.avatar}
                                   alt={userData.displayName}
                                   width={32}
                                   height={32}
@@ -912,6 +916,11 @@ export default function AdminPage() {
             {/* Roles Tab */}
             <TabsContent value="roles" className="space-y-6">
               <RoleManagement />
+            </TabsContent>
+
+            {/* Store Settings Tab */}
+            <TabsContent value="store-settings" className="space-y-6">
+              <StoreCreditSettingsManagement />
             </TabsContent>
 
             {/* Settings Tab */}

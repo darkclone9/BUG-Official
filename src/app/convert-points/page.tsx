@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getUser, convertPointsToStoreCredit } from '@/lib/database';
@@ -36,9 +37,10 @@ export default function ConvertPointsPage() {
     try {
       setLoading(true);
       const userData = await getUser(user.uid);
-      
+
       if (userData) {
-        setPointsBalance(userData.pointsBalance || 0);
+        // Use 'points' field (same as Leaderboard) for legacy points conversion
+        setPointsBalance(userData.points || 0);
         setStoreCreditBalance(userData.storeCreditBalance || 0);
         setAlreadyConverted(userData.pointsConverted === true);
       }
@@ -94,19 +96,27 @@ export default function ConvertPointsPage() {
   const estimatedCreditDisplay = formatCentsToDollars(estimatedCreditCents);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/80">
       <Navigation />
-      
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-4">
+
+      {/* Hero Section */}
+      <div className="relative bg-gradient-to-r from-green-500 via-green-600 to-yellow-500 text-white overflow-hidden py-12">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full mix-blend-multiply filter blur-3xl"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl"></div>
+        </div>
+
+        <div className="container max-w-4xl mx-auto px-4 relative z-10">
+          <h1 className="text-5xl font-bold mb-2">
             Convert Points to Store Credit
           </h1>
-          <p className="text-xl text-muted-foreground">
+          <p className="text-lg text-white/90">
             Upgrade your legacy points to the new store credit system
           </p>
         </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Success Message */}
         {converted && (
@@ -139,39 +149,39 @@ export default function ConvertPointsPage() {
         )}
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
-          {/* Current Points */}
-          <Card>
+          {/* Current Points - Yellow */}
+          <Card className="border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-yellow-50 to-yellow-100/50 dark:from-yellow-950/20 dark:to-yellow-900/10">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Star className="h-5 w-5 text-yellow-500" />
+              <CardTitle className="flex items-center gap-2 text-yellow-900 dark:text-yellow-100">
+                <Star className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
                 Legacy Points
               </CardTitle>
-              <CardDescription>Your current points balance</CardDescription>
+              <CardDescription className="text-yellow-700 dark:text-yellow-300">Your current points balance</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold text-yellow-600 dark:text-yellow-500">
+              <div className="text-4xl font-bold text-yellow-600 dark:text-yellow-400">
                 {pointsBalance.toLocaleString()}
               </div>
-              <p className="text-sm text-muted-foreground mt-2">
+              <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-2">
                 {pointsBalance === 0 ? 'No points to convert' : 'Available for conversion'}
               </p>
             </CardContent>
           </Card>
 
-          {/* Store Credit */}
-          <Card>
+          {/* Store Credit - Green */}
+          <Card className="border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-green-900 dark:text-green-100">
+                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                 Store Credit
               </CardTitle>
-              <CardDescription>Your current store credit balance</CardDescription>
+              <CardDescription className="text-green-700 dark:text-green-300">Your current store credit balance</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold text-primary">
+              <div className="text-4xl font-bold text-green-600 dark:text-green-400">
                 {formatCentsToDollars(storeCreditBalance)}
               </div>
-              <p className="text-sm text-muted-foreground mt-2">
+              <p className="text-sm text-green-700 dark:text-green-300 mt-2">
                 Direct dollar-for-dollar discount
               </p>
             </CardContent>
@@ -179,42 +189,42 @@ export default function ConvertPointsPage() {
         </div>
 
         {/* Conversion Info */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Conversion Details</CardTitle>
-            <CardDescription>How your points will be converted</CardDescription>
+        <Card className="mb-8 border-green-200 dark:border-green-800">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10">
+            <CardTitle className="text-green-900 dark:text-green-100">Conversion Details</CardTitle>
+            <CardDescription className="text-green-700 dark:text-green-300">How your points will be converted</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Conversion Rate */}
-            <div className="bg-muted/50 rounded-lg p-4 border border-border">
-              <h3 className="font-semibold text-foreground mb-3">Conversion Rate</h3>
+            <div className="bg-gradient-to-r from-yellow-50 to-yellow-100/50 dark:from-yellow-950/20 dark:to-yellow-900/10 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+              <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-3">Conversion Rate</h3>
               <div className="flex items-center justify-center gap-4 text-lg">
                 <div className="flex items-center gap-2">
-                  <Star className="h-5 w-5 text-yellow-500" />
-                  <span className="font-semibold">200 points</span>
+                  <Star className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                  <span className="font-semibold text-yellow-900 dark:text-yellow-100">200 points</span>
                 </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                <ArrowRight className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-primary" />
-                  <span className="font-semibold">$1.00 credit</span>
+                  <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <span className="font-semibold text-green-900 dark:text-green-100">$1.00 credit</span>
                 </div>
               </div>
             </div>
 
             {/* Estimated Conversion */}
             {pointsBalance > 0 && (
-              <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
-                <h3 className="font-semibold text-foreground mb-3">Your Conversion</h3>
+              <div className="bg-gradient-to-r from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                <h3 className="font-semibold text-green-900 dark:text-green-100 mb-3">Your Conversion</h3>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">You will receive</p>
-                    <p className="text-3xl font-bold text-primary mt-1">
+                    <p className="text-sm text-green-700 dark:text-green-300">You will receive</p>
+                    <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">
                       {estimatedCreditDisplay}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-muted-foreground">From</p>
-                    <p className="text-2xl font-semibold text-yellow-600 dark:text-yellow-500 mt-1">
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">From</p>
+                    <p className="text-2xl font-semibold text-yellow-600 dark:text-yellow-400 mt-1">
                       {pointsBalance.toLocaleString()} pts
                     </p>
                   </div>
@@ -239,7 +249,7 @@ export default function ConvertPointsPage() {
               <Button
                 onClick={handleConvert}
                 disabled={converting || converted || alreadyConverted || pointsBalance === 0}
-                className="w-full"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-medium"
                 size="lg"
               >
                 {converting ? (
@@ -266,11 +276,11 @@ export default function ConvertPointsPage() {
             {/* Action Buttons */}
             {(converted || alreadyConverted) && (
               <div className="flex gap-3 pt-2">
-                <Button variant="outline" className="flex-1" asChild>
-                  <a href="/shop">Go to Shop</a>
+                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium" asChild>
+                  <Link href="/shop">Go to Shop</Link>
                 </Button>
-                <Button variant="outline" className="flex-1" asChild>
-                  <a href="/profile">View Profile</a>
+                <Button className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-medium" asChild>
+                  <Link href="/profile">View Profile</Link>
                 </Button>
               </div>
             )}
@@ -278,9 +288,9 @@ export default function ConvertPointsPage() {
         </Card>
 
         {/* FAQ */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Frequently Asked Questions</CardTitle>
+        <Card className="border-yellow-200 dark:border-yellow-800">
+          <CardHeader className="bg-gradient-to-r from-yellow-50 to-yellow-100/50 dark:from-yellow-950/20 dark:to-yellow-900/10">
+            <CardTitle className="text-yellow-900 dark:text-yellow-100">Frequently Asked Questions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -313,4 +323,3 @@ export default function ConvertPointsPage() {
     </div>
   );
 }
-
