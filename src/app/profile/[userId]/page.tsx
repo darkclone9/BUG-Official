@@ -90,7 +90,8 @@ export default function UserProfilePage() {
   const canViewField = (field: keyof ProfilePrivacySettings): boolean => {
     if (isOwnProfile) return true;
     if (!profile?.privacySettings) return true;
-    return profile.privacySettings[field];
+    const value = profile.privacySettings[field];
+    return typeof value === 'boolean' ? value : true;
   };
 
   const formatDate = (date: Date): string => {
@@ -225,7 +226,7 @@ export default function UserProfilePage() {
                           Edit Profile
                         </Button>
                       </Link>
-                      {(profile.pointsBalance || 0) > 0 && !profile.pointsConverted && (
+                      {(profile.pointsBalance || 0) > 0 && !(profile as any).pointsConverted && (
                         <Link href="/convert-points">
                           <Button variant="outline" size="sm" className="border-yellow-300 dark:border-yellow-700">
                             <ArrowRight className="h-4 w-4 mr-2" />

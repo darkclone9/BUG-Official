@@ -208,7 +208,7 @@ export default function BracketEditor({
               connectorColorHighlight: BracketTheme.connectorColorHighlight,
             },
           }}
-          svgWrapper={({ children, ...props }) => (
+          svgWrapper={({ children, ...props }: any) => (
             <SVGViewer
               background={BracketTheme.svgBackground}
               SVGBackground={BracketTheme.svgBackground}
@@ -243,7 +243,7 @@ export default function BracketEditor({
               connectorColorHighlight: BracketTheme.connectorColorHighlight,
             },
           }}
-          svgWrapper={({ children, ...props }) => (
+          svgWrapper={({ children, ...props }: any) => (
             <SVGViewer
               background={BracketTheme.svgBackground}
               SVGBackground={BracketTheme.svgBackground}

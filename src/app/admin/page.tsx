@@ -817,7 +817,7 @@ export default function AdminPage() {
                             <div className="flex items-center space-x-3">
                               {userData.avatarUrl || userData.avatar ? (
                                 <Image
-                                  src={userData.avatarUrl || userData.avatar}
+                                  src={(userData.avatarUrl || userData.avatar) as string}
                                   alt={userData.displayName}
                                   width={32}
                                   height={32}

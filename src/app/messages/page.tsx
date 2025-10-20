@@ -318,7 +318,7 @@ function MessagesContent() {
                         >
                           <div className="flex items-start gap-3">
                             <Avatar className="h-12 w-12">
-                              <AvatarImage src={other.avatarUrl || other.avatar || undefined} alt={other.name} />
+                              <AvatarImage src={(other as any).avatarUrl || other.avatar || undefined} alt={other.name} />
                               <AvatarFallback>
                                 {other.name.charAt(0).toUpperCase()}
                               </AvatarFallback>
@@ -363,7 +363,7 @@ function MessagesContent() {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       <AvatarImage
-                        src={getOtherParticipant(selectedConversation).avatarUrl || getOtherParticipant(selectedConversation).avatar || undefined}
+                        src={(getOtherParticipant(selectedConversation) as any).avatarUrl || getOtherParticipant(selectedConversation).avatar || undefined}
                         alt={getOtherParticipant(selectedConversation).name}
                       />
                       <AvatarFallback>

@@ -36,11 +36,11 @@ export default function StoreCreditSettings() {
   };
 
   const handleSave = async () => {
-    if (!settings) return;
+    if (!settings || !user) return;
 
     try {
       setSaving(true);
-      await updateStoreCreditSettings(settings);
+      await updateStoreCreditSettings(settings, user.uid);
       toast.success('Settings saved successfully');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -96,9 +96,9 @@ export default function StoreCreditSettings() {
                 min="0"
                 max="100"
                 value={settings.perItemDiscountCap}
-                onChange={(e) => setSettings({ 
-                  ...settings, 
-                  perItemDiscountCap: parseInt(e.target.value) || 0 
+                onChange={(e) => setSettings({
+                  ...settings,
+                  perItemDiscountCap: parseInt(e.target.value) || 0
                 })}
               />
               <p className="text-xs text-muted-foreground mt-1">
@@ -114,9 +114,9 @@ export default function StoreCreditSettings() {
                 min="0"
                 step="0.01"
                 value={(settings.perOrderDiscountCap / 100).toFixed(2)}
-                onChange={(e) => setSettings({ 
-                  ...settings, 
-                  perOrderDiscountCap: Math.round(parseFloat(e.target.value) * 100) || 0 
+                onChange={(e) => setSettings({
+                  ...settings,
+                  perOrderDiscountCap: Math.round(parseFloat(e.target.value) * 100) || 0
                 })}
               />
               <p className="text-xs text-muted-foreground mt-1">
@@ -144,9 +144,9 @@ export default function StoreCreditSettings() {
                 min="0"
                 step="0.01"
                 value={(settings.monthlyEarningCap / 100).toFixed(2)}
-                onChange={(e) => setSettings({ 
-                  ...settings, 
-                  monthlyEarningCap: Math.round(parseFloat(e.target.value) * 100) || 0 
+                onChange={(e) => setSettings({
+                  ...settings,
+                  monthlyEarningCap: Math.round(parseFloat(e.target.value) * 100) || 0
                 })}
               />
               <p className="text-xs text-muted-foreground mt-1">
@@ -175,8 +175,8 @@ export default function StoreCreditSettings() {
                   min="0"
                   step="0.01"
                   value={(settings.earningValues.eventAttendance / 100).toFixed(2)}
-                  onChange={(e) => setSettings({ 
-                    ...settings, 
+                  onChange={(e) => setSettings({
+                    ...settings,
                     earningValues: {
                       ...settings.earningValues,
                       eventAttendance: Math.round(parseFloat(e.target.value) * 100) || 0
@@ -196,8 +196,8 @@ export default function StoreCreditSettings() {
                   min="0"
                   step="0.01"
                   value={(settings.earningValues.volunteerWork / 100).toFixed(2)}
-                  onChange={(e) => setSettings({ 
-                    ...settings, 
+                  onChange={(e) => setSettings({
+                    ...settings,
                     earningValues: {
                       ...settings.earningValues,
                       volunteerWork: Math.round(parseFloat(e.target.value) * 100) || 0
@@ -217,8 +217,8 @@ export default function StoreCreditSettings() {
                   min="0"
                   step="0.01"
                   value={(settings.earningValues.eventHosting / 100).toFixed(2)}
-                  onChange={(e) => setSettings({ 
-                    ...settings, 
+                  onChange={(e) => setSettings({
+                    ...settings,
                     earningValues: {
                       ...settings.earningValues,
                       eventHosting: Math.round(parseFloat(e.target.value) * 100) || 0
@@ -238,8 +238,8 @@ export default function StoreCreditSettings() {
                   min="0"
                   step="0.01"
                   value={(settings.earningValues.contributionMin / 100).toFixed(2)}
-                  onChange={(e) => setSettings({ 
-                    ...settings, 
+                  onChange={(e) => setSettings({
+                    ...settings,
                     earningValues: {
                       ...settings.earningValues,
                       contributionMin: Math.round(parseFloat(e.target.value) * 100) || 0
@@ -259,8 +259,8 @@ export default function StoreCreditSettings() {
                   min="0"
                   step="0.01"
                   value={(settings.earningValues.contributionMax / 100).toFixed(2)}
-                  onChange={(e) => setSettings({ 
-                    ...settings, 
+                  onChange={(e) => setSettings({
+                    ...settings,
                     earningValues: {
                       ...settings.earningValues,
                       contributionMax: Math.round(parseFloat(e.target.value) * 100) || 0
@@ -288,4 +288,3 @@ export default function StoreCreditSettings() {
     </div>
   );
 }
-

@@ -262,7 +262,7 @@ export default function PublicBracketDisplay({
               connectorColorHighlight: PublicBracketTheme.connectorColorHighlight,
             },
           }}
-          svgWrapper={({ children, ...props }) => (
+          svgWrapper={({ children, ...props }: any) => (
             <SVGViewer
               background={PublicBracketTheme.svgBackground}
               SVGBackground={PublicBracketTheme.svgBackground}
@@ -301,7 +301,7 @@ export default function PublicBracketDisplay({
               connectorColorHighlight: PublicBracketTheme.connectorColorHighlight,
             },
           }}
-          svgWrapper={({ children, ...props }) => (
+          svgWrapper={({ children, ...props }: any) => (
             <SVGViewer
               background={PublicBracketTheme.svgBackground}
               SVGBackground={PublicBracketTheme.svgBackground}

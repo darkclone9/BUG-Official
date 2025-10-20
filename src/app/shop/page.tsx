@@ -52,7 +52,7 @@ export default function ShopPage() {
     try {
       const userData = await getUser(user.uid);
       // Use 'points' field (same as Leaderboard) for legacy points check
-      setHasLegacyPoints((userData?.points || 0) > 0 && !userData?.pointsConverted);
+      setHasLegacyPoints((userData?.points || 0) > 0 && !(userData as any)?.pointsConverted);
     } catch (error) {
       console.error('Error checking legacy points:', error);
     }

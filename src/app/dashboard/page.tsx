@@ -159,7 +159,7 @@ export default function DashboardPage() {
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
           {/* Convert Points Banner */}
-          {user && (user.pointsBalance || 0) > 0 && !user.pointsConverted && (
+          {user && (user.pointsBalance || 0) > 0 && !(user as any).pointsConverted && (
             <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-950/30 dark:to-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -168,10 +168,10 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">
-                      You have {user.pointsBalance.toLocaleString()} legacy points!
+                      You have {(user.pointsBalance || 0).toLocaleString()} legacy points!
                     </h3>
                     <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                      Convert them to ${((user.pointsBalance / 200) * 1).toFixed(2)} store credit
+                      Convert them to ${(((user.pointsBalance || 0) / 200) * 1).toFixed(2)} store credit
                     </p>
                   </div>
                 </div>

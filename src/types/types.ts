@@ -93,7 +93,7 @@ export interface Tournament {
   registrationDeadline: Date;
   maxParticipants: number;
   participants: string[]; // User UIDs
-  brackets?: BracketMatch[];
+  brackets?: TournamentBracket[];
   rules: string[];
   status: 'upcoming' | 'ongoing' | 'completed';
   pointsAwarded: {
@@ -1017,35 +1017,7 @@ export interface TournamentBracket {
   createdBy: string;               // Admin who created the bracket
 }
 
-/**
- * Tournament with bracket support
- */
-export interface Tournament {
-  id: string;                      // Unique tournament ID
-  eventId?: string;                // Optional: Link to event if tournament is part of an event
-  name: string;                    // Tournament name
-  description: string;             // Tournament description
-  game: GameType;                  // Game being played
-  format: BracketFormat;           // Tournament format
-  maxParticipants: number;         // Maximum number of participants
-  currentParticipants: number;     // Current number of registered participants
-  participantIds: string[];        // Array of participant user IDs
-  bracketId?: string;              // ID of the main bracket
-  brackets: TournamentBracket[];   // All brackets (main + losers for double-elim)
-  status: 'draft' | 'registration' | 'in-progress' | 'completed' | 'cancelled';
-  registrationStartDate: Date;     // When registration opens
-  registrationEndDate: Date;       // When registration closes
-  startDate: Date;                 // Tournament start date
-  endDate?: Date;                  // Tournament end date (optional, can be TBD)
-  prizePool?: string;              // Prize pool description
-  rules?: string;                  // Tournament rules
-  streamUrl?: string;              // Main stream URL
-  isPublic: boolean;               // Whether tournament is publicly visible
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy: string;               // Admin who created the tournament
-  updatedBy?: string;              // Admin who last updated the tournament
-}
+// Duplicate Tournament interface removed - using the one defined earlier in the file
 
 /**
  * Bracket generation options

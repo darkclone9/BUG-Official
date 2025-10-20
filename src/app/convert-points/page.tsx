@@ -42,7 +42,7 @@ export default function ConvertPointsPage() {
         // Use 'points' field (same as Leaderboard) for legacy points conversion
         setPointsBalance(userData.points || 0);
         setStoreCreditBalance(userData.storeCreditBalance || 0);
-        setAlreadyConverted(userData.pointsConverted === true);
+        setAlreadyConverted((userData as any).pointsConverted === true);
       }
     } catch (error) {
       console.error('Error loading user data:', error);

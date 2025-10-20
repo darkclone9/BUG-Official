@@ -273,7 +273,7 @@ export default function LeaderboardPage() {
                       </div>
 
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={player.avatarUrl || player.avatar} alt={player.displayName} />
+                        <AvatarImage src={(player as any).avatarUrl || player.avatar} alt={player.displayName} />
                         <AvatarFallback>
                           {player.displayName.charAt(0).toUpperCase()}
                         </AvatarFallback>

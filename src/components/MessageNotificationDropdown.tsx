@@ -169,7 +169,7 @@ export default function MessageNotificationDropdown({ className }: MessageNotifi
                       >
                         <div className="flex items-start space-x-3">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={other.avatarUrl || other.avatar || undefined} alt={other.name} />
+                            <AvatarImage src={(other as any).avatarUrl || other.avatar || undefined} alt={other.name} />
                             <AvatarFallback>
                               {other.name.charAt(0).toUpperCase()}
                             </AvatarFallback>

@@ -143,13 +143,13 @@ export default function StoreCreditSettingsManagement() {
                 <Input
                   id="eventAttendanceCredit"
                   type="number"
-                  value={formData.eventAttendanceCredit || 0}
-                  onChange={(e) => handleInputChange('eventAttendanceCredit', e.target.value)}
+                  value={(formData as any).eventAttendanceCredit || 0}
+                  onChange={(e) => handleInputChange('eventAttendanceCredit' as any, e.target.value)}
                   placeholder="e.g., 500 for $5"
                   className="border-green-200 dark:border-green-800"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Credit awarded per event attendance: ${((formData.eventAttendanceCredit || 0) / 100).toFixed(2)}
+                  Credit awarded per event attendance: ${(((formData as any).eventAttendanceCredit || 0) / 100).toFixed(2)}
                 </p>
               </div>
 
@@ -161,13 +161,13 @@ export default function StoreCreditSettingsManagement() {
                 <Input
                   id="volunteerWorkCredit"
                   type="number"
-                  value={formData.volunteerWorkCredit || 0}
-                  onChange={(e) => handleInputChange('volunteerWorkCredit', e.target.value)}
+                  value={(formData as any).volunteerWorkCredit || 0}
+                  onChange={(e) => handleInputChange('volunteerWorkCredit' as any, e.target.value)}
                   placeholder="e.g., 1000 for $10"
                   className="border-green-200 dark:border-green-800"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Credit awarded per volunteer activity: ${((formData.volunteerWorkCredit || 0) / 100).toFixed(2)}
+                  Credit awarded per volunteer activity: ${(((formData as any).volunteerWorkCredit || 0) / 100).toFixed(2)}
                 </p>
               </div>
             </CardContent>
@@ -249,8 +249,8 @@ export default function StoreCreditSettingsManagement() {
                     <Input
                       id="pointsToCreditsRatio"
                       type="number"
-                      value={formData.pointsToCreditsRatio || 200}
-                      onChange={(e) => handleInputChange('pointsToCreditsRatio', e.target.value)}
+                      value={(formData as any).pointsToCreditsRatio || 200}
+                      onChange={(e) => handleInputChange('pointsToCreditsRatio' as any, e.target.value)}
                       placeholder="e.g., 200"
                       className="border-green-200 dark:border-green-800"
                     />
@@ -258,7 +258,7 @@ export default function StoreCreditSettingsManagement() {
                   <span className="text-foreground font-medium">points = $1.00</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {formData.pointsToCreditsRatio || 200} points = $1.00 store credit
+                  {(formData as any).pointsToCreditsRatio || 200} points = $1.00 store credit
                 </p>
               </div>
 

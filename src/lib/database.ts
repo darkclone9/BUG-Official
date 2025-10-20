@@ -4365,7 +4365,7 @@ export const calculateQuestProgress = async (userId: string, quest: Quest): Prom
         let completed = 0;
         if (user.avatar) completed++;
         if (user.bio && user.bio.trim().length > 0) completed++;
-        if (user.socialLinks && Object.keys(user.socialLinks).length > 0) completed++;
+        if ((user as any).socialLinks && Object.keys((user as any).socialLinks).length > 0) completed++;
         return completed;
       }
 
