@@ -168,7 +168,8 @@ export default function AdminPage() {
     const tournamentForModal: Tournament = {
       ...tournament,
       date: new Date(tournament.date),
-      participants: []
+      participants: [],
+      rules: tournament.rules || []
     };
     setSelectedTournament(tournamentForModal);
     setEditTournamentModalOpen(true);
