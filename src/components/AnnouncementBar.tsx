@@ -189,68 +189,68 @@ export default function AnnouncementBar({ className }: AnnouncementBarProps) {
       getPriorityStyles(currentAnnouncement.priority),
       className
     )}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between py-3">
-          {/* Navigation arrows for multiple announcements */}
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8">
+        <div className="flex items-center justify-between py-2 md:py-3">
+          {/* Navigation arrows for multiple announcements - Hidden on very small screens */}
           {announcements.length > 1 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handlePrevious}
-              className="text-current hover:bg-white/10 p-1 h-auto"
+              className="hidden sm:flex text-current hover:bg-white/10 p-1 h-auto"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           )}
 
           {/* Announcement content */}
-          <div className="flex-1 flex items-center justify-center space-x-3 min-w-0">
-            {/* Priority icon */}
+          <div className="flex-1 flex items-center justify-center space-x-2 sm:space-x-3 min-w-0">
+            {/* Priority icon - Smaller on mobile */}
             <div className="flex-shrink-0">
               {getPriorityIcon(currentAnnouncement.priority)}
             </div>
 
-            {/* Announcement text */}
+            {/* Announcement text - Responsive sizing */}
             <div className="flex-1 text-center min-w-0">
-              <p className="text-sm font-medium truncate">
+              <p className="text-xs sm:text-sm font-medium truncate">
                 <span className="font-semibold">{currentAnnouncement.title}</span>
                 {currentAnnouncement.content && (
                   <>
-                    <span className="mx-2">•</span>
-                    <span className="font-normal">{currentAnnouncement.content}</span>
+                    <span className="hidden sm:inline mx-2">•</span>
+                    <span className="hidden sm:inline font-normal">{currentAnnouncement.content}</span>
                   </>
                 )}
               </p>
             </div>
 
-            {/* Multiple announcements indicator */}
+            {/* Multiple announcements indicator - Hidden on very small screens */}
             {announcements.length > 1 && (
-              <div className="flex-shrink-0 text-xs opacity-75">
+              <div className="hidden sm:flex flex-shrink-0 text-xs opacity-75">
                 {currentIndex + 1} of {announcements.length}
               </div>
             )}
           </div>
 
-          {/* Navigation arrows for multiple announcements */}
+          {/* Navigation arrows for multiple announcements - Hidden on very small screens */}
           {announcements.length > 1 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleNext}
-              className="text-current hover:bg-white/10 p-1 h-auto"
+              className="hidden sm:flex text-current hover:bg-white/10 p-1 h-auto"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           )}
 
-          {/* Dismiss button */}
+          {/* Dismiss button - Smaller on mobile */}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => handleDismiss(currentAnnouncement.id)}
-            className="text-current hover:bg-white/10 p-1 h-auto ml-2"
+            className="text-current hover:bg-white/10 p-1 h-auto ml-1 sm:ml-2"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>
         </div>
       </div>

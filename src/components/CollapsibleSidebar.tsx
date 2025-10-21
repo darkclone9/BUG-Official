@@ -82,10 +82,10 @@ export default function CollapsibleSidebar() {
 
   return (
     <>
-      {/* Sidebar */}
+      {/* Sidebar - Hidden on mobile (< 768px), visible on tablet and desktop */}
       <div
         className={cn(
-          'fixed left-0 top-0 h-screen bg-background/95 backdrop-blur-md border-r border-border z-40 transition-all duration-300 ease-in-out flex flex-col',
+          'hidden md:fixed left-0 top-0 h-screen bg-background/95 backdrop-blur-md border-r border-border z-40 transition-all duration-300 ease-in-out md:flex flex-col',
           isExpanded ? 'w-64' : 'w-16'
         )}
         onMouseEnter={() => setIsExpanded(true)}
@@ -145,8 +145,8 @@ export default function CollapsibleSidebar() {
         </div>
       </div>
 
-      {/* Spacer to prevent content from going under sidebar */}
-      <div className={cn('transition-all duration-300', isExpanded ? 'ml-64' : 'ml-16')} />
+      {/* Spacer to prevent content from going under sidebar - Only on tablet and desktop */}
+      <div className={cn('transition-all duration-300', 'md:ml-16', isExpanded && 'md:ml-64')} />
     </>
   );
 }

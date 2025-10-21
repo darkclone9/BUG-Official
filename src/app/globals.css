@@ -161,6 +161,16 @@
     @apply bg-muted-foreground/60;
   }
 
+  /* Hide scrollbar utility for mobile horizontal scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
   /* Glass morphism effect for cards */
   .glass {
     backdrop-filter: blur(16px);

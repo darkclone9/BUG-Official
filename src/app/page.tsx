@@ -63,34 +63,34 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      {/* Hero Section */}
-      <section className="relative py-16 md:py-20 px-4 sm:px-6 lg:px-8">
+      {/* Hero Section - Optimized spacing for mobile */}
+      <section className="relative py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-4 md:mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 md:mb-6">
             Welcome to the
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
               {' '}Gaming Club
             </span>
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground mb-6 md:mb-8 max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 md:mb-8 max-w-3xl mx-auto px-2">
             Compete in Mario Kart and Super Smash Bros tournaments, climb the leaderboards, and prove your skills.
             Earn points, track your statistics, and become a legend in our gaming community.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center max-w-md sm:max-w-none mx-auto">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center max-w-md sm:max-w-none mx-auto px-2">
             <Link href="/register" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full px-6 md:px-8 py-3">
+              <Button size="lg" className="w-full px-6 md:px-8 py-3 min-h-[44px]">
                 <Gamepad2 className="mr-2 h-5 w-5" />
                 Join Now
               </Button>
             </Link>
             <Link href="/shop" className="w-full sm:w-auto">
-              <Button size="lg" variant="default" className="w-full px-6 md:px-8 py-3 bg-accent hover:bg-accent/90">
+              <Button size="lg" variant="default" className="w-full px-6 md:px-8 py-3 bg-accent hover:bg-accent/90 min-h-[44px]">
                 <ShoppingBag className="mr-2 h-5 w-5" />
                 Shop Merch
               </Button>
             </Link>
             <Link href="/tournaments" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="w-full px-6 md:px-8 py-3">
+              <Button size="lg" variant="outline" className="w-full px-6 md:px-8 py-3 min-h-[44px]">
                 <Trophy className="mr-2 h-5 w-5" />
                 View Tournaments
               </Button>

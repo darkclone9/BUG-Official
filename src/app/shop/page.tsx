@@ -201,15 +201,15 @@ export default function ShopPage() {
               />
             </div>
 
-            {/* Category Filter */}
-            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+            {/* Category Filter - Horizontally scrollable on mobile */}
+            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide snap-x snap-mandatory">
               {CATEGORIES.map((category) => (
                 <Button
                   key={category.value}
                   variant={selectedCategory === category.value ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setSelectedCategory(category.value)}
-                  className="whitespace-nowrap"
+                  className="whitespace-nowrap flex-shrink-0 snap-start"
                 >
                   {category.label}
                 </Button>

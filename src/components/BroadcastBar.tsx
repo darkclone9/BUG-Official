@@ -163,70 +163,70 @@ export default function BroadcastBar({ className }: BroadcastBarProps) {
       "shadow-lg",
       className
     )}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between py-4">
-          {/* Navigation arrows for multiple announcements */}
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8">
+        <div className="flex items-center justify-between py-2 md:py-3">
+          {/* Navigation arrows for multiple announcements - Hidden on very small screens */}
           {announcements.length > 1 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handlePrevious}
-              className="text-white hover:bg-white/10 p-1 h-auto flex-shrink-0"
+              className="hidden sm:flex text-white hover:bg-white/10 p-1 h-auto flex-shrink-0"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           )}
 
           {/* Broadcast content */}
-          <div className="flex-1 flex items-center justify-center space-x-4 min-w-0">
-            {/* Broadcast icon */}
+          <div className="flex-1 flex items-center justify-center space-x-2 sm:space-x-4 min-w-0">
+            {/* Broadcast icon - Smaller on mobile */}
             <div className="flex-shrink-0">
-              <Radio className="h-5 w-5 animate-pulse" />
+              <Radio className="h-4 w-4 sm:h-5 sm:w-5 animate-pulse" />
             </div>
 
-            {/* Announcement text */}
+            {/* Announcement text - Responsive sizing */}
             <div className="flex-1 text-center min-w-0">
-              <p className="text-sm font-medium">
+              <p className="text-xs sm:text-sm font-medium truncate sm:overflow-visible">
                 <span className="font-bold text-yellow-200">BROADCAST:</span>
-                <span className="mx-2 font-semibold">{currentAnnouncement.title}</span>
+                <span className="mx-1 sm:mx-2 font-semibold">{currentAnnouncement.title}</span>
                 {currentAnnouncement.content && (
                   <>
-                    <span className="mx-2">•</span>
-                    <span className="font-normal">{currentAnnouncement.content}</span>
+                    <span className="hidden sm:inline mx-2">•</span>
+                    <span className="hidden sm:inline font-normal">{currentAnnouncement.content}</span>
                   </>
                 )}
               </p>
             </div>
 
-            {/* Multiple announcements indicator */}
+            {/* Multiple announcements indicator - Hidden on very small screens */}
             {announcements.length > 1 && (
-              <div className="flex-shrink-0 text-xs opacity-75 bg-white/10 px-2 py-1 rounded">
+              <div className="hidden sm:flex flex-shrink-0 text-xs opacity-75 bg-white/10 px-2 py-1 rounded">
                 {currentIndex + 1} of {announcements.length}
               </div>
             )}
           </div>
 
-          {/* Navigation arrows for multiple announcements */}
+          {/* Navigation arrows for multiple announcements - Hidden on very small screens */}
           {announcements.length > 1 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleNext}
-              className="text-white hover:bg-white/10 p-1 h-auto flex-shrink-0"
+              className="hidden sm:flex text-white hover:bg-white/10 p-1 h-auto flex-shrink-0"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           )}
 
-          {/* Dismiss button */}
+          {/* Dismiss button - Smaller on mobile */}
           <Button
             variant="ghost"
             size="sm"
             onClick={handleDismiss}
-            className="text-white hover:bg-white/10 p-1 h-auto ml-2 flex-shrink-0"
+            className="text-white hover:bg-white/10 p-1 h-auto ml-1 sm:ml-2 flex-shrink-0"
             title="Dismiss broadcast"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>
         </div>
       </div>
